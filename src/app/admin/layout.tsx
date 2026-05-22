@@ -4,78 +4,111 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  LayoutDashboard,
+  FileText,
+  FilePlus,
+  LayoutTemplate,
+  Video,
+  Clapperboard,
+  Mic,
+  MessageSquare,
+  Mail,
+  Users,
+  Settings,
+  Moon,
+  Sun,
+  LogOut,
+  Menu,
+  ChevronRight,
+} from "lucide-react";
 import type { UserProfile } from "@/types";
-
-// ── SIDEBAR NAV ITEMS — all in Thaana ────────────────────
 
 const NAV = [
   {
     section: "ލިޔުންތައް",
     items: [
-      { href: "/admin", label: "ޑޭޝްބޯޑް", icon: "⊞" },
-      { href: "/admin/articles", label: "ހުރިހާ ލިޔުން", icon: "▤" },
-      { href: "/admin/articles/new", label: "އާ ލިޔުން", icon: "✎" },
+      { href: "/admin",               label: "ޑޭޝްބޯޑް",        icon: LayoutDashboard },
+      { href: "/admin/articles",      label: "ހުރިހާ ލިޔުން",    icon: FileText },
+      { href: "/admin/articles/new",  label: "އާ ލިޔުން",        icon: FilePlus },
     ],
   },
   {
     section: "ހޯމްޕޭޖް",
     items: [
-      { href: "/admin/homepage", label: "ލޭއައުޓް ކޮންޓްރޯލް", icon: "⊡" },
+      { href: "/admin/homepage", label: "ލޭއައުޓް", icon: LayoutTemplate },
     ],
   },
   {
     section: "ވީޑިއޯ",
     items: [
-      { href: "/admin/videos", label: "ވީޑިއޯތައް", icon: "▶" },
-      { href: "/admin/series", label: "ސީރީސް", icon: "≡" },
+      { href: "/admin/videos", label: "ވީޑިއޯތައް", icon: Video },
+      { href: "/admin/series", label: "ސީރީސް",     icon: Clapperboard },
     ],
   },
   {
     section: "ޕޮޑްކާސްޓް",
     items: [
-      { href: "/admin/podcast", label: "ޕޮޑްކާސްޓް", icon: "◎" },
+      { href: "/admin/podcast", label: "ޕޮޑްކާސްޓް", icon: Mic },
     ],
   },
   {
     section: "ކޮމިއުނިޓީ",
     items: [
-      { href: "/admin/comments", label: "ކޮމެންޓް", icon: "💬" },
-      { href: "/admin/subscribers", label: "ސަބްސްކްރައިބަރ", icon: "✉" },
+      { href: "/admin/comments",     label: "ކޮމެންޓް",       icon: MessageSquare },
+      { href: "/admin/subscribers",  label: "ސަބްސްކްރައިބަރ", icon: Mail },
     ],
   },
   {
     section: "ތިލަ",
     items: [
-      { href: "/admin/authors", label: "ލިޔުންތެރިން", icon: "◉" },
+      { href: "/admin/authors",  label: "ލިޔުންތެރިން", icon: Users },
     ],
   },
 ];
 
-// Editor-only nav (hidden from authors)
-const EDITOR_NAV = [
-  { href: "/admin/authors", label: "ލިޔުންތެރިން", icon: "◉" },
-];
+const ROLE_LABELS: Record<string, string> = {
+  admin:  "ތިލަ",
+  editor: "އެޑިޓަރ",
+  author: "ލިޔުންތެރިޔާ",
+  reader: "ކިޔުންތެރިޔާ",
+};
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+const BREADCRUMB_MAP: Record<string, string> = {
+  "/admin":               "ޑޭޝްބޯޑް",
+  "/admin/articles":      "ލިޔުންތައް",
+  "/admin/articles/new":  "އާ ލިޔުން",
+  "/admin/homepage":      "ހޯމްޕޭޖް",
+  "/admin/videos":        "ވީޑިއޯ",
+  "/admin/series":        "ސީރީސް",
+  "/admin/podcast":       "ޕޮޑްކާސްޓް",
+  "/admin/comments":      "ކޮމެންޓް",
+  "/admin/subscribers":   "ސަބްސްކްރައިބަރ",
+  "/admin/authors":       "ލިޔުންތެރިން",
+};
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const supabase = createClient();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [dark, setDark] = useState(false);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session) {
-        router.push("/login");
-        return;
-      }
+      if (!session) { router.push("/login"); return; }
 
       const { data: profile } = await supabase
         .from("user_profiles")
@@ -83,80 +116,77 @@ export default function AdminLayout({
         .eq("id", session.user.id)
         .single();
 
-      if (!profile || !["author", "editor", "admin"].includes(profile.role)) {
-        router.push("/");
-        return;
+      if (!profile || !["author","editor","admin"].includes(profile.role)) {
+        router.push("/"); return;
       }
-
       setUser(profile);
       setLoading(false);
     };
-
-    checkAuth();
+    init();
+    setDark(document.documentElement.classList.contains("dark"));
   }, []);
 
-  const handleSignOut = async () => {
+  const toggleDark = () => {
+    const isDark = document.documentElement.classList.toggle("dark");
+    localStorage.setItem("merihaanaa-theme", isDark ? "dark" : "light");
+    setDark(isDark);
+  };
+
+  const signOut = async () => {
     await supabase.auth.signOut();
     router.push("/login");
   };
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-neutral-50 dark:bg-neutral-900">
-        <div className="font-body text-neutral-400 text-sm">ލޯޑްވަނީ...</div>
+      <div className="h-screen flex items-center justify-center bg-background">
+        <p className="font-body text-muted-foreground text-sm">ލޯޑްވަނީ...</p>
       </div>
     );
   }
 
+  const breadcrumb = BREADCRUMB_MAP[pathname] || "ތިލަ";
+
   return (
-    <div className="h-screen flex overflow-hidden bg-neutral-50 dark:bg-neutral-900">
+    <div className="h-screen flex overflow-hidden bg-muted/30">
 
       {/* ── SIDEBAR ── */}
-      <aside
-        className={`
-          ${sidebarOpen ? "w-56" : "w-0 overflow-hidden"}
-          flex-shrink-0 bg-white dark:bg-neutral-900
-          border-l border-neutral-100 dark:border-neutral-800
-          flex flex-col transition-all duration-300
-        `}
-      >
+      <aside className={`
+        ${sidebarOpen ? "w-56" : "w-0 overflow-hidden"}
+        flex-shrink-0 bg-background border-l border-border
+        flex flex-col transition-all duration-300 ease-in-out
+      `}>
         {/* Logo */}
-        <div className="px-4 py-5 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
-          <Link href="/" className="font-display text-lg text-black dark:text-white">
+        <div className="px-4 py-4 border-b border-border flex items-center justify-between">
+          <Link href="/" className="font-display text-lg font-bold text-foreground hover:opacity-70 transition-opacity">
             މެރިހާނާ
           </Link>
-          <span className="text-2xs font-body text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded">
-            ތިލަ
-          </span>
+          <Badge variant="secondary" className="font-body text-[10px]">ތިލަ</Badge>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-2">
-          {NAV.map((section) => (
-            <div key={section.section} className="mb-1">
-              <div className="px-4 py-2 text-2xs font-body font-bold text-neutral-400 uppercase tracking-widest">
+        <nav className="flex-1 overflow-y-auto py-3 px-2">
+          {NAV.map((section, si) => (
+            <div key={section.section} className={si > 0 ? "mt-4" : ""}>
+              <p className="px-3 mb-1 font-body text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
                 {section.section}
-              </div>
+              </p>
               {section.items.map((item) => {
+                const Icon = item.icon;
                 const isActive = pathname === item.href;
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`
-                      flex items-center gap-2.5 px-4 py-2.5
-                      font-body text-sm transition-all duration-150
-                      border-r-2
+                  <Link key={item.href} href={item.href}>
+                    <div className={`
+                      flex items-center gap-2.5 px-3 py-2 rounded-lg mb-0.5
+                      font-body text-sm transition-all duration-150 cursor-pointer
                       ${isActive
-                        ? "bg-neutral-50 dark:bg-neutral-800 text-black dark:text-white font-bold border-r-black dark:border-r-white"
-                        : "text-neutral-500 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white border-r-transparent"
+                        ? "bg-foreground text-background font-semibold"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
                       }
-                    `}
-                  >
-                    <span className="text-sm w-4 text-center flex-shrink-0">
-                      {item.icon}
-                    </span>
-                    {item.label}
+                    `}>
+                      <Icon size={14} className="flex-shrink-0" />
+                      {item.label}
+                    </div>
                   </Link>
                 );
               })}
@@ -164,35 +194,35 @@ export default function AdminLayout({
           ))}
         </nav>
 
+        <Separator />
+
         {/* User */}
-        <div className="border-t border-neutral-100 dark:border-neutral-800 p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-sm font-body font-bold text-neutral-600 dark:text-neutral-400 flex-shrink-0">
-              {user?.full_name?.charAt(0) || "?"}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-body text-sm font-bold text-black dark:text-white truncate">
-                {user?.full_name || "ނަމެއްނެތް"}
+        <div className="p-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-muted cursor-pointer transition-colors">
+                <Avatar className="h-7 w-7 flex-shrink-0">
+                  <AvatarFallback className="font-body text-xs bg-muted-foreground/20">
+                    {user?.full_name?.charAt(0) || "?"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="font-body text-xs font-semibold text-foreground truncate">
+                    {user?.full_name || "ނަމެއްނެތް"}
+                  </p>
+                  <p className="font-body text-[10px] text-muted-foreground">
+                    {ROLE_LABELS[user?.role || "reader"]}
+                  </p>
+                </div>
               </div>
-              <div className="font-body text-2xs text-neutral-400 capitalize">
-                {
-                  {
-                    admin: "ތިލަ",
-                    editor: "އެޑިޓަރ",
-                    author: "ލިޔުންތެރިޔާ",
-                    reader: "ކިޔުންތެރިޔާ",
-                  }[user?.role || "reader"]
-                }
-              </div>
-            </div>
-            <button
-              onClick={handleSignOut}
-              className="text-neutral-400 hover:text-black dark:hover:text-white transition-colors text-xs font-body"
-              title="ލޮގްއައުޓް"
-            >
-              ↩
-            </button>
-          </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 font-body">
+              <DropdownMenuItem onClick={signOut} className="text-destructive gap-2">
+                <LogOut size={13} />
+                ލޮގްއައުޓް
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
 
@@ -200,33 +230,32 @@ export default function AdminLayout({
       <div className="flex-1 flex flex-col overflow-hidden">
 
         {/* Topbar */}
-        <header className="h-13 flex-shrink-0 bg-white dark:bg-neutral-900 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between px-6 gap-4">
+        <header className="h-12 flex-shrink-0 bg-background border-b border-border flex items-center justify-between px-4 gap-4">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="text-neutral-400 hover:text-black dark:hover:text-white transition-colors"
-            >
-              ☰
-            </button>
-            {/* Breadcrumb */}
-            <Breadcrumb pathname={pathname} />
+            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="h-8 w-8">
+              <Menu size={15} />
+            </Button>
+            <div className="flex items-center gap-1.5 font-body text-sm text-muted-foreground">
+              <span>ތިލަ</span>
+              <ChevronRight size={13} />
+              <span className="text-foreground font-semibold">{breadcrumb}</span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Dark mode toggle */}
-            <DarkModeToggle />
-
-            {/* New article shortcut */}
-            <Link
-              href="/admin/articles/new"
-              className="font-body text-sm font-bold bg-black dark:bg-white text-white dark:text-black px-4 py-2 rounded-lg hover:opacity-85 transition-opacity"
-            >
-              + އާ ލިޔުން
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={toggleDark} className="h-8 w-8">
+              {dark ? <Sun size={14} /> : <Moon size={14} />}
+            </Button>
+            <Link href="/admin/articles/new">
+              <Button size="sm" className="font-body text-xs gap-1.5 h-8">
+                <FilePlus size={13} />
+                އާ ލިޔުން
+              </Button>
             </Link>
           </div>
         </header>
 
-        {/* Page content */}
+        {/* Content */}
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>
@@ -235,55 +264,11 @@ export default function AdminLayout({
   );
 }
 
-// ── BREADCRUMB ────────────────────────────────────────────
-
-function Breadcrumb({ pathname }: { pathname: string }) {
-  const MAP: Record<string, string> = {
-    "/admin":                 "ޑޭޝްބޯޑް",
-    "/admin/articles":        "ލިޔުންތައް",
-    "/admin/articles/new":    "އާ ލިޔުން",
-    "/admin/homepage":        "ހޯމްޕޭޖް",
-    "/admin/videos":          "ވީޑިއޯ",
-    "/admin/series":          "ސީރީސް",
-    "/admin/podcast":         "ޕޮޑްކާސްޓް",
-    "/admin/comments":        "ކޮމެންޓް",
-    "/admin/subscribers":     "ސަބްސްކްރައިބަރ",
-    "/admin/authors":         "ލިޔުންތެރިން",
-  };
-
-  const label = MAP[pathname] || "ތިލަ";
-
+// Local Badge import for logo area
+function Badge({ children, variant, className }: { children: React.ReactNode; variant?: string; className?: string }) {
   return (
-    <div className="flex items-center gap-2 font-body text-sm">
-      <span className="text-neutral-400">ތިލަ</span>
-      <span className="text-neutral-300 dark:text-neutral-700">/</span>
-      <span className="text-black dark:text-white font-bold">{label}</span>
-    </div>
-  );
-}
-
-// ── DARK MODE TOGGLE ──────────────────────────────────────
-
-function DarkModeToggle() {
-  const [dark, setDark] = useState(false);
-
-  useEffect(() => {
-    setDark(document.documentElement.classList.contains("dark"));
-  }, []);
-
-  const toggle = () => {
-    const isDark = document.documentElement.classList.toggle("dark");
-    localStorage.setItem("merihaanaa-theme", isDark ? "dark" : "light");
-    setDark(isDark);
-  };
-
-  return (
-    <button
-      onClick={toggle}
-      className="text-neutral-400 hover:text-black dark:hover:text-white transition-colors text-base"
-      title={dark ? "ލައިޓް" : "ޑާކް"}
-    >
-      {dark ? "☀" : "◑"}
-    </button>
+    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground ${className}`}>
+      {children}
+    </span>
   );
 }
