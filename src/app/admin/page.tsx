@@ -1,10 +1,36 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import {
+  FileText,
+  FilePlus,
+  LayoutTemplate,
+  Video,
+  MessageSquare,
+  Users,
+  TrendingUp,
+  Eye,
+  PenLine,
+} from "lucide-react";
 import type { DashboardStats } from "@/types";
 
 async function getStats(): Promise<DashboardStats> {
   const supabase = await createServerSupabaseClient();
-
   const [
     { count: total_articles },
     { count: published_articles },
@@ -20,7 +46,6 @@ async function getStats(): Promise<DashboardStats> {
     supabase.from("comments").select("*", { count: "exact", head: true }).eq("is_approved", false),
     supabase.from("videos").select("*", { count: "exact", head: true }),
   ]);
-
   return {
     total_articles: total_articles || 0,
     published_articles: published_articles || 0,
@@ -41,6 +66,19 @@ async function getRecentArticles() {
   return data || [];
 }
 
+const PLACEMENT_MAP: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
+  hero:           { label: "ހީރޯ",    variant: "default" },
+  editors_choice: { label: "އެޑިޓަރ", variant: "default" },
+  review:         { label: "ރިވިއު",  variant: "secondary" },
+  reel:           { label: "ރީލް",    variant: "outline" },
+};
+
+const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
+  published: { label: "ލައިވް",    variant: "default" },
+  draft:     { label: "ޑްރާފްޓް", variant: "secondary" },
+  scheduled: { label: "ތިލަ",      variant: "outline" },
+};
+
 export default async function AdminDashboard() {
   const [stats, recentArticles] = await Promise.all([
     getStats(),
@@ -48,261 +86,211 @@ export default async function AdminDashboard() {
   ]);
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-6 space-y-6 max-w-6xl mx-auto">
 
-      {/* ── HEADER ── */}
-      <div className="flex items-start justify-between mb-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl text-black dark:text-white mb-1">
-            ޑޭޝްބޯޑް
-          </h1>
-          <p className="font-body text-sm text-neutral-400">
-            {new Date().toLocaleDateString("dv-MV", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
+          <h1 className="font-display text-2xl text-foreground">ޑޭޝްބޯޑް</h1>
+          <p className="font-body text-sm text-muted-foreground mt-0.5">
+            {new Date().toLocaleDateString("en-US", {
+              weekday: "long", year: "numeric",
+              month: "long", day: "numeric",
             })}
           </p>
         </div>
-        <Link
-          href="/admin/articles/new"
-          className="font-body text-sm font-bold bg-black dark:bg-white text-white dark:text-black px-5 py-2.5 rounded-xl hover:opacity-85 transition-opacity"
-        >
-          + އާ ލިޔުން
+        <Link href="/admin/articles/new">
+          <Button className="font-body gap-2">
+            <FilePlus size={14} />
+            އާ ލިޔުން
+          </Button>
         </Link>
       </div>
 
-      {/* ── STATS GRID ── */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <StatCard
-          label="ޖުމްލަ ލިޔުން"
-          value={stats.total_articles}
-          sub={`${stats.published_articles} ލައިވް`}
-          subColor="text-green-600"
-        />
-        <StatCard
-          label="ޑްރާފްޓް"
-          value={stats.draft_articles}
-          sub="ތައްޔާރުވަނީ"
-          subColor="text-neutral-400"
-        />
-        <StatCard
-          label="ސަބްސްކްރައިބަރ"
-          value={stats.total_subscribers}
-          sub="ނިއުސްލެޓަރ"
-          subColor="text-neutral-400"
-        />
-        <StatCard
-          label="ވީޑިއޯ"
-          value={stats.total_videos}
-          sub="ކްލައުޑްފްލެއަރ ސްޓްރީމް"
-          subColor="text-neutral-400"
-        />
-        <StatCard
-          label="ކޮމެންޓް"
-          value={stats.pending_comments}
-          sub="ތިލަ ބެލުން ބޭނުން"
-          subColor={stats.pending_comments > 0 ? "text-amber-600" : "text-neutral-400"}
-          href="/admin/comments"
-          alert={stats.pending_comments > 0}
-        />
-        <StatCard
-          label="ހޯމްޕޭޖް"
-          value="ލައިވް"
-          isText
-          sub="ލޭއައުޓް ބަލާ"
-          subColor="text-neutral-400"
-          href="/admin/homepage"
-        />
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="font-body text-sm font-medium text-muted-foreground">
+              ޖުމްލަ ލިޔުން
+            </CardTitle>
+            <FileText size={15} className="text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="font-body text-3xl font-bold">{stats.total_articles}</div>
+            <p className="font-body text-xs text-emerald-600 mt-1 flex items-center gap-1">
+              <TrendingUp size={11} />
+              {stats.published_articles} ލައިވް
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="font-body text-sm font-medium text-muted-foreground">
+              ޑްރާފްޓް
+            </CardTitle>
+            <PenLine size={15} className="text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="font-body text-3xl font-bold">{stats.draft_articles}</div>
+            <p className="font-body text-xs text-muted-foreground mt-1">ތައްޔާރުވަނީ</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="font-body text-sm font-medium text-muted-foreground">
+              ސަބްސްކްރައިބަރ
+            </CardTitle>
+            <Users size={15} className="text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="font-body text-3xl font-bold">{stats.total_subscribers}</div>
+            <p className="font-body text-xs text-muted-foreground mt-1">ނިއުސްލެޓަރ</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="font-body text-sm font-medium text-muted-foreground">
+              ވީޑިއޯ
+            </CardTitle>
+            <Video size={15} className="text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="font-body text-3xl font-bold">{stats.total_videos}</div>
+            <p className="font-body text-xs text-muted-foreground mt-1">ކްލައުޑްފްލެއަރ</p>
+          </CardContent>
+        </Card>
+
+        <Card className={stats.pending_comments > 0 ? "border-amber-300 dark:border-amber-800" : ""}>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="font-body text-sm font-medium text-muted-foreground">
+              ކޮމެންޓް
+            </CardTitle>
+            <MessageSquare size={15} className="text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="font-body text-3xl font-bold">{stats.pending_comments}</div>
+            <p className={`font-body text-xs mt-1 ${stats.pending_comments > 0 ? "text-amber-600" : "text-muted-foreground"}`}>
+              ތިލަ ބެލުން ބޭނުން
+            </p>
+          </CardContent>
+        </Card>
+
+        <Link href="/admin/homepage">
+          <Card className="cursor-pointer hover:border-foreground transition-colors h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="font-body text-sm font-medium text-muted-foreground">
+                ހޯމްޕޭޖް
+              </CardTitle>
+              <LayoutTemplate size={15} className="text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="font-body text-lg font-bold">ލޭއައުޓް</div>
+              <p className="font-body text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                <Eye size={11} />
+                ބަދަލުކޮށްލާ
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
-      {/* ── QUICK ACTIONS ── */}
-      <div className="grid grid-cols-4 gap-3 mb-8">
+      {/* Quick Actions */}
+      <div className="grid grid-cols-4 gap-3">
         {[
-          { href: "/admin/articles/new", label: "ލިޔުން ލިޔާ", icon: "✎" },
-          { href: "/admin/homepage", label: "ހޯމްޕޭޖް", icon: "⊡" },
-          { href: "/admin/videos", label: "ވީޑިއޯ", icon: "▶" },
-          { href: "/admin/comments", label: "ކޮމެންޓް", icon: "💬" },
-        ].map((action) => (
-          <Link
-            key={action.href}
-            href={action.href}
-            className="bg-white dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-700 rounded-xl p-4 flex items-center gap-3 hover:border-black dark:hover:border-white transition-colors group"
-          >
-            <span className="text-lg">{action.icon}</span>
-            <span className="font-body text-sm font-bold text-neutral-600 dark:text-neutral-300 group-hover:text-black dark:group-hover:text-white transition-colors">
-              {action.label}
-            </span>
-          </Link>
-        ))}
+          { href: "/admin/articles/new", label: "ލިޔުން ލިޔާ",  icon: FilePlus },
+          { href: "/admin/homepage",     label: "ހޯމްޕޭޖް",     icon: LayoutTemplate },
+          { href: "/admin/videos",       label: "ވީޑިއޯ",        icon: Video },
+          { href: "/admin/comments",     label: "ކޮމެންޓް",      icon: MessageSquare },
+        ].map((a) => {
+          const Icon = a.icon;
+          return (
+            <Link key={a.href} href={a.href}>
+              <Card className="cursor-pointer hover:border-foreground transition-colors">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <Icon size={16} className="text-muted-foreground flex-shrink-0" />
+                  <span className="font-body text-sm font-semibold">{a.label}</span>
+                </CardContent>
+              </Card>
+            </Link>
+          );
+        })}
       </div>
 
-      {/* ── RECENT ARTICLES ── */}
-      <div className="bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 rounded-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-100 dark:border-neutral-800">
-          <h2 className="font-body text-base font-bold text-black dark:text-white">
+      {/* Recent Articles */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between py-4">
+          <CardTitle className="font-body text-base font-semibold">
             ފަހުގެ ލިޔުންތައް
-          </h2>
-          <Link
-            href="/admin/articles"
-            className="font-body text-sm text-neutral-400 hover:text-black dark:hover:text-white transition-colors"
-          >
-            ހުރިހާ ←
+          </CardTitle>
+          <Link href="/admin/articles">
+            <Button variant="ghost" size="sm" className="font-body text-xs">
+              ހުރިހާ ←
+            </Button>
           </Link>
-        </div>
-
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-neutral-100 dark:border-neutral-800">
-              <th className="text-right px-6 py-3 font-body text-2xs font-bold text-neutral-400 uppercase tracking-wider">
-                ލިޔުން
-              </th>
-              <th className="text-right px-4 py-3 font-body text-2xs font-bold text-neutral-400 uppercase tracking-wider">
-                ހޯމްޕޭޖް ތަން
-              </th>
-              <th className="text-right px-4 py-3 font-body text-2xs font-bold text-neutral-400 uppercase tracking-wider">
-                ހާލަތު
-              </th>
-              <th className="text-left px-6 py-3 font-body text-2xs font-bold text-neutral-400 uppercase tracking-wider">
-                ޢަމަލު
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {recentArticles.map((article, i) => (
-              <tr
-                key={article.id}
-                className={`
-                  border-b border-neutral-50 dark:border-neutral-800
-                  hover:bg-neutral-50 dark:hover:bg-neutral-800
-                  transition-colors
-                  ${i === recentArticles.length - 1 ? "border-b-0" : ""}
-                `}
-              >
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    {article.featured_image ? (
-                      <img
-                        src={article.featured_image}
-                        alt=""
-                        className="w-12 h-9 object-cover rounded flex-shrink-0"
-                      />
+        </CardHeader>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="font-body text-xs">ލިޔުން</TableHead>
+              <TableHead className="font-body text-xs">ހޯމްޕޭޖް ތަން</TableHead>
+              <TableHead className="font-body text-xs">ހާލަތު</TableHead>
+              <TableHead className="font-body text-xs text-left">ޢަމަލު</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {recentArticles.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-12 font-body text-sm text-muted-foreground">
+                  ލިޔުމެއް ނެތް — + އާ ލިޔުން ފަށާ
+                </TableCell>
+              </TableRow>
+            ) : (
+              recentArticles.map((article) => (
+                <TableRow key={article.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      {article.featured_image ? (
+                        <img src={article.featured_image} alt="" className="w-12 h-9 object-cover rounded flex-shrink-0" />
+                      ) : (
+                        <div className="w-12 h-9 bg-muted rounded flex-shrink-0" />
+                      )}
+                      <span className="font-body text-sm font-medium line-clamp-1">
+                        {article.title}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {article.homepage_placement ? (
+                      <Badge variant={PLACEMENT_MAP[article.homepage_placement]?.variant || "outline"} className="font-body text-xs">
+                        {PLACEMENT_MAP[article.homepage_placement]?.label}
+                      </Badge>
                     ) : (
-                      <div className="w-12 h-9 bg-neutral-100 dark:bg-neutral-800 rounded flex-shrink-0" />
+                      <span className="text-muted-foreground text-xs">—</span>
                     )}
-                    <span className="font-body text-sm font-bold text-black dark:text-white line-clamp-1">
-                      {article.title}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-4 py-4">
-                  <PlacementBadge placement={article.homepage_placement} />
-                </td>
-                <td className="px-4 py-4">
-                  <StatusBadge status={article.status} />
-                </td>
-                <td className="px-6 py-4 text-left">
-                  <Link
-                    href={`/admin/articles/${article.id}`}
-                    className="font-body text-xs font-bold text-neutral-500 hover:text-black dark:hover:text-white border border-neutral-200 dark:border-neutral-700 rounded-lg px-3 py-1.5 transition-colors"
-                  >
-                    އެޑިޓް
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={STATUS_MAP[article.status]?.variant || "outline"} className="font-body text-xs">
+                      {STATUS_MAP[article.status]?.label}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-left">
+                    <Link href={`/admin/articles/${article.id}`}>
+                      <Button variant="outline" size="sm" className="font-body text-xs h-7 gap-1.5">
+                        <PenLine size={11} />
+                        އެޑިޓް
+                      </Button>
+                    </Link>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Card>
     </div>
-  );
-}
-
-// ── SUB COMPONENTS ────────────────────────────────────────
-
-function StatCard({
-  label, value, sub, subColor, href, alert, isText,
-}: {
-  label: string;
-  value: number | string;
-  sub: string;
-  subColor: string;
-  href?: string;
-  alert?: boolean;
-  isText?: boolean;
-}) {
-  const content = (
-    <div
-      className={`
-        bg-white dark:bg-neutral-900
-        border rounded-2xl p-5
-        ${alert
-          ? "border-amber-200 dark:border-amber-900"
-          : "border-neutral-100 dark:border-neutral-800"
-        }
-        ${href ? "hover:border-black dark:hover:border-white transition-colors cursor-pointer" : ""}
-      `}
-    >
-      <div className="font-body text-xs text-neutral-400 mb-3">{label}</div>
-      <div
-        className={`
-          mb-1
-          ${isText
-            ? "font-body text-lg font-bold text-black dark:text-white"
-            : "font-body text-3xl font-bold text-black dark:text-white tabular-nums"
-          }
-        `}
-      >
-        {value}
-      </div>
-      <div className={`font-body text-xs ${subColor}`}>{sub}</div>
-    </div>
-  );
-
-  if (href) return <Link href={href}>{content}</Link>;
-  return content;
-}
-
-function PlacementBadge({ placement }: { placement: string | null }) {
-  if (!placement) {
-    return (
-      <span className="font-body text-xs text-neutral-300 dark:text-neutral-700">
-        —
-      </span>
-    );
-  }
-
-  const MAP: Record<string, { label: string; className: string }> = {
-    hero:          { label: "ހީރޯ",        className: "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300" },
-    editors_choice:{ label: "އެޑިޓަރ",     className: "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300" },
-    review:        { label: "ރިވިއު",       className: "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300" },
-    reel:          { label: "ރީލް",         className: "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300" },
-  };
-
-  const badge = MAP[placement];
-  if (!badge) return null;
-
-  return (
-    <span className={`font-body text-xs font-bold px-2.5 py-1 rounded-full ${badge.className}`}>
-      {badge.label}
-    </span>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const MAP: Record<string, { label: string; className: string }> = {
-    published: { label: "ލައިވް",    className: "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300" },
-    draft:     { label: "ޑްރާފްޓް", className: "bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400" },
-    scheduled: { label: "ތިލަ",      className: "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300" },
-  };
-
-  const badge = MAP[status];
-  if (!badge) return null;
-
-  return (
-    <span className={`font-body text-xs font-bold px-2.5 py-1 rounded-full ${badge.className}`}>
-      {badge.label}
-    </span>
   );
 }
