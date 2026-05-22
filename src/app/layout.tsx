@@ -17,7 +17,6 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    site: "@merihaanaa",
   },
 };
 
@@ -29,19 +28,12 @@ export default function RootLayout({
   return (
     <html lang="dv" dir="rtl" suppressHydrationWarning>
       <head>
-        {/* Noto Sans Thaana — fallback font, preloaded */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
           href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thaana:wght@300;400;500;600;700;800&display=swap"
           rel="stylesheet"
         />
-
-        {/* Dark mode script — prevents flash */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -57,7 +49,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="font-body antialiased bg-white dark:bg-black text-black dark:text-neutral-50 transition-colors duration-300">
+      <body className="font-body antialiased bg-background text-foreground">
         {children}
       </body>
     </html>
