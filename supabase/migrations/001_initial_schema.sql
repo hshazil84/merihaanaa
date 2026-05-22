@@ -22,13 +22,13 @@ INSERT INTO categories (name, slug) VALUES
   ('ކަވަރ ސްޓޯރީ',         'cover-story'),
   ('ފިލްމް',               'film'),
   ('މިއުޒިކް',             'music'),
-  ('ފަންނު / އާޓް',        'art'),
+  ('އާޓް',        'art'),
   ('ވާހަކަ',               'fiction'),
   ('ދިރިއުޅުން',           'lifestyle'),
-  ('ތިލަ / ރިވިއު',        'review'),
-  ('ކެފޭ / ކެއުން',        'food'),
+  ('ރިވިއު',        'review'),
+  ('ކެއުން',        'food'),
   ('ދަތުރު',               'travel'),
-  ('ތިލަ ސީ / އިންޓަވިއު', 'interview');
+  ('އިންޓަވިއު', 'interview');
 
 -- Seed subcategories (Film)
 INSERT INTO categories (name, slug, parent_id)
