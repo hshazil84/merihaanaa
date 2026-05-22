@@ -1,437 +1,240 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import ArticleEditor from "@/components/admin/ArticleEditor";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Placeholder from "@tiptap/extension-placeholder";
+import Image from "@tiptap/extension-image";
+import Link from "@tiptap/extension-link";
+import Underline from "@tiptap/extension-underline";
+import TextAlign from "@tiptap/extension-text-align";
+import CharacterCount from "@tiptap/extension-character-count";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Save, Send, Eye, Globe,
-  MapPin, Star, BookOpen,
-  Video, FileText, Clock,
+  Bold, Italic, Underline as UnderlineIcon,
+  Heading2, Heading3, Quote, Minus,
+  AlignRight, AlignCenter, AlignLeft,
+  Link as LinkIcon, Image as ImageIcon,
+  List, ListOrdered,
 } from "lucide-react";
-import { createSlug, calculateReadingTime } from "@/lib/utils";
 
-const CATEGORIES = [
-  "ކަވަރ ސްޓޯރީ",
-  "ފިލްމް",
-  "މިއުޒިކް",
-  "ފަންނު / އާޓް",
-  "ވާހަކަ",
-  "ދިރިއުޅުން",
-  "ތިލަ / ރިވިއު",
-  "ކެފޭ / ކެއުން",
-  "ދަތުރު",
-  "ތިލަ ސީ / އިންޓަވިއު",
-];
+interface ArticleEditorProps {
+  content?: Record<string, unknown>;
+  onChange?: (content: Record<string, unknown>) => void;
+  placeholder?: string;
+}
 
-const PLACEMENTS = [
-  { value: "hero",            label: "ހީރޯ",        icon: Star,      desc: "ހޯމްޕޭޖް ކަވަރ" },
-  { value: "editors_choice",  label: "އެޑިޓަރ",      icon: BookOpen,  desc: "ތިން ލިޔުން ގްރިޑް" },
-  { value: "review",          label: "ރިވިއު",        icon: FileText,  desc: "ރިވިއު ސެކްޝަން" },
-  { value: "reel",            label: "ރީލް",          icon: Video,     desc: "ވީޑިއޯ ސެކްޝަން" },
-];
+export default function ArticleEditor({
+  content,
+  onChange,
+  placeholder = "ލިޔުން ފަށާ...",
+}: ArticleEditorProps) {
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Placeholder.configure({ placeholder }),
+      Image,
+      Link.configure({ openOnClick: false }),
+      Underline,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      CharacterCount,
+    ],
+    content: content || "",
+    editorProps: {
+      attributes: {
+        class: "tiptap-editor-content focus:outline-none",
+        dir: "rtl",
+      },
+    },
+    onUpdate: ({ editor }) => {
+      onChange?.(editor.getJSON() as Record<string, unknown>);
+    },
+  });
 
-const CONTENT_TYPES = [
-  { value: "article",     label: "ލިޔުން" },
-  { value: "review",      label: "ރިވިއު" },
-  { value: "interview",   label: "ތިލަ ސީ" },
-  { value: "photo_essay", label: "ފޮޓޯ ލިޔުން" },
-  { value: "fiction",     label: "ވާހަކަ" },
-];
+  if (!editor) return null;
 
-export default function NewArticlePage() {
-  const router = useRouter();
-  const supabase = createClient();
+  const addImage = () => {
+    const url = window.prompt("ފޮޓޯ URL:");
+    if (url) editor.chain().focus().setImage({ src: url }).run();
+  };
 
-  const [title, setTitle] = useState("");
-  const [excerpt, setExcerpt] = useState("");
-  const [body, setBody] = useState<Record<string, unknown>>({});
-  const [category, setCategory] = useState(CATEGORIES[0]);
-  const [contentType, setContentType] = useState("article");
-  const [placement, setPlacement] = useState<string | null>(null);
-  const [status, setStatus] = useState<"draft" | "published">("draft");
-  const [isPremium, setIsPremium] = useState(false);
-  const [allowComments, setAllowComments] = useState(true);
-  const [ogTitle, setOgTitle] = useState("");
-  const [ogDesc, setOgDesc] = useState("");
-  const [reviewScore, setReviewScore] = useState<number | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSave = async (publishStatus: "draft" | "published") => {
-    if (!title.trim()) { setError("ސުރުހީ ލިޔެލާ"); return; }
-    setSaving(true);
-    setError(null);
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push("/login"); return; }
-
-    const slug = createSlug(title);
-    const readingTime = calculateReadingTime(body);
-
-    const { data, error: err } = await supabase
-      .from("articles")
-      .insert({
-        title,
-        slug,
-        excerpt,
-        body,
-        status: publishStatus,
-        published_at: publishStatus === "published" ? new Date().toISOString() : null,
-        homepage_placement: placement,
-        content_type: contentType,
-        reading_time_minutes: readingTime,
-        is_premium: isPremium,
-        og_title: ogTitle || title,
-        og_description: ogDesc || excerpt,
-        review_score: contentType === "review" ? reviewScore : null,
-      })
-      .select()
-      .single();
-
-    setSaving(false);
-
-    if (err) {
-      setError("ލިޔުން ސޭވް ނުވި. އަލުން ތިލަ ކޮށްލާ.");
-      return;
-    }
-
-    router.push(`/admin/articles/${data.id}`);
+  const addLink = () => {
+    const url = window.prompt("ލިންކް URL:");
+    if (url) editor.chain().focus().setLink({ href: url }).run();
   };
 
   return (
-    <div className="flex h-full">
+    <div className="border border-border rounded-xl overflow-hidden bg-background">
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-0.5 p-2 border-b border-border bg-muted/30">
+        {/* Text style */}
+        <ToolbarGroup>
+          <ToolbarBtn
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            active={editor.isActive("bold")}
+            title="ބޯލްޑް"
+          >
+            <Bold size={14} />
+          </ToolbarBtn>
+          <ToolbarBtn
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            active={editor.isActive("italic")}
+            title="އިޓަލިކް"
+          >
+            <Italic size={14} />
+          </ToolbarBtn>
+          <ToolbarBtn
+            onClick={() => editor.chain().focus().toggleUnderline().run()}
+            active={editor.isActive("underline")}
+            title="އަންޑަލައިން"
+          >
+            <UnderlineIcon size={14} />
+          </ToolbarBtn>
+        </ToolbarGroup>
 
-      {/* ── EDITOR MAIN ── */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-3xl mx-auto space-y-4">
+        <Divider />
 
-          {/* Content type */}
-          <div className="flex gap-2 flex-wrap">
-            {CONTENT_TYPES.map((ct) => (
-              <button
-                key={ct.value}
-                onClick={() => setContentType(ct.value)}
-                className={`
-                  font-body text-xs px-3 py-1.5 rounded-full border transition-all
-                  ${contentType === ct.value
-                    ? "bg-foreground text-background border-foreground"
-                    : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
-                  }
-                `}
-              >
-                {ct.label}
-              </button>
-            ))}
-          </div>
+        {/* Headings */}
+        <ToolbarGroup>
+          <ToolbarBtn
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            active={editor.isActive("heading", { level: 2 })}
+            title="ސުރުހީ ٢"
+          >
+            <Heading2 size={14} />
+          </ToolbarBtn>
+          <ToolbarBtn
+            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+            active={editor.isActive("heading", { level: 3 })}
+            title="ސުރުހީ ٣"
+          >
+            <Heading3 size={14} />
+          </ToolbarBtn>
+        </ToolbarGroup>
 
-          {/* Title */}
-          <textarea
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="ލިޔުމުގެ ސުރުހީ..."
-            rows={2}
-            className="w-full font-display text-3xl font-bold bg-transparent border-none outline-none resize-none text-foreground placeholder:text-muted-foreground/40 leading-tight"
-          />
+        <Divider />
 
-          {/* Excerpt */}
-          <textarea
-            value={excerpt}
-            onChange={(e) => setExcerpt(e.target.value)}
-            placeholder="ކުރު ތަޢާރަފެއް — ކިޔުންތެރިން ފުރަތަމަ ފެންނާ ބައި..."
-            rows={2}
-            className="w-full font-body text-base text-muted-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 leading-relaxed"
-          />
+        {/* Lists */}
+        <ToolbarGroup>
+          <ToolbarBtn
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            active={editor.isActive("bulletList")}
+            title="ލިސްޓް"
+          >
+            <List size={14} />
+          </ToolbarBtn>
+          <ToolbarBtn
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            active={editor.isActive("orderedList")}
+            title="ނަންބަރު ލިސްޓް"
+          >
+            <ListOrdered size={14} />
+          </ToolbarBtn>
+        </ToolbarGroup>
 
-          {/* Cover image drop zone */}
-          <div className="w-full h-48 rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-foreground transition-colors bg-muted/20">
-            <div className="text-2xl">🖼</div>
-            <p className="font-body text-sm text-muted-foreground">ކަވަރ ފޮޓޯ ނުވަތަ ވީޑިއޯ ލޯޑްކޮށްލާ</p>
-            <p className="font-body text-xs text-muted-foreground/60">PNG · JPG · MP4 · max 100MB</p>
-          </div>
+        <Divider />
 
-          {/* Review score */}
-          {contentType === "review" && (
-            <div className="flex items-center gap-3 p-4 rounded-xl border border-border bg-muted/20">
-              <span className="font-body text-sm font-semibold">ސްކޯ:</span>
-              <div className="flex gap-1.5">
-                {[1,2,3,4,5,6,7,8,9,10].map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => setReviewScore(n)}
-                    className={`
-                      w-8 h-8 rounded-lg font-body text-xs font-bold border transition-all
-                      ${reviewScore === n
-                        ? "bg-foreground text-background border-foreground"
-                        : "border-border text-muted-foreground hover:border-foreground"
-                      }
-                    `}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+        {/* Blocks */}
+        <ToolbarGroup>
+          <ToolbarBtn
+            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            active={editor.isActive("blockquote")}
+            title="ޕުލް ކޯޓް"
+          >
+            <Quote size={14} />
+          </ToolbarBtn>
+          <ToolbarBtn
+            onClick={() => editor.chain().focus().setHorizontalRule().run()}
+            title="ތިރި"
+          >
+            <Minus size={14} />
+          </ToolbarBtn>
+        </ToolbarGroup>
 
-          {/* Tiptap Editor */}
-          <ArticleEditor
-            content={body}
-            onChange={setBody}
-            placeholder="ލިޔުން ފަށާ..."
-          />
+        <Divider />
 
-          {error && (
-            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-              <p className="font-body text-sm text-destructive">{error}</p>
-            </div>
-          )}
+        {/* Alignment */}
+        <ToolbarGroup>
+          <ToolbarBtn
+            onClick={() => editor.chain().focus().setTextAlign("right").run()}
+            active={editor.isActive({ textAlign: "right" })}
+            title="ކަނާތް"
+          >
+            <AlignRight size={14} />
+          </ToolbarBtn>
+          <ToolbarBtn
+            onClick={() => editor.chain().focus().setTextAlign("center").run()}
+            active={editor.isActive({ textAlign: "center" })}
+            title="މެދު"
+          >
+            <AlignCenter size={14} />
+          </ToolbarBtn>
+          <ToolbarBtn
+            onClick={() => editor.chain().focus().setTextAlign("left").run()}
+            active={editor.isActive({ textAlign: "left" })}
+            title="ވައަތް"
+          >
+            <AlignLeft size={14} />
+          </ToolbarBtn>
+        </ToolbarGroup>
+
+        <Divider />
+
+        {/* Media */}
+        <ToolbarGroup>
+          <ToolbarBtn onClick={addLink} title="ލިންކް">
+            <LinkIcon size={14} />
+          </ToolbarBtn>
+          <ToolbarBtn onClick={addImage} title="ފޮޓޯ">
+            <ImageIcon size={14} />
+          </ToolbarBtn>
+        </ToolbarGroup>
+
+        {/* Character count */}
+        <div className="mr-auto font-body text-xs text-muted-foreground px-2">
+          {editor.storage.characterCount.words()} ބަސް
         </div>
       </div>
 
-      {/* ── SETTINGS PANEL ── */}
-      <div className="w-72 flex-shrink-0 border-r border-border bg-muted/10 overflow-y-auto">
-        <div className="p-4 space-y-4">
-
-          {/* Publish actions */}
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 font-body text-xs gap-1.5"
-              onClick={() => handleSave("draft")}
-              disabled={saving}
-            >
-              <Save size={12} />
-              ޑްރާފްޓް
-            </Button>
-            <Button
-              size="sm"
-              className="flex-1 font-body text-xs gap-1.5"
-              onClick={() => handleSave("published")}
-              disabled={saving}
-            >
-              <Send size={12} />
-              {saving ? "ލޯޑްވަނީ..." : "ލައިވް"}
-            </Button>
-          </div>
-
-          <Separator />
-
-          {/* Homepage placement */}
-          <Card>
-            <CardHeader className="py-3 px-4">
-              <CardTitle className="font-body text-xs font-semibold flex items-center gap-2">
-                <MapPin size={12} />
-                ހޯމްޕޭޖް ތަން
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 pb-4 space-y-2">
-              <p className="font-body text-xs text-muted-foreground leading-relaxed">
-                ލިޔުން ހޯމްޕޭޖްގެ ކޮންތަނެއްގައި ދެއްކޭ ގޮތް ހޮވާ
-              </p>
-              <div className="grid grid-cols-2 gap-2 mt-3">
-                {PLACEMENTS.map((p) => {
-                  const Icon = p.icon;
-                  const isActive = placement === p.value;
-                  return (
-                    <button
-                      key={p.value}
-                      onClick={() => setPlacement(isActive ? null : p.value)}
-                      className={`
-                        p-3 rounded-lg border text-right transition-all
-                        ${isActive
-                          ? "bg-foreground text-background border-foreground"
-                          : "border-border hover:border-foreground bg-background"
-                        }
-                      `}
-                    >
-                      <Icon size={14} className={`mb-1.5 ${isActive ? "text-background" : "text-muted-foreground"}`} />
-                      <div className={`font-body text-xs font-bold ${isActive ? "text-background" : "text-foreground"}`}>
-                        {p.label}
-                      </div>
-                      <div className={`font-body text-[10px] mt-0.5 ${isActive ? "text-background/70" : "text-muted-foreground"}`}>
-                        {p.desc}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-              {placement && (
-                <button
-                  onClick={() => setPlacement(null)}
-                  className="font-body text-xs text-muted-foreground hover:text-foreground transition-colors mt-1"
-                >
-                  ތަން ނެގުން ×
-                </button>
-              )}
-            </CardContent>
-          </Card>
-
-          <Separator />
-
-          {/* OG / SEO */}
-          <Card>
-            <CardHeader className="py-3 px-4">
-              <CardTitle className="font-body text-xs font-semibold flex items-center gap-2">
-                <Globe size={12} />
-                Open Graph
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 pb-4 space-y-3">
-              {/* OG Preview */}
-              <div className="rounded-lg overflow-hidden border border-border">
-                <div className="h-20 bg-muted flex items-center justify-center">
-                  <span className="font-body text-xs text-muted-foreground">OG ތަސްވީރ</span>
-                </div>
-                <div className="p-2.5 bg-background">
-                  <p className="font-body text-[10px] text-muted-foreground uppercase tracking-wider mb-1">merihaanaa.com</p>
-                  <p className="font-body text-xs font-semibold leading-snug line-clamp-2">
-                    {ogTitle || title || "ލިޔުމުގެ ސުރުހީ"}
-                  </p>
-                  <p className="font-body text-[10px] text-muted-foreground mt-1 line-clamp-2">
-                    {ogDesc || excerpt || "ތަފްސީލް..."}
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <label className="font-body text-xs font-semibold text-muted-foreground block mb-1.5">
-                  OG ސުރުހީ
-                </label>
-                <textarea
-                  value={ogTitle}
-                  onChange={(e) => setOgTitle(e.target.value)}
-                  placeholder={title || "ލިޔުމުގެ ސުރުހީ..."}
-                  rows={2}
-                  className="w-full font-body text-xs p-2.5 rounded-lg border border-border bg-background outline-none focus:border-foreground transition-colors resize-none"
-                />
-              </div>
-
-              <div>
-                <label className="font-body text-xs font-semibold text-muted-foreground block mb-1.5">
-                  OG ތަފްސީލް
-                </label>
-                <textarea
-                  value={ogDesc}
-                  onChange={(e) => setOgDesc(e.target.value)}
-                  placeholder={excerpt || "ތަފްސީލް..."}
-                  rows={2}
-                  className="w-full font-body text-xs p-2.5 rounded-lg border border-border bg-background outline-none focus:border-foreground transition-colors resize-none"
-                />
-              </div>
-
-              <div>
-                <label className="font-body text-xs font-semibold text-muted-foreground block mb-1.5">
-                  OG ތަސްވީރ (1200×630)
-                </label>
-                <div className="w-full h-16 rounded-lg border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-foreground transition-colors">
-                  <span className="font-body text-xs text-muted-foreground">ފޮޓޯ ލޯޑްކޮށްލާ</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Separator />
-
-          {/* Settings */}
-          <Card>
-            <CardHeader className="py-3 px-4">
-              <CardTitle className="font-body text-xs font-semibold flex items-center gap-2">
-                <Eye size={12} />
-                ތިލަ ސެޓިންގްސް
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 pb-4 space-y-1">
-
-              {/* Category */}
-              <div className="py-2">
-                <label className="font-body text-xs font-semibold text-muted-foreground block mb-1.5">
-                  ކެޓަގަރީ
-                </label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full font-body text-xs p-2.5 rounded-lg border border-border bg-background outline-none focus:border-foreground appearance-none cursor-pointer"
-                >
-                  {CATEGORIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-
-              <Separator />
-
-              {/* Reading time */}
-              <div className="flex items-center justify-between py-2.5">
-                <div className="flex items-center gap-2">
-                  <Clock size={12} className="text-muted-foreground" />
-                  <div>
-                    <p className="font-body text-xs font-semibold">ކިޔުމަށް ނަގާ ވަގުތު</p>
-                    <p className="font-body text-[10px] text-muted-foreground">ބަސްތަކުން ހިސާބުކޮށްލެވޭ</p>
-                  </div>
-                </div>
-                <span className="font-body text-xs text-muted-foreground">
-                  {calculateReadingTime(body)} ދ
-                </span>
-              </div>
-
-              <Separator />
-
-              {/* Premium toggle */}
-              <div className="flex items-center justify-between py-2.5">
-                <div>
-                  <p className="font-body text-xs font-semibold">ޕްރިމިއަމް</p>
-                  <p className="font-body text-[10px] text-muted-foreground">ސަބްސްކްރައިބަ ލޮގިން ބޭނުންވޭ</p>
-                </div>
-                <Toggle value={isPremium} onChange={setIsPremium} />
-              </div>
-
-              <Separator />
-
-              {/* Comments toggle */}
-              <div className="flex items-center justify-between py-2.5">
-                <div>
-                  <p className="font-body text-xs font-semibold">ކޮމެންޓް</p>
-                  <p className="font-body text-[10px] text-muted-foreground">ކިޔުންތެރިންނަށް ލިޔެވޭ</p>
-                </div>
-                <Toggle value={allowComments} onChange={setAllowComments} />
-              </div>
-
-            </CardContent>
-          </Card>
-
-        </div>
+      {/* Editor content */}
+      <div className="p-6 min-h-96">
+        <EditorContent editor={editor} className="article-body" />
       </div>
     </div>
   );
 }
 
-// ── Toggle component ──────────────────────────────────────
+// ── Toolbar helpers ───────────────────────────────────────
 
-function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+function ToolbarGroup({ children }: { children: React.ReactNode }) {
+  return <div className="flex items-center gap-0.5">{children}</div>;
+}
+
+function ToolbarBtn({
+  children, onClick, active, title,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  active?: boolean;
+  title?: string;
+}) {
   return (
     <button
       type="button"
-      onClick={() => onChange(!value)}
+      onClick={onClick}
+      title={title}
       className={`
-        relative w-9 h-5 rounded-full transition-colors flex-shrink-0
-        ${value ? "bg-foreground" : "bg-muted-foreground/30"}
+        p-1.5 rounded-md transition-colors
+        ${active
+          ? "bg-foreground text-background"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+        }
       `}
     >
-      <span className={`
-        absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform
-        ${value ? "translate-x-[-1.25rem]" : "translate-x-[-0.125rem]"}
-      `} />
+      {children}
     </button>
   );
+}
+
+function Divider() {
+  return <div className="w-px h-5 bg-border mx-1" />;
 }
