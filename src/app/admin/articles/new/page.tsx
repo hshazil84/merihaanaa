@@ -27,10 +27,10 @@ const CATEGORIES = [
   "ފަންނު / އާޓް",
   "ވާހަކަ",
   "ދިރިއުޅުން",
-  "ތިލަ / ރިވިއު",
+  "ރިވިއު",
   "ކެފޭ / ކެއުން",
   "ދަތުރު",
-  "ތިލަ ސީ / އިންޓަވިއު",
+  "އިންޓަވިއު",
 ];
 
 const PLACEMENTS = [
@@ -43,7 +43,7 @@ const PLACEMENTS = [
 const CONTENT_TYPES = [
   { value: "article",     label: "ލިޔުން" },
   { value: "review",      label: "ރިވިއު" },
-  { value: "interview",   label: "ތިލަ ސީ" },
+  { value: "interview",   label: "އިންޓަވިއު" },
   { value: "photo_essay", label: "ފޮޓޯ ލިޔުން" },
   { value: "fiction",     label: "ވާހަކަ" },
 ];
@@ -101,7 +101,7 @@ export default function NewArticlePage() {
     setSaving(false);
 
     if (err) {
-      setError("ލިޔުން ސޭވް ނުވި. އަލުން ތިލަ ކޮށްލާ.");
+      setError("ލިޔުން ސޭވް ނުވި. އަލުން ލޯޑްކޮށްލާ.");
       return;
     }
 
@@ -348,7 +348,7 @@ export default function NewArticlePage() {
             <CardHeader className="py-3 px-4">
               <CardTitle className="font-body text-xs font-semibold flex items-center gap-2">
                 <Eye size={12} />
-                ތިލަ ސެޓިންގްސް
+                ސެޓިންގްސް
               </CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4 space-y-1">

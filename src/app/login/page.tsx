@@ -64,7 +64,7 @@ export default function LoginPage() {
         "User already registered":     "މި އީމެއިލް ރެޖިސްޓާ ވެފައިވޭ",
         "Password should be at least 6 characters": "ޕާސްވޯޑް މަދުވެގެން 6 ކެރެކްޓަރ ހިމެނެން ޖެހޭ",
       };
-      setError(errorMap[err.message] || "ކޮންމެވެސް ގޯހެއް ދިމާވި. އަލުން ތިލަ ކޮށްލާ.");
+      setError(errorMap[err.message] || "ކޮންމެވެސް ގޯހެއް ދިމާވި. އަލުން ލޯޑްކޮށްލާ.");
     } finally {
       setLoading(false);
     }

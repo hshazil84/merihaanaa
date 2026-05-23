@@ -114,13 +114,13 @@ export const PLACEMENT_LABELS: Record<string, string> = {
 export const STATUS_LABELS: Record<string, string> = {
   published: "ލައިވް",
   draft:     "ޑްރާފްޓް",
-  scheduled: "ތިލަ",
+  scheduled: "އެޑްމިން",
 };
 
 // ── ROLE LABELS (Thaana) ──────────────────────────────────
 
 export const ROLE_LABELS: Record<string, string> = {
-  admin:       "ތިލަ",
+  admin:       "އެޑްމިން",
   editor:      "އެޑިޓަރ",
   author:      "ލިޔުންތެރިޔާ",
   reader:      "ކިޔުންތެރިޔާ",
@@ -134,7 +134,7 @@ export const ROLE_LABELS: Record<string, string> = {
 export const CONTENT_TYPE_LABELS: Record<string, string> = {
   article:     "ލިޔުން",
   review:      "ރިވިއު",
-  interview:   "ތިލަ ސީ",
+  interview:   "އިންޓަވިއު",
   photo_essay: "ފޮޓޯ ލިޔުން",
   fiction:     "ވާހަކަ",
 };

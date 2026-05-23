@@ -76,7 +76,7 @@ const PLACEMENT_MAP: Record<string, { label: string; variant: "default" | "secon
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   published: { label: "ލައިވް",    variant: "default" },
   draft:     { label: "ޑްރާފްޓް", variant: "secondary" },
-  scheduled: { label: "ތިލަ",      variant: "outline" },
+  scheduled: { label: "އެޑްމިން",      variant: "outline" },
 };
 
 export default async function AdminDashboard() {
@@ -174,7 +174,7 @@ export default async function AdminDashboard() {
           <CardContent>
             <div className="font-body text-3xl font-bold">{stats.pending_comments}</div>
             <p className={`font-body text-xs mt-1 ${stats.pending_comments > 0 ? "text-amber-600" : "text-muted-foreground"}`}>
-              ތިލަ ބެލުން ބޭނުން
+              ޕެންޑިންގ
             </p>
           </CardContent>
         </Card>

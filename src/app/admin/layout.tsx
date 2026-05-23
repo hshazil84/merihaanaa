@@ -69,7 +69,7 @@ const NAV = [
     ],
   },
   {
-    section: "ތިލަ",
+    section: "އެޑްމިން",
     items: [
       { href: "/admin/authors",  label: "ލިޔުންތެރިން", icon: Users },
     ],
@@ -77,7 +77,7 @@ const NAV = [
 ];
 
 const ROLE_LABELS: Record<string, string> = {
-  admin:  "ތިލަ",
+  admin:  "އެޑްމިން",
   editor: "އެޑިޓަރ",
   author: "ލިޔުންތެރިޔާ",
   reader: "ކިޔުންތެރިޔާ",
@@ -145,7 +145,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  const breadcrumb = BREADCRUMB_MAP[pathname] || "ތިލަ";
+  const breadcrumb = BREADCRUMB_MAP[pathname] || "އެޑްމިން";
 
   return (
     <div className="h-screen flex overflow-hidden bg-muted/30">
@@ -161,7 +161,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Link href="/" className="font-display text-lg font-bold text-foreground hover:opacity-70 transition-opacity">
             މެރިހާނާ
           </Link>
-          <Badge variant="secondary" className="font-body text-[10px]">ތިލަ</Badge>
+          <Badge variant="secondary" className="font-body text-[10px]">އެޑްމިން</Badge>
         </div>
 
         {/* Nav */}
@@ -236,7 +236,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Menu size={15} />
             </Button>
             <div className="flex items-center gap-1.5 font-body text-sm text-muted-foreground">
-              <span>ތިލަ</span>
+              <span>އެޑްމިން</span>
               <ChevronRight size={13} />
               <span className="text-foreground font-semibold">{breadcrumb}</span>
             </div>
