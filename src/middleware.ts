@@ -26,20 +26,16 @@ export async function middleware(request: NextRequest) {
   );
 
   const { data: { user } } = await supabase.auth.getUser();
+  const path = request.nextUrl.pathname;
 
-  // If accessing /admin without being logged in → redirect to login
-  if (request.nextUrl.pathname.startsWith("/admin") && !user) {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  // If logged in and accessing /login → redirect to admin
-  if (request.nextUrl.pathname === "/login" && user) {
-    return NextResponse.redirect(new URL("/admin", request.url));
+  // Protect /admin routes — but NOT /admin-login
+  if (path.startsWith("/admin") && !user) {
+    return NextResponse.redirect(new URL("/admin-login", request.url));
   }
 
   return supabaseResponse;
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/login"],
+  matcher: ["/admin/:path*"],
 };
