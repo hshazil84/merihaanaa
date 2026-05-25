@@ -187,7 +187,7 @@ export default async function ArticlePage({ params }: PageProps) {
                 </p>
               )}
               {publishedDate && (
-                <p style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "10px", color: "rgb(160,158,152)", lineHeight: 1.4 }}>
+                <p dir="ltr" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "10px", color: "rgb(160,158,152)", lineHeight: 1.4 }}>
                   {publishedDate}
                 </p>
               )}
