@@ -55,13 +55,36 @@ async function getRelated(categoryId: string, excludeId: string) {
 export async function generateMetadata({ params }: PageProps) {
   const article = await getArticle(params.slug);
   if (!article) return { title: "ލިޔުން ނުލިބުނު" };
+
+  const category = article.category as any;
+  const coverImage =
+    article.cover_type === "image"
+      ? article.cover_url || article.featured_image
+      : article.cover_video_thumbnail;
+
+  const ogParams = new URLSearchParams({
+    title:    article.title ?? "",
+    excerpt:  article.excerpt ?? "",
+    image:    coverImage ?? "",
+    category: category?.name ?? "",
+  });
+
+  const ogImageUrl = `https://merihaanaa.com/api/og?${ogParams.toString()}`;
+
   return {
     title: article.title,
     description: article.excerpt,
     openGraph: {
-      title: article.title,
+      title:       article.title,
       description: article.excerpt ?? "",
-      images: article.featured_image ? [article.featured_image] : [],
+      images:      [{ url: ogImageUrl, width: 1200, height: 630 }],
+      type:        "article",
+    },
+    twitter: {
+      card:        "summary_large_image",
+      title:       article.title,
+      description: article.excerpt ?? "",
+      images:      [ogImageUrl],
     },
   };
 }
