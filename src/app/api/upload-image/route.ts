@@ -21,7 +21,6 @@ export async function POST(req: NextRequest) {
 
     const key = `covers/cover-${Date.now()}.webp`;
     const host = `${accountId}.r2.cloudflarestorage.com`;
-    // R2 S3-compatible: bucket is part of the path
     const url = `https://${host}/${bucketName}/${key}`;
 
     const fileBuffer = await file.arrayBuffer();
@@ -33,7 +32,7 @@ export async function POST(req: NextRequest) {
     const amzDate = now.toISOString().replace(/[:\-]|\.\d{3}/g, "").slice(0, 15) + "Z";
     const dateStamp = amzDate.slice(0, 8);
 
-    const sha256 = async (data: ArrayBuffer | Uint8Array): Promise<string> => {
+    const sha256 = async (data: ArrayBuffer): Promise<string> => {
       const hash = await crypto.subtle.digest("SHA-256", data);
       return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
     };
@@ -43,7 +42,9 @@ export async function POST(req: NextRequest) {
       return crypto.subtle.sign("HMAC", cryptoKey, new TextEncoder().encode(data));
     };
 
-    const payloadHash = await sha256(new Uint8Array(fileBuffer));
+    const encode = (s: string): ArrayBuffer => new TextEncoder().encode(s).buffer as ArrayBuffer;
+
+    const payloadHash = await sha256(fileBuffer);
 
     const canonicalUri = `/${bucketName}/${key}`;
     const canonicalHeaders =
@@ -60,17 +61,16 @@ export async function POST(req: NextRequest) {
       "AWS4-HMAC-SHA256",
       amzDate,
       credentialScope,
-      await sha256(new TextEncoder().encode(canonicalRequest)),
+      await sha256(encode(canonicalRequest)),
     ].join("\n");
 
-    // Derive signing key
-    const kDate    = await hmacSha256(new TextEncoder().encode(`AWS4${secretKey}`), dateStamp);
+    const kDate    = await hmacSha256(encode(`AWS4${secretKey}`), dateStamp);
     const kRegion  = await hmacSha256(kDate, region);
     const kService = await hmacSha256(kRegion, service);
     const kSigning = await hmacSha256(kService, "aws4_request");
 
     const sigKey = await crypto.subtle.importKey("raw", kSigning, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-    const sigBuf = await crypto.subtle.sign("HMAC", sigKey, new TextEncoder().encode(stringToSign));
+    const sigBuf = await crypto.subtle.sign("HMAC", sigKey, encode(stringToSign));
     const signature = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2, "0")).join("");
 
     const authorization =
