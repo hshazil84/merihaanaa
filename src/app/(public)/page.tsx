@@ -87,7 +87,7 @@ export default async function HomePage() {
     <div className="bg-[#F5F3EF]" dir="rtl">
 
       {hero ? (
-        <HeroSection article={hero} />
+        <HeroSection article={hero as any} />
       ) : (
         <div className="h-screen flex items-center justify-center">
           <p style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "13px", color: "rgb(140,138,132)" }}>
