@@ -111,19 +111,17 @@ function ImageUploader({ onChange }: { onChange: (v: CoverMediaValue) => void })
     setProgress("ފޮޓޯ ތައްޔާރު ކުރަނީ...");
 
     try {
-      // Compress to 1200×675 WebP at 0.72 quality — targets <300KB, no watermark
+      // Compress to 1200×675 JPEG — iterative loop targets <300KB
       const blob = await processImage(file, {
         targetW:   1200,
         targetH:   675,
         watermark: false,
       });
 
-      console.log("Compressed size:", (blob.size / 1024).toFixed(0), "KB");
-
       setProgress("ކްލައުޑަށް ލޯޑް ކުރަނީ...");
 
       const formData = new FormData();
-      formData.append("file", new File([blob], `cover-${Date.now()}.webp`, { type: "image/webp" }));
+      formData.append("file", new File([blob], `cover-${Date.now()}.jpg`, { type: "image/jpeg" }));
 
       const res = await fetch("/api/upload-image", {
         method: "POST",

@@ -1,5 +1,6 @@
 // lib/imageUtils.ts
-// Canvas pipeline: resize → center-crop → strip metadata → iterative WebP compression → target <300KB
+// Canvas pipeline: resize → center-crop → strip metadata → iterative JPEG compression → target <300KB
+// Note: Safari does not support lossy WebP in canvas.toBlob — using JPEG instead
 
 export interface ProcessImageOptions {
   targetW?: number;
@@ -15,7 +16,7 @@ export async function processImage(
   const {
     targetW   = 1200,
     targetH   = 675,
-    maxSizeKB = 290,   // target under 300KB
+    maxSizeKB = 290,
     watermark = false,
   } = options;
 
@@ -32,7 +33,6 @@ export async function processImage(
       const srcH = img.naturalHeight;
       const srcRatio = srcW / srcH;
 
-      // Step 1: Center-crop to target aspect ratio
       let cropX = 0, cropY = 0, cropW = srcW, cropH = srcH;
       if (srcRatio > targetRatio) {
         cropW = Math.round(srcH * targetRatio);
@@ -42,15 +42,17 @@ export async function processImage(
         cropY = Math.round((srcH - cropH) / 2);
       }
 
-      // Step 2: Draw to canvas at target dimensions (strips EXIF metadata automatically)
       const canvas = document.createElement("canvas");
       canvas.width  = targetW;
       canvas.height = targetH;
       const ctx = canvas.getContext("2d");
       if (!ctx) { reject(new Error("Canvas context unavailable")); return; }
+
+      // White background for transparency handling
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, targetW, targetH);
       ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, targetW, targetH);
 
-      // Optional watermark
       if (watermark) {
         const fontSize = Math.round(targetW * 0.016);
         const padding  = Math.round(targetW * 0.014);
@@ -87,7 +89,7 @@ export async function processImage(
         ctx.restore();
       }
 
-      // Step 3: Iterative compression loop — start at 0.85, step down until under maxSizeKB
+      // Iterative JPEG compression — Safari compatible
       const compress = (quality: number): Promise<Blob> =>
         new Promise((res, rej) => {
           canvas.toBlob((blob) => {
@@ -99,9 +101,10 @@ export async function processImage(
             } else {
               compress(Math.round((quality - 0.05) * 100) / 100).then(res).catch(rej);
             }
-          }, "image/webp", quality);
+          }, "image/jpeg", quality);
         });
 
+      console.log("Starting compression, target:", maxSizeKB, "KB");
       compress(0.85).then(resolve).catch(reject);
     };
 
