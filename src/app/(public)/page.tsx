@@ -72,11 +72,11 @@ async function getHomeData() {
 
   return {
     hero,
-    todaysPicks: todaysPicks ?? [],
-    people: people ?? [],
-    reviews: reviews ?? [],
-    reels: reels ?? [],
-    latest: latest ?? [],
+    todaysPicks: (todaysPicks ?? []) as any[],
+    people: (people ?? []) as any[],
+    reviews: (reviews ?? []) as any[],
+    reels: (reels ?? []) as any[],
+    latest: (latest ?? []) as any[],
   };
 }
 
