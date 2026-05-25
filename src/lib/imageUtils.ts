@@ -1,10 +1,10 @@
 // lib/imageUtils.ts
-// Canvas pipeline: center-crop → resize → watermark → WebP
+// Canvas pipeline: resize → center-crop → strip metadata → iterative WebP compression → target <300KB
 
 export interface ProcessImageOptions {
   targetW?: number;
   targetH?: number;
-  quality?: number;
+  maxSizeKB?: number;
   watermark?: boolean;
 }
 
@@ -15,8 +15,8 @@ export async function processImage(
   const {
     targetW   = 1200,
     targetH   = 675,
-    quality   = 0.72,
-    watermark = true,
+    maxSizeKB = 290,   // target under 300KB
+    watermark = false,
   } = options;
 
   const targetRatio = targetW / targetH;
@@ -32,8 +32,8 @@ export async function processImage(
       const srcH = img.naturalHeight;
       const srcRatio = srcW / srcH;
 
+      // Step 1: Center-crop to target aspect ratio
       let cropX = 0, cropY = 0, cropW = srcW, cropH = srcH;
-
       if (srcRatio > targetRatio) {
         cropW = Math.round(srcH * targetRatio);
         cropX = Math.round((srcW - cropW) / 2);
@@ -42,37 +42,31 @@ export async function processImage(
         cropY = Math.round((srcH - cropH) / 2);
       }
 
+      // Step 2: Draw to canvas at target dimensions (strips EXIF metadata automatically)
       const canvas = document.createElement("canvas");
       canvas.width  = targetW;
       canvas.height = targetH;
-
       const ctx = canvas.getContext("2d");
       if (!ctx) { reject(new Error("Canvas context unavailable")); return; }
-
       ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, targetW, targetH);
 
+      // Optional watermark
       if (watermark) {
-        const fontSize = Math.round(targetW * 0.016); // ~19px at 1200w
+        const fontSize = Math.round(targetW * 0.016);
         const padding  = Math.round(targetW * 0.014);
-
         ctx.save();
-
-        // Subtle dark pill background for legibility
-        ctx.font = `400 ${fontSize}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+        ctx.font         = `400 ${fontSize}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
         ctx.textBaseline = "bottom";
         ctx.textAlign    = "left";
-
         const text    = "© merihaanaa.com";
         const metrics = ctx.measureText(text);
-        const tw      = metrics.width;
-        const th      = fontSize;
-        const bx      = padding - 6;
-        const by      = targetH - padding - th - 4;
-        const bw      = tw + 12;
-        const bh      = th + 8;
-        const br      = 4;
-
-        // Pill background
+        const tw = metrics.width;
+        const th = fontSize;
+        const bx = padding - 6;
+        const by = targetH - padding - th - 4;
+        const bw = tw + 12;
+        const bh = th + 8;
+        const br = 4;
         ctx.fillStyle = "rgba(0,0,0,0.32)";
         ctx.beginPath();
         ctx.moveTo(bx + br, by);
@@ -86,24 +80,29 @@ export async function processImage(
         ctx.quadraticCurveTo(bx, by, bx + br, by);
         ctx.closePath();
         ctx.fill();
-
-        // White text
-        ctx.fillStyle    = "rgba(255,255,255,0.88)";
-        ctx.shadowColor  = "rgba(0,0,0,0.3)";
-        ctx.shadowBlur   = 3;
+        ctx.fillStyle   = "rgba(255,255,255,0.88)";
+        ctx.shadowColor = "rgba(0,0,0,0.3)";
+        ctx.shadowBlur  = 3;
         ctx.fillText(text, padding, targetH - padding);
-
         ctx.restore();
       }
 
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) { reject(new Error("Canvas toBlob failed")); return; }
-          resolve(blob);
-        },
-        "image/webp",
-        quality
-      );
+      // Step 3: Iterative compression loop — start at 0.85, step down until under maxSizeKB
+      const compress = (quality: number): Promise<Blob> =>
+        new Promise((res, rej) => {
+          canvas.toBlob((blob) => {
+            if (!blob) { rej(new Error("toBlob failed")); return; }
+            const sizeKB = blob.size / 1024;
+            console.log(`Quality ${Math.round(quality * 100)}%: ${sizeKB.toFixed(0)}KB`);
+            if (sizeKB <= maxSizeKB || quality <= 0.30) {
+              res(blob);
+            } else {
+              compress(Math.round((quality - 0.05) * 100) / 100).then(res).catch(rej);
+            }
+          }, "image/webp", quality);
+        });
+
+      compress(0.85).then(resolve).catch(reject);
     };
 
     img.onerror = () => {
