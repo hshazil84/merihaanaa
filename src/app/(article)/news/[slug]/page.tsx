@@ -114,11 +114,11 @@ export default async function ArticlePage({ params }: PageProps) {
     <div className="bg-[#F5F3EF] min-h-screen" dir="rtl">
 
       {/* ── Article header — breadcrumb (category pill), title, excerpt ── */}
-      <header className="max-w-3xl mx-auto px-6 pt-8 pb-6">
+      <header className="max-w-3xl mx-auto px-6 pt-8 pb-6 text-center">
 
-        {/* Category pill — breadcrumb */}
+        {/* Category pill */}
         {category && (
-          <div className="mb-5">
+          <div className="mb-5 flex justify-center">
             <Link href={`/category/${category.slug}`}
               className="inline-block text-[11px] px-3 py-1 rounded-full border transition-colors hover:border-black/30"
               style={{
@@ -142,6 +142,7 @@ export default async function ArticlePage({ params }: PageProps) {
             fontSize: "clamp(1.6rem, 4vw, 2.4rem)",
             color: "rgb(26,26,26)",
             lineHeight: 1.8,
+            textAlign: "center",
           }}>
           {article.title}
         </h1>
@@ -155,6 +156,7 @@ export default async function ArticlePage({ params }: PageProps) {
               fontSize: "16px",
               color: "rgb(100,98,92)",
               lineHeight: 2,
+              textAlign: "center",
             }}>
             {article.excerpt}
           </p>
