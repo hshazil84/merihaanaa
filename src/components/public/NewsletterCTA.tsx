@@ -1,6 +1,5 @@
 "use client";
 // components/public/NewsletterCTA.tsx
-// Newsletter subscription — stores in Supabase subscribers table + triggers Resend
 
 import { useState } from "react";
 
@@ -13,7 +12,6 @@ export default function NewsletterCTA() {
     e.preventDefault();
     if (!email.trim()) return;
     setStatus("loading");
-
     try {
       const res = await fetch("/api/subscribe", {
         method: "POST",
@@ -28,29 +26,33 @@ export default function NewsletterCTA() {
       } else {
         throw new Error(data.error ?? "ނުވި");
       }
-    } catch (err: unknown) {
+    } catch {
       setStatus("error");
       setMessage("ސަބްސްކްރައިބް ނުވި. އަލުން ލޯޑްކޮށްލާ.");
     }
   };
 
   return (
-    <section className="border-t border-black/10 py-20 px-6" dir="rtl">
+    <section className="border-t border-black/10 py-20 px-6" style={{ backgroundColor: "#F5F3EF" }} dir="rtl">
       <div className="max-w-xl mx-auto text-center space-y-6">
 
-        {/* Decorative */}
-        <div className="font-body text-2xl text-foreground/20 tracking-widest">✦ ✦ ✦</div>
+        <div style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "20px", color: "rgba(26,26,26,0.15)", letterSpacing: "0.2em" }}>
+          ✦ ✦ ✦
+        </div>
 
-        <h2 className="font-display text-3xl text-foreground">
+        <h2 style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontWeight: 700, fontSize: "22px", color: "rgb(26,26,26)", lineHeight: 2 }}>
           ނިއުސްލެޓަރ
         </h2>
-        <p className="font-body text-sm text-foreground/50 leading-relaxed">
+
+        <p style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontWeight: 400, fontSize: "14px", color: "rgb(110,108,102)", lineHeight: 2 }}>
           ހަފްތާއަކު އެއްފަހަރު — ފަންނު، ދިރިއުޅުން، ރިވިއު.
           <br />ތިޔަ އިންބޮކްސްއަށް ސީދާ.
         </p>
 
         {status === "success" ? (
-          <p className="font-body text-sm text-foreground/70 py-4">{message}</p>
+          <p style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "13px", color: "rgb(100,98,92)", lineHeight: 2 }}>
+            {message}
+          </p>
         ) : (
           <form onSubmit={handleSubmit} className="flex gap-2 max-w-sm mx-auto" dir="ltr">
             <input
@@ -59,12 +61,28 @@ export default function NewsletterCTA() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com"
               required
-              className="flex-1 bg-transparent border-b border-black/30 focus:border-black dark:border-white/30 dark:focus:border-white outline-none font-body text-sm py-2 text-center transition-colors placeholder:text-foreground/30"
+              className="flex-1 outline-none py-2 text-center transition-colors"
+              style={{
+                fontFamily: '"MVTypewriter", sans-serif',
+                fontSize: "13px",
+                color: "rgb(26,26,26)",
+                backgroundColor: "transparent",
+                borderBottom: "1px solid rgba(26,26,26,0.25)",
+              }}
             />
             <button
               type="submit"
               disabled={status === "loading"}
-              className="font-body text-xs font-semibold px-5 py-2 rounded-full bg-black text-white dark:bg-white dark:text-black hover:opacity-80 transition-opacity disabled:opacity-40 whitespace-nowrap"
+              className="hover:opacity-80 transition-opacity disabled:opacity-40 whitespace-nowrap"
+              style={{
+                fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
+                fontSize: "12px",
+                fontWeight: 700,
+                padding: "8px 20px",
+                borderRadius: "999px",
+                backgroundColor: "rgb(26,26,26)",
+                color: "rgb(249,248,245)",
+              }}
             >
               {status === "loading" ? "..." : "ސަބްސްކްރައިބް"}
             </button>
@@ -72,7 +90,9 @@ export default function NewsletterCTA() {
         )}
 
         {status === "error" && (
-          <p className="font-body text-xs text-red-500">{message}</p>
+          <p style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "11px", color: "rgb(200,60,60)" }}>
+            {message}
+          </p>
         )}
       </div>
     </section>
