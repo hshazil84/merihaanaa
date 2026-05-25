@@ -81,14 +81,12 @@ function CoverPreview({ value, onClear }: { value: CoverMediaValue; onClear: () 
       </div>
       <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-sm">
         <span className="font-body text-[10px] text-white/80">
-          {value.type === "image" ? "Cloudflare Images" : value.videoMeta?.provider === "vimeo" ? "Vimeo" : "YouTube"}
+          {value.type === "image" ? "R2 · WebP" : value.videoMeta?.provider === "vimeo" ? "Vimeo" : "YouTube"}
         </span>
       </div>
     </div>
   );
 }
-
-// ── Image uploader — uploads via /api/upload-image → Cloudflare Images ──
 
 function ImageUploader({ onChange }: { onChange: (v: CoverMediaValue) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -113,11 +111,18 @@ function ImageUploader({ onChange }: { onChange: (v: CoverMediaValue) => void })
     setProgress("ފޮޓޯ ތައްޔާރު ކުރަނީ...");
 
     try {
-      // Process image to WebP 1600×900
-      const blob = await processImage(file, { targetW: 1600, targetH: 900 });
-      setProgress("ކްލাউޑަށް ލޯޑް ކުރަނީ...");
+      // Compress to 1200×675 WebP at 0.72 quality — targets <300KB, no watermark
+      const blob = await processImage(file, {
+        targetW:   1200,
+        targetH:   675,
+        quality:   0.72,
+        watermark: false,
+      });
 
-      // Upload via server-side API route → Cloudflare Images
+      console.log("Compressed size:", (blob.size / 1024).toFixed(0), "KB");
+
+      setProgress("ކްލاউޑަށް ލޯޑް ކުރަނީ...");
+
       const formData = new FormData();
       formData.append("file", new File([blob], `cover-${Date.now()}.webp`, { type: "image/webp" }));
 
@@ -171,7 +176,7 @@ function ImageUploader({ onChange }: { onChange: (v: CoverMediaValue) => void })
             </div>
             <div className="px-3 py-1.5 rounded-lg bg-muted border border-border">
               <p className="font-body text-[10px] text-muted-foreground">
-                ކޮންމެ ފޮޓޯއެއް ވެސް 1600×900 WebP އަށް ބަދަލުކުރެވޭ
+                ކޮންމެ ފޮޓޯއެއް ވެސް 1200×675 WebP އަށް ބަދަލުކުރެވޭ
               </p>
             </div>
           </>
