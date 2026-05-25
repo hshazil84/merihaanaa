@@ -1,4 +1,4 @@
-// app/(public)/news/[slug]/page.tsx
+// app/(article)/news/[slug]/page.tsx
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
@@ -7,17 +7,12 @@ import ArticleBody from "@/components/public/ArticleBody";
 import CommentSection from "@/components/public/CommentSection";
 import SocialShare from "@/components/public/SocialShare";
 
-// ── Types ─────────────────────────────────────────────────
-
 interface PageProps {
   params: { slug: string };
 }
 
-// ── Data fetching ─────────────────────────────────────────
-
 async function getArticle(slug: string) {
   const supabase = await createServerSupabaseClient();
-
   const { data: article } = await supabase
     .from("articles")
     .select(`
@@ -33,7 +28,6 @@ async function getArticle(slug: string) {
     .eq("slug", slug)
     .eq("status", "published")
     .single();
-
   return article;
 }
 
@@ -50,26 +44,27 @@ async function getRelated(categoryId: string, excludeId: string) {
   return data ?? [];
 }
 
-// ── Metadata ──────────────────────────────────────────────
-
 export async function generateMetadata({ params }: PageProps) {
   const article = await getArticle(params.slug);
   if (!article) return { title: "ލިޔުން ނުލިބުނު" };
 
-  const category = article.category as any;
   const coverImage =
     article.cover_type === "image"
       ? article.cover_url || article.featured_image
       : article.cover_video_thumbnail;
 
+  const articleUrl = `https://merihaanaa.com/news/${article.slug}`;
+
   return {
     title: article.title,
     description: article.excerpt,
     openGraph: {
+      url:         articleUrl,
       title:       article.title,
       description: article.excerpt ?? "",
       images:      coverImage ? [{ url: coverImage, width: 1200, height: 630 }] : [],
       type:        "article",
+      siteName:    "މެރިހާނާ",
     },
     twitter: {
       card:        "summary_large_image",
@@ -80,17 +75,13 @@ export async function generateMetadata({ params }: PageProps) {
   };
 }
 
-// ── Page ──────────────────────────────────────────────────
-
 export default async function ArticlePage({ params }: PageProps) {
   const article = await getArticle(params.slug);
   if (!article) notFound();
 
   const category = article.category as any;
   const author   = article.author as any;
-  const related  = category?.id
-    ? await getRelated(category.id, article.id)
-    : [];
+  const related  = category?.id ? await getRelated(category.id, article.id) : [];
 
   const coverImage =
     article.cover_type === "image"
@@ -140,7 +131,6 @@ export default async function ArticlePage({ params }: PageProps) {
       {/* ── Article header ── */}
       <header className="max-w-3xl mx-auto px-6 pt-6 pb-8">
 
-        {/* Category pill */}
         {category && (
           <div className="mb-5">
             <Link href={`/category/${category.slug}`}
@@ -157,7 +147,6 @@ export default async function ArticlePage({ params }: PageProps) {
           </div>
         )}
 
-        {/* Title */}
         <h1
           className="mb-4 leading-tight"
           style={{
@@ -170,10 +159,8 @@ export default async function ArticlePage({ params }: PageProps) {
           {article.title}
         </h1>
 
-        {/* Excerpt */}
         {article.excerpt && (
-          <p
-            className="mb-6"
+          <p className="mb-6"
             style={{
               fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
               fontWeight: 400,
@@ -185,12 +172,9 @@ export default async function ArticlePage({ params }: PageProps) {
           </p>
         )}
 
-        {/* Meta row — author, date, reading time */}
         <div className="flex items-center justify-between flex-wrap gap-3 pb-6 border-b border-black/10">
           <div className="flex items-center gap-3">
-            {/* Author avatar placeholder */}
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
               style={{ backgroundColor: "rgb(210,207,200)" }}>
               <span style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "11px", color: "rgb(100,98,92)" }}>
                 {author?.full_name?.[0] ?? "M"}
@@ -216,7 +200,6 @@ export default async function ArticlePage({ params }: PageProps) {
                 {article.reading_time_minutes} މިނެޓު
               </span>
             )}
-            {/* Social share — client component */}
             <SocialShare url={articleUrl} title={article.title} />
           </div>
         </div>
@@ -226,15 +209,10 @@ export default async function ArticlePage({ params }: PageProps) {
       {coverImage && (
         <div className="max-w-4xl mx-auto px-4 mb-8">
           <div className="rounded-xl overflow-hidden" style={{ aspectRatio: "16/9" }}>
-            <img
-              src={coverImage}
-              alt={article.title}
-              className="w-full h-full object-cover"
-            />
+            <img src={coverImage} alt={article.title} className="w-full h-full object-cover" />
           </div>
           {article.featured_image_caption && (
-            <p
-              className="text-center mt-2"
+            <p className="text-center mt-2"
               style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "11px", color: "rgb(160,158,152)", lineHeight: 2 }}>
               {article.featured_image_caption}
             </p>
@@ -252,9 +230,7 @@ export default async function ArticlePage({ params }: PageProps) {
         <div className="max-w-3xl mx-auto px-6 pb-10">
           <div className="flex flex-wrap gap-2 pt-6 border-t border-black/10">
             {(article.tags as {name: string; slug: string}[]).map((tag) => (
-              <Link
-                key={tag.slug}
-                href={`/tag/${tag.slug}`}
+              <Link key={tag.slug} href={`/tag/${tag.slug}`}
                 className="inline-block text-[11px] px-3 py-1 rounded-full border transition-colors hover:border-black/30"
                 style={{
                   fontFamily: "'MVTypewriter', sans-serif",
@@ -283,8 +259,7 @@ export default async function ArticlePage({ params }: PageProps) {
       {/* ── Related articles ── */}
       {related.length > 0 && (
         <section className="max-w-6xl mx-auto px-6 py-12 border-t border-black/10">
-          <h2
-            className="text-center mb-10"
+          <h2 className="text-center mb-10"
             style={{
               fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
               fontWeight: 400,
@@ -299,19 +274,15 @@ export default async function ArticlePage({ params }: PageProps) {
               <Link key={rel.id} href={`/news/${rel.slug}`} className="group block">
                 <div className="aspect-[4/3] overflow-hidden rounded-lg bg-[#e8e5de] mb-3">
                   {rel.featured_image ? (
-                    <img
-                      src={rel.featured_image}
-                      alt={rel.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
+                    <img src={rel.featured_image} alt={rel.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   ) : (
                     <div className="w-full h-full bg-[#dedad2]" />
                   )}
                 </div>
                 {rel.category && (
                   <div className="mb-1.5">
-                    <span
-                      className="inline-block text-[10px] px-2.5 py-1 rounded-full border"
+                    <span className="inline-block text-[10px] px-2.5 py-1 rounded-full border"
                       style={{
                         fontFamily: "'MVTypewriter', sans-serif",
                         color: "rgb(100,100,100)",
@@ -323,8 +294,7 @@ export default async function ArticlePage({ params }: PageProps) {
                     </span>
                   </div>
                 )}
-                <h3
-                  className="line-clamp-2 group-hover:opacity-70 transition-opacity"
+                <h3 className="line-clamp-2 group-hover:opacity-70 transition-opacity"
                   style={{
                     fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
                     fontWeight: 700,
