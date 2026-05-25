@@ -11,6 +11,20 @@ interface PageProps {
   params: { slug: string };
 }
 
+const DHIVEHI_MONTHS: Record<number, string> = {
+  1: "ޖެނުއަރީ", 2: "ފެބްރުއަރީ", 3: "މާރިޗު", 4: "އޭޕްރީލް",
+  5: "މެއި", 6: "ޖޫން", 7: "ޖުލައި", 8: "އޮގަސްޓް",
+  9: "ސެޕްޓެމްބަރު", 10: "އޮކްޓޯބަރު", 11: "ނޮވެމްބަރު", 12: "ޑިސެމްބަރު",
+};
+
+function formatDhivehiDate(iso: string): string {
+  const d = new Date(iso);
+  const day   = d.getDate();
+  const month = DHIVEHI_MONTHS[d.getMonth() + 1];
+  const year  = d.getFullYear();
+  return `${day} ${month} ${year}`;
+}
+
 async function getArticle(slug: string) {
   const supabase = await createServerSupabaseClient();
   const { data: article } = await supabase
@@ -91,9 +105,7 @@ export default async function ArticlePage({ params }: PageProps) {
       : null;
 
   const publishedDate = article.published_at
-    ? new Date(article.published_at).toLocaleDateString("dv-MV", {
-        year: "numeric", month: "long", day: "numeric",
-      })
+    ? formatDhivehiDate(article.published_at)
     : null;
 
   const articleUrl = `https://merihaanaa.com/news/${article.slug}`;
@@ -101,40 +113,14 @@ export default async function ArticlePage({ params }: PageProps) {
   return (
     <div className="bg-[#F5F3EF] min-h-screen" dir="rtl">
 
-      {/* ── Breadcrumb ── */}
-      <div className="max-w-3xl mx-auto px-6 pt-8 pb-2">
-        <nav className="flex items-center gap-2" aria-label="breadcrumb">
-          <Link href="/"
-            style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "11px", color: "rgb(160,158,152)", lineHeight: 2 }}
-            className="hover:text-[rgb(26,26,26)] transition-colors">
-            ހޯމް
-          </Link>
-          <span style={{ fontSize: "11px", color: "rgb(200,198,192)" }}>/</span>
-          {category && (
-            <>
-              <Link href={`/category/${category.slug}`}
-                style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "11px", color: "rgb(160,158,152)", lineHeight: 2 }}
-                className="hover:text-[rgb(26,26,26)] transition-colors">
-                {category.name}
-              </Link>
-              <span style={{ fontSize: "11px", color: "rgb(200,198,192)" }}>/</span>
-            </>
-          )}
-          <span
-            style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "11px", color: "rgb(100,98,92)", lineHeight: 2 }}
-            className="line-clamp-1">
-            {article.title}
-          </span>
-        </nav>
-      </div>
+      {/* ── Article header — breadcrumb (category pill), title, excerpt ── */}
+      <header className="max-w-3xl mx-auto px-6 pt-8 pb-6">
 
-      {/* ── Article header ── */}
-      <header className="max-w-3xl mx-auto px-6 pt-6 pb-8">
-
+        {/* Category pill — breadcrumb */}
         {category && (
           <div className="mb-5">
             <Link href={`/category/${category.slug}`}
-              className="inline-block text-[11px] px-3 py-1 rounded-full border"
+              className="inline-block text-[11px] px-3 py-1 rounded-full border transition-colors hover:border-black/30"
               style={{
                 fontFamily: "'MVTypewriter', sans-serif",
                 color: "rgb(100,100,100)",
@@ -147,8 +133,9 @@ export default async function ArticlePage({ params }: PageProps) {
           </div>
         )}
 
+        {/* Title */}
         <h1
-          className="mb-4 leading-tight"
+          className="mb-4"
           style={{
             fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
             fontWeight: 700,
@@ -159,8 +146,9 @@ export default async function ArticlePage({ params }: PageProps) {
           {article.title}
         </h1>
 
+        {/* Excerpt */}
         {article.excerpt && (
-          <p className="mb-6"
+          <p
             style={{
               fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
               fontWeight: 400,
@@ -171,8 +159,32 @@ export default async function ArticlePage({ params }: PageProps) {
             {article.excerpt}
           </p>
         )}
+      </header>
 
-        <div className="flex items-center justify-between flex-wrap gap-3 pb-6 border-b border-black/10">
+      {/* ── Cover image — full width ── */}
+      {coverImage && (
+        <div className="w-full mb-6">
+          <div className="max-w-4xl mx-auto px-4">
+            <div className="overflow-hidden rounded-xl" style={{ aspectRatio: "16/9" }}>
+              <img
+                src={coverImage}
+                alt={article.title}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            {article.featured_image_caption && (
+              <p className="text-center mt-2"
+                style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "11px", color: "rgb(160,158,152)", lineHeight: 2 }}>
+                {article.featured_image_caption}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Byline, date, reading time, social share ── */}
+      <div className="max-w-3xl mx-auto px-6 mb-8">
+        <div className="flex items-center justify-between flex-wrap gap-3 py-4 border-t border-b border-black/10">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
               style={{ backgroundColor: "rgb(210,207,200)" }}>
@@ -187,7 +199,7 @@ export default async function ArticlePage({ params }: PageProps) {
                 </p>
               )}
               {publishedDate && (
-                <p dir="ltr" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "10px", color: "rgb(160,158,152)", lineHeight: 1.4 }}>
+                <p style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "10px", color: "rgb(160,158,152)", lineHeight: 1.4 }}>
                   {publishedDate}
                 </p>
               )}
@@ -203,22 +215,7 @@ export default async function ArticlePage({ params }: PageProps) {
             <SocialShare url={articleUrl} title={article.title} />
           </div>
         </div>
-      </header>
-
-      {/* ── Cover image ── */}
-      {coverImage && (
-        <div className="max-w-4xl mx-auto px-4 mb-8">
-          <div className="rounded-xl overflow-hidden" style={{ aspectRatio: "16/9" }}>
-            <img src={coverImage} alt={article.title} className="w-full h-full object-cover" />
-          </div>
-          {article.featured_image_caption && (
-            <p className="text-center mt-2"
-              style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "11px", color: "rgb(160,158,152)", lineHeight: 2 }}>
-              {article.featured_image_caption}
-            </p>
-          )}
-        </div>
-      )}
+      </div>
 
       {/* ── Article body ── */}
       <div className="max-w-3xl mx-auto px-6 pb-12">
