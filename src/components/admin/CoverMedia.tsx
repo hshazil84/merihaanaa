@@ -115,13 +115,12 @@ function ImageUploader({ onChange }: { onChange: (v: CoverMediaValue) => void })
       const blob = await processImage(file, {
         targetW:   1200,
         targetH:   675,
-        quality:   0.72,
         watermark: false,
       });
 
       console.log("Compressed size:", (blob.size / 1024).toFixed(0), "KB");
 
-      setProgress("ކްލاউޑަށް ލޯޑް ކުރަނީ...");
+      setProgress("ކްލައުޑަށް ލޯޑް ކުރަނީ...");
 
       const formData = new FormData();
       formData.append("file", new File([blob], `cover-${Date.now()}.webp`, { type: "image/webp" }));
