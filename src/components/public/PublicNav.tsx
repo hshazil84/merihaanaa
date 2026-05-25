@@ -14,42 +14,51 @@ interface Props {
 
 const LOGO_BAR_HEIGHT = 72;
 const CAT_BAR_HEIGHT  = 56;
-const LOCK_THRESHOLD  = LOGO_BAR_HEIGHT;
 
 export default function PublicNav({ categories, static: isStatic = false }: Props) {
-  const [scrollY, setScrollY]               = useState(0);
-  const [heroHeight, setHeroHeight]         = useState(0);
+  const [catBarTop, setCatBarTop]           = useState(LOGO_BAR_HEIGHT);
+  const [locked, setLocked]                 = useState(false);
+  const [logoTransparent, setLogoTransparent] = useState(!isStatic);
   const [searchOpen, setSearchOpen]         = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (isStatic) return;
-    setHeroHeight(window.innerHeight);
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    if (isStatic) {
+      setCatBarTop(LOGO_BAR_HEIGHT);
+      setLocked(true);
+      setLogoTransparent(false);
+      return;
+    }
+
+    const update = () => {
+      const scrollY     = window.scrollY;
+      const heroHeight  = window.innerHeight; // hero is always 100vh
+      const naturalTop  = heroHeight - CAT_BAR_HEIGHT - scrollY;
+      const clampedTop  = Math.max(LOGO_BAR_HEIGHT, naturalTop);
+      const isLocked    = naturalTop <= LOGO_BAR_HEIGHT;
+
+      setCatBarTop(clampedTop);
+      setLocked(isLocked);
+      setLogoTransparent(scrollY < 20);
+    };
+
+    update(); // run once on mount
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
   }, [isStatic]);
-
-  const catBarTop = isStatic
-    ? LOCK_THRESHOLD
-    : heroHeight > 0
-      ? Math.max(LOCK_THRESHOLD, heroHeight - CAT_BAR_HEIGHT - scrollY)
-      : LOCK_THRESHOLD;
-
-  const locked = isStatic || catBarTop <= LOCK_THRESHOLD;
-
-  const logoTransparent = isStatic
-    ? false
-    : scrollY < heroHeight - CAT_BAR_HEIGHT - LOCK_THRESHOLD - 10;
 
   const iconColor = logoTransparent ? "rgb(255,255,255)" : "rgb(26,26,26)";
 
   return (
     <>
-      {/* ── Logo bar — no border, category bar owns the single dividing line ── */}
+      {/* ── Logo bar ── */}
       <header
-        className="fixed top-0 right-0 left-0 z-50 transition-colors duration-300"
+        className="fixed top-0 right-0 left-0 z-50 transition-colors duration-200"
         style={{
           height: `${LOGO_BAR_HEIGHT}px`,
           backgroundColor: logoTransparent ? "transparent" : "rgb(249, 248, 245)",
@@ -83,7 +92,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         </div>
       </header>
 
-      {/* ── Category bar — single bottom border only ── */}
+      {/* ── Category bar — no transition, tracks scroll precisely ── */}
       <div
         className="fixed z-40 w-full hidden md:block"
         style={{
@@ -91,7 +100,6 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           height: `${CAT_BAR_HEIGHT}px`,
           backgroundColor: "rgb(249, 248, 245)",
           borderBottom: "1px solid rgb(224, 221, 214)",
-          transition: isStatic ? "none" : "top 0.05s linear",
         }}
       >
         <div className="max-w-7xl mx-auto px-6 h-full">
