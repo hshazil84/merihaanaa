@@ -20,77 +20,58 @@ export async function POST(req: NextRequest) {
     }
 
     const key = `covers/cover-${Date.now()}.webp`;
-    const endpoint = `https://${accountId}.r2.cloudflarestorage.com`;
+    const host = `${accountId}.r2.cloudflarestorage.com`;
+    // R2 S3-compatible: bucket is part of the path
+    const url = `https://${host}/${bucketName}/${key}`;
 
-    // Use AWS S3 signing via fetch with Authorization header
-    // R2 supports S3-compatible PUT
     const fileBuffer = await file.arrayBuffer();
-
-    // Build the signed request manually using AWS Signature V4
     const region = "auto";
     const service = "s3";
-    const host = `${accountId}.r2.cloudflarestorage.com`;
-    const url = `${endpoint}/${bucketName}/${key}`;
+    const contentType = "image/webp";
 
     const now = new Date();
     const amzDate = now.toISOString().replace(/[:\-]|\.\d{3}/g, "").slice(0, 15) + "Z";
     const dateStamp = amzDate.slice(0, 8);
 
-    const contentType = "image/webp";
-
-    // Helper: SHA-256 hash
-    const sha256 = async (data: ArrayBuffer | string): Promise<string> => {
-      const buf = typeof data === "string" ? new TextEncoder().encode(data) : data;
-      const hash = await crypto.subtle.digest("SHA-256", buf);
+    const sha256 = async (data: ArrayBuffer | Uint8Array): Promise<string> => {
+      const hash = await crypto.subtle.digest("SHA-256", data);
       return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
     };
 
-    // Helper: HMAC-SHA256
-    const hmac = async (key: ArrayBuffer | string, data: string): Promise<ArrayBuffer> => {
-      const k = typeof key === "string" ? new TextEncoder().encode(key) : key;
-      const cryptoKey = await crypto.subtle.importKey("raw", k, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const hmacSha256 = async (key: ArrayBuffer, data: string): Promise<ArrayBuffer> => {
+      const cryptoKey = await crypto.subtle.importKey("raw", key, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
       return crypto.subtle.sign("HMAC", cryptoKey, new TextEncoder().encode(data));
     };
 
-    const payloadHash = await sha256(fileBuffer);
+    const payloadHash = await sha256(new Uint8Array(fileBuffer));
 
+    const canonicalUri = `/${bucketName}/${key}`;
     const canonicalHeaders =
       `content-type:${contentType}\n` +
       `host:${host}\n` +
       `x-amz-content-sha256:${payloadHash}\n` +
       `x-amz-date:${amzDate}\n`;
-
     const signedHeaders = "content-type;host;x-amz-content-sha256;x-amz-date";
 
-    const canonicalRequest = [
-      "PUT",
-      `/${bucketName}/${key}`,
-      "",
-      canonicalHeaders,
-      signedHeaders,
-      payloadHash,
-    ].join("\n");
+    const canonicalRequest = ["PUT", canonicalUri, "", canonicalHeaders, signedHeaders, payloadHash].join("\n");
 
     const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
     const stringToSign = [
       "AWS4-HMAC-SHA256",
       amzDate,
       credentialScope,
-      await sha256(new TextEncoder().encode(canonicalRequest).buffer),
+      await sha256(new TextEncoder().encode(canonicalRequest)),
     ].join("\n");
 
-    const signingKey = await (async () => {
-      const k1 = await hmac(`AWS4${secretKey}`, dateStamp);
-      const k2 = await hmac(k1, region);
-      const k3 = await hmac(k2, service);
-      return hmac(k3, "aws4_request");
-    })();
+    // Derive signing key
+    const kDate    = await hmacSha256(new TextEncoder().encode(`AWS4${secretKey}`), dateStamp);
+    const kRegion  = await hmacSha256(kDate, region);
+    const kService = await hmacSha256(kRegion, service);
+    const kSigning = await hmacSha256(kService, "aws4_request");
 
-    const signature = await (async () => {
-      const k = await crypto.subtle.importKey("raw", signingKey, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-      const sig = await crypto.subtle.sign("HMAC", k, new TextEncoder().encode(stringToSign));
-      return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
-    })();
+    const sigKey = await crypto.subtle.importKey("raw", kSigning, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const sigBuf = await crypto.subtle.sign("HMAC", sigKey, new TextEncoder().encode(stringToSign));
+    const signature = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2, "0")).join("");
 
     const authorization =
       `AWS4-HMAC-SHA256 Credential=${accessKey}/${credentialScope}, ` +
@@ -112,8 +93,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `R2 upload failed: ${text}` }, { status: 500 });
     }
 
-    const imageUrl = `${publicUrl}/${key}`;
-    return NextResponse.json({ url: imageUrl });
+    return NextResponse.json({ url: `${publicUrl}/${key}` });
 
   } catch (err: unknown) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Upload failed" }, { status: 500 });
