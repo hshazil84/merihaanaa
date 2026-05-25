@@ -14,6 +14,10 @@ const nextConfig = {
         protocol: "https",
         hostname: "**.cloudflare.com",
       },
+      {
+        protocol: "https",
+        hostname: "**.supabase.co",
+      },
     ],
   },
   async headers() {

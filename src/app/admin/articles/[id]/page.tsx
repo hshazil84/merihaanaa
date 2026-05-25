@@ -1,17 +1,18 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import ArticleEditor from "@/components/admin/ArticleEditor";
 import CoverMedia, { type CoverMediaValue } from "@/components/admin/CoverMedia";
 import ArticleSidebar from "@/components/admin/ArticleSidebar";
-import { createSlug } from "@/lib/utils";
 
 interface Category { id: string; name: string; }
 
-export default function NewArticlePage() {
+export default function EditArticlePage() {
   const router   = useRouter();
+  const params   = useParams();
+  const id       = params.id as string;
   const supabase = createClient();
 
   const [title, setTitle]               = useState("");
@@ -30,34 +31,80 @@ export default function NewArticlePage() {
   const [authorId, setAuthorId]         = useState<string | null>(null);
   const [scheduledFor, setScheduledFor] = useState<string | null>(null);
   const [tags, setTags]                 = useState<{name: string; slug: string}[]>([]);
+  const [slug, setSlug]                 = useState("");
 
+  const [loading, setLoading]     = useState(true);
   const [saving, setSaving]       = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [error, setError]         = useState<string | null>(null);
 
-  const articleIdRef = useRef<string | null>(null);
-  const slugRef      = useRef<string>("");
   const placementRef = useRef<string | null>(null);
   const categoryRef  = useRef<string | null>(null);
   const isPremiumRef = useRef(false);
-  const [slug, setSlug] = useState("");
-
-  useEffect(() => {
-    supabase.from("categories").select("id, name").order("name")
-      .then(({ data }) => {
-        if (data) {
-          setCategories(data);
-          if (data.length > 0) {
-            setCategoryId(data[0].id);
-            categoryRef.current = data[0].id;
-          }
-        }
-      });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { placementRef.current = placement; }, [placement]);
   useEffect(() => { categoryRef.current = categoryId; }, [categoryId]);
   useEffect(() => { isPremiumRef.current = isPremium; }, [isPremium]);
+
+  // ── Load article + categories ────────────────────────────
+  useEffect(() => {
+    const load = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push("/login"); return; }
+
+      const [articleRes, catsRes] = await Promise.all([
+        supabase.from("articles").select("*").eq("id", id).single(),
+        supabase.from("categories").select("id, name").order("name"),
+      ]);
+
+      if (catsRes.data) setCategories(catsRes.data);
+
+      if (articleRes.error || !articleRes.data) {
+        setError("ލިޔުން ނުލިބުނު");
+        setLoading(false);
+        return;
+      }
+
+      const a = articleRes.data;
+      setTitle(a.title ?? "");
+      setExcerpt(a.excerpt ?? "");
+      setBody(a.body ?? null);
+      setSlug(a.slug ?? "");
+      setCategoryId(a.category_id ?? null);
+      categoryRef.current = a.category_id ?? null;
+      setPlacement(a.homepage_placement ?? null);
+      placementRef.current = a.homepage_placement ?? null;
+      setHomepageFeatured(a.homepage_featured ?? false);
+      setIsPremium(a.is_premium ?? false);
+      isPremiumRef.current = a.is_premium ?? false;
+      setAllowComments(a.allow_comments ?? true);
+      setOgTitle(a.og_title ?? "");
+      setOgDesc(a.og_description ?? "");
+      setOgImageUrl(a.og_image_url ?? "");
+      setAuthorId(a.author_id ?? null);
+      setScheduledFor(a.scheduled_for ?? null);
+      setTags(Array.isArray(a.tags) ? a.tags : []);
+
+      // Reconstruct coverMedia
+      if (a.cover_type === "image" && (a.cover_url || a.featured_image)) {
+        setCoverMedia({ type: "image", imageUrl: a.cover_url || a.featured_image });
+      } else if (a.cover_type === "video" && a.cover_video_id) {
+        setCoverMedia({
+          type: "video",
+          videoMeta: {
+            provider: a.cover_video_provider ?? "youtube",
+            videoId: a.cover_video_id,
+            thumbnailUrl: a.cover_video_thumbnail ?? "",
+            title: "",
+            embedUrl: "",
+          },
+        });
+      }
+
+      setLoading(false);
+    };
+    load();
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const editorScrollRef = useRef<HTMLDivElement>(null);
   const handleBodyChange = useCallback((newBody: Record<string, unknown>) => {
@@ -69,21 +116,18 @@ export default function NewArticlePage() {
 
   const handleCoverMediaChange = (value: CoverMediaValue | null) => {
     setCoverMedia(value);
-    // Auto-set OG image from video thumbnail only if no custom OG image set
     if (value?.type === "video" && value.videoMeta?.thumbnailUrl && !ogImageUrl) {
       setOgImageUrl(value.videoMeta.thumbnailUrl);
     }
-    // Clear OG image if cover changes away from video
-    if (value?.type === "image") {
-      setOgImageUrl("");
-    }
+    if (value?.type === "image") setOgImageUrl("");
   };
 
+  // Auto-save every 60s
   useEffect(() => {
-    if (!title.trim()) return;
+    if (!title.trim() || loading) return;
     const interval = setInterval(() => { handleSave("draft", true); }, 60000);
     return () => clearInterval(interval);
-  }, [title, body, excerpt]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [title, body, excerpt, loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const buildPayload = (publishStatus: "draft" | "published" | "scheduled") => {
     const coverFields =
@@ -93,7 +137,6 @@ export default function NewArticlePage() {
         ? { cover_type: "video", cover_url: null, featured_image: null, cover_video_id: coverMedia.videoMeta?.videoId ?? null, cover_video_provider: coverMedia.videoMeta?.provider ?? null, cover_video_thumbnail: coverMedia.videoMeta?.thumbnailUrl ?? null }
         : { cover_type: null, cover_url: null, featured_image: null, cover_video_id: null, cover_video_provider: null, cover_video_thumbnail: null };
 
-    // OG image priority: custom upload > cover image > video thumbnail
     const resolvedOgImage =
       ogImageUrl ||
       coverFields.featured_image ||
@@ -109,7 +152,7 @@ export default function NewArticlePage() {
       content_type: "article",
       ...coverFields,
       status: publishStatus,
-      published_at: publishStatus === "published" ? new Date().toISOString() : null,
+      published_at: publishStatus === "published" ? new Date().toISOString() : undefined,
       scheduled_for: publishStatus === "scheduled" ? scheduledFor : null,
       homepage_placement: placementRef.current,
       homepage_featured: homepageFeatured,
@@ -119,6 +162,7 @@ export default function NewArticlePage() {
       og_description: ogDesc || excerpt,
       og_image_url: resolvedOgImage,
       tags,
+      updated_at: new Date().toISOString(),
     };
   };
 
@@ -129,41 +173,30 @@ export default function NewArticlePage() {
     if (!title.trim()) { if (!silent) setError("ސުރުހީ ލިޔެލާ"); return; }
     if (!silent) { setSaving(true); setError(null); }
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push("/login"); return; }
-
-    const payload = buildPayload(publishStatus);
-    let data, err;
-
-    if (articleIdRef.current) {
-      ({ data, error: err } = await supabase
-        .from("articles").update(payload).eq("id", articleIdRef.current).select().single());
-    } else {
-      const baseSlug = createSlug(title);
-      const uniqueSuffix = Date.now().toString(36).slice(-4);
-      const generatedSlug = `${baseSlug}-${uniqueSuffix}`;
-      slugRef.current = generatedSlug;
-      setSlug(generatedSlug);
-      ({ data, error: err } = await supabase
-        .from("articles").insert({ ...payload, slug: generatedSlug }).select().single());
-    }
+    const { error: err } = await supabase
+      .from("articles").update(buildPayload(publishStatus)).eq("id", id);
 
     if (!silent) setSaving(false);
     if (err) { if (!silent) setError("ލިޔުން ސޭވް ނުވި: " + err.message); return; }
-    if (data) {
-      articleIdRef.current = data.id;
-      slugRef.current = data.slug;
-      setSlug(data.slug);
-      setLastSaved(new Date());
-    }
-    if (!silent && (publishStatus === "published" || publishStatus === "scheduled")) {
-      router.push(`/admin/articles/${articleIdRef.current}`);
+
+    setLastSaved(new Date());
+
+    if (!silent && publishStatus === "published") {
+      router.push("/admin/articles");
     }
   };
 
   const handlePreview = () => {
-    window.open(`/preview/${slugRef.current || createSlug(title)}`, "_blank");
+    window.open(`/preview/${slug}`, "_blank");
   };
+
+  if (loading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="font-body text-sm text-muted-foreground">ލޯޑްވަނީ...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full">
@@ -172,10 +205,11 @@ export default function NewArticlePage() {
       <div ref={editorScrollRef} className="flex-1 overflow-y-auto p-6">
         <div className="max-w-3xl mx-auto space-y-4">
 
-          {/* Category picker — replaces content type pills */}
+          {/* Category picker */}
           <div className="flex gap-2 flex-wrap" dir="rtl">
             {categories.map((cat) => (
-              <button key={cat.id} type="button" onClick={() => { setCategoryId(cat.id); categoryRef.current = cat.id; }}
+              <button key={cat.id} type="button"
+                onClick={() => { setCategoryId(cat.id); categoryRef.current = cat.id; }}
                 className={`font-body text-xs px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5 ${
                   categoryId === cat.id
                     ? "bg-foreground text-background border-foreground"
@@ -204,12 +238,19 @@ export default function NewArticlePage() {
           {/* Cover media */}
           <CoverMedia value={coverMedia} onChange={handleCoverMediaChange} />
 
-          {/* Article editor */}
+          {/* Editor — key forces remount when body loads */}
           <ArticleEditor
+            key={id}
             content={body ?? undefined}
             onChange={handleBodyChange}
             placeholder="ލިޔުން ފަށާ..."
           />
+
+          {error && (
+            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+              <p className="font-body text-sm text-destructive">{error}</p>
+            </div>
+          )}
         </div>
       </div>
 
