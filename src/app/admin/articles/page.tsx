@@ -11,7 +11,6 @@ export default async function AdminArticlesPage({
   searchParams: { page?: string; status?: string; q?: string };
 }) {
   const supabase = await createServerSupabaseClient();
-
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) redirect("/admin/login");
 
@@ -24,7 +23,7 @@ export default async function AdminArticlesPage({
     .from("articles")
     .select(`
       id, title, slug, status, content_type,
-      category_id, published_at, created_at,
+      category_id, published_at, created_at, view_count,
       author:authors!author_id(id, full_name, avatar),
       category:categories!category_id(id, name)
     `, { count: "exact" })
@@ -32,18 +31,17 @@ export default async function AdminArticlesPage({
     .range((page - 1) * pageSize, page * pageSize - 1);
 
   if (status !== "all") query = query.eq("status", status);
-  if (q.trim())          query = query.ilike("title", `%${q}%`);
+  if (q.trim())         query = query.ilike("title", `%${q}%`);
 
   const { data: articles, count, error } = await query;
   if (error) console.error("Articles fetch error:", error.message);
 
-  // Normalize author shape to match ArticlesClient interface
   const mapped = (articles ?? []).map((a: any) => ({
     ...a,
     author: a.author ? {
       id: a.author.id,
       full_name: a.author.full_name,
-      avatar_url: a.author.avatar, // map avatar → avatar_url
+      avatar_url: a.author.avatar,
     } : null,
   }));
 
