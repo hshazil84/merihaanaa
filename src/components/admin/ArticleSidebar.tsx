@@ -65,7 +65,8 @@ const PLACEMENTS = [
 const BUCKET = "article-images";
 
 function slugify(text: string) {
-  return text.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "");
+  const latin = text.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "");
+  return latin || `tag-${Date.now()}`;
 }
 
 // font-body = MVTypewriter (Thaana)
