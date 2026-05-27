@@ -69,9 +69,6 @@ function slugify(text: string) {
   return latin || `tag-${Date.now()}`;
 }
 
-// font-body = MVTypewriter (Thaana)
-// font-sans  = Plus Jakarta Sans (Latin UI only)
-
 function Section({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
     <div className={`px-4 py-4 border-b border-border ${className}`}>
@@ -84,7 +81,7 @@ function SectionLabel({ children, icon }: { children: React.ReactNode; icon?: Re
   return (
     <div className="flex items-center gap-1.5 mb-3">
       {icon && <span className="text-muted-foreground">{icon}</span>}
-      <p className="font-sans text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
+      <p className="font-body text-[11px] font-semibold text-muted-foreground">
         {children}
       </p>
     </div>
@@ -120,11 +117,11 @@ function Collapsible({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between py-3.5 group"
+        className="w-full flex items-center justify-between py-3.5"
       >
         <div className="flex items-center gap-1.5">
           {icon && <span className="text-muted-foreground">{icon}</span>}
-          <span className="font-sans text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
+          <span className="font-sans text-[11px] font-semibold text-muted-foreground">
             {label}
           </span>
         </div>
@@ -171,7 +168,6 @@ export default function ArticleSidebar({
       .then(({ data }) => { if (data) setAuthors(data); });
   }, [supabase]);
 
-  // ── Tag helpers — functional updates, no stale closure ───────────────────
   const addTag = useCallback((tag: TagItem) => {
     if (!onTagsChange) return;
     onTagsChange((prev: TagItem[]) => {
@@ -195,7 +191,6 @@ export default function ArticleSidebar({
     }
   };
 
-  // ── AI tag generation ────────────────────────────────────────────────────
   const generateTags = async () => {
     if (!title) return;
     setAiLoading(true);
@@ -209,8 +204,6 @@ export default function ArticleSidebar({
       const data = await res.json();
       if (data.tags && Array.isArray(data.tags)) {
         setAiSuggestions(data.tags);
-      } else {
-        console.error("Tag generation returned unexpected format:", data);
       }
     } catch (err) {
       console.error("Tag generation failed:", err);
@@ -219,7 +212,6 @@ export default function ArticleSidebar({
     }
   };
 
-  // ── OG image upload ──────────────────────────────────────────────────────
   const handleOgImageFile = useCallback(async (file: File) => {
     setOgUploading(true);
     try {
@@ -231,7 +223,7 @@ export default function ArticleSidebar({
       const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(path);
       onOgImageUrlChange(publicUrl);
     } catch (err) {
-      console.error("OG image upload failed:", err);
+      console.error("OG upload failed:", err);
     } finally {
       setOgUploading(false);
     }
@@ -241,11 +233,11 @@ export default function ArticleSidebar({
     <aside className="w-64 flex-shrink-0 border-r border-border bg-background flex flex-col h-full overflow-hidden">
       <div className="flex-1 overflow-y-auto no-scrollbar">
 
-        {/* ── Publish actions ── */}
+        {/* ── Actions ── */}
         <Section>
           <button
             type="button" onClick={onPreview}
-            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-border bg-muted/40 hover:bg-muted hover:border-border transition-all group mb-2"
+            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-border bg-muted/40 hover:bg-muted transition-all group mb-2"
           >
             <span className="font-sans text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">Preview</span>
             <Eye size={14} className="text-muted-foreground group-hover:text-foreground transition-colors" />
@@ -334,7 +326,6 @@ export default function ArticleSidebar({
           <SectionLabel icon={<Home size={11} />}>ހޯމްޕޭޖް</SectionLabel>
           <div className="space-y-0.5">
 
-            {/* None */}
             <button
               type="button" onClick={() => onPlacementChange(null)}
               className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all ${
@@ -386,7 +377,6 @@ export default function ArticleSidebar({
             })}
           </div>
 
-          {/* Latest grid toggle */}
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
             <div>
               <p className="font-body text-[11px] font-semibold text-foreground">ލެޓެސްޓް ގްރިޑް</p>
@@ -401,7 +391,7 @@ export default function ArticleSidebar({
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-1.5">
               <Tag size={11} className="text-muted-foreground" />
-              <p className="font-sans text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Tags</p>
+              <p className="font-sans text-[11px] font-semibold text-muted-foreground">Tags</p>
             </div>
             <button
               type="button" onClick={generateTags} disabled={aiLoading || !title}
@@ -412,7 +402,6 @@ export default function ArticleSidebar({
             </button>
           </div>
 
-          {/* Current tags */}
           {tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-2.5">
               {tags.map((tag) => (
@@ -432,10 +421,9 @@ export default function ArticleSidebar({
             </div>
           )}
 
-          {/* AI suggestions */}
           {aiSuggestions.length > 0 && (
             <div className="mb-2.5 p-2.5 rounded-xl border border-border bg-muted/30">
-              <p className="font-sans text-[9px] text-muted-foreground mb-2 uppercase tracking-widest">AI Suggestions</p>
+              <p className="font-sans text-[10px] text-muted-foreground mb-2">AI Suggestions</p>
               <div className="flex flex-wrap gap-1.5">
                 {aiSuggestions.map((tag) => {
                   const added = tags.find((t) => t.slug === tag.slug);
@@ -457,7 +445,6 @@ export default function ArticleSidebar({
             </div>
           )}
 
-          {/* Tag input */}
           <input
             type="text" value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}
@@ -471,10 +458,8 @@ export default function ArticleSidebar({
         {/* ── Settings ── */}
         <Collapsible label="Settings">
           <div className="space-y-1">
-
-            {/* Category */}
             <div className="mb-3">
-              <p className="font-sans text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-1.5">Category</p>
+              <p className="font-sans text-[10px] font-semibold text-muted-foreground mb-1.5">Category</p>
               <div className="relative">
                 <select
                   value={categoryId ?? ""} onChange={(e) => onCategoryChange(e.target.value)}
@@ -488,7 +473,6 @@ export default function ArticleSidebar({
               </div>
             </div>
 
-            {/* Reading time */}
             <div className="flex items-center justify-between py-2 px-1">
               <div className="flex items-center gap-2">
                 <Clock size={12} className="text-muted-foreground" />
@@ -499,7 +483,6 @@ export default function ArticleSidebar({
 
             <div className="h-px bg-border my-1" />
 
-            {/* Premium */}
             <div className="flex items-center justify-between py-2 px-1">
               <div className="flex items-center gap-2">
                 <Lock size={12} className="text-muted-foreground" />
@@ -513,7 +496,6 @@ export default function ArticleSidebar({
 
             <div className="h-px bg-border my-1" />
 
-            {/* Comments */}
             <div className="flex items-center justify-between py-2 px-1">
               <div className="flex items-center gap-2">
                 <MessageCircle size={12} className="text-muted-foreground" />
@@ -530,8 +512,6 @@ export default function ArticleSidebar({
         {/* ── Open Graph ── */}
         <Collapsible label="Open Graph" icon={<Globe size={11} />}>
           <div className="space-y-3">
-
-            {/* Preview card */}
             <div className="rounded-xl overflow-hidden border border-border">
               <div className="h-20 bg-muted flex items-center justify-center overflow-hidden">
                 {ogPreviewImage
@@ -543,7 +523,7 @@ export default function ArticleSidebar({
                 <div className="flex items-center gap-1 mb-1">
                   <img src="/logo.png" alt="" className="w-3 h-3 rounded-sm object-contain"
                     onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                  <p className="font-sans text-[9px] text-muted-foreground uppercase tracking-wider">merihaanaa.com</p>
+                  <p className="font-sans text-[9px] text-muted-foreground">merihaanaa.com</p>
                 </div>
                 <p className="font-body text-[11px] font-semibold leading-snug line-clamp-1 text-foreground">
                   {ogTitle || title || "ލިޔުމުގެ ސުރުހީ"}
@@ -554,7 +534,6 @@ export default function ArticleSidebar({
               </div>
             </div>
 
-            {/* OG image upload — video covers only */}
             {isVideoCover && (
               <>
                 <input
@@ -586,9 +565,8 @@ export default function ArticleSidebar({
               </>
             )}
 
-            {/* OG text */}
             <div>
-              <label className="font-sans text-[9px] font-semibold text-muted-foreground uppercase tracking-widest block mb-1.5">Title</label>
+              <label className="font-sans text-[10px] font-semibold text-muted-foreground block mb-1.5">Title</label>
               <textarea
                 value={ogTitle} onChange={(e) => onOgTitleChange(e.target.value)}
                 placeholder={title || "ލިޔުމުގެ ސުރުހީ..."} rows={2}
@@ -596,7 +574,7 @@ export default function ArticleSidebar({
               />
             </div>
             <div>
-              <label className="font-sans text-[9px] font-semibold text-muted-foreground uppercase tracking-widest block mb-1.5">Description</label>
+              <label className="font-sans text-[10px] font-semibold text-muted-foreground block mb-1.5">Description</label>
               <textarea
                 value={ogDesc} onChange={(e) => onOgDescChange(e.target.value)}
                 placeholder={excerpt || "ތަފްސީލް..."} rows={2}
