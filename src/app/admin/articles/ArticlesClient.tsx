@@ -308,7 +308,7 @@ export default function ArticlesClient({
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-44" dir="rtl">
+                      <DropdownMenuContent align="end" className="w-44">
                         <DropdownMenuItem asChild>
                           <Link href={`/admin/articles/${article.id}`} className="flex items-center gap-2 text-sm cursor-pointer">
                             <Pencil className="h-3.5 w-3.5" /> އެޑިޓް
