@@ -8,6 +8,7 @@ import CoverMedia, { type CoverMediaValue } from "@/components/admin/CoverMedia"
 import ArticleSidebar from "@/components/admin/ArticleSidebar";
 
 interface Category { id: string; name: string; }
+interface TagItem  { name: string; slug: string; }
 
 export default function EditArticlePage() {
   const router   = useRouter();
@@ -15,23 +16,23 @@ export default function EditArticlePage() {
   const id       = params.id as string;
   const supabase = createClient();
 
-  const [title, setTitle]               = useState("");
-  const [excerpt, setExcerpt]           = useState("");
-  const [body, setBody]                 = useState<Record<string, unknown> | null>(null);
-  const [categoryId, setCategoryId]     = useState<string | null>(null);
-  const [categories, setCategories]     = useState<Category[]>([]);
-  const [placement, setPlacement]       = useState<string | null>(null);
+  const [title, setTitle]                       = useState("");
+  const [excerpt, setExcerpt]                   = useState("");
+  const [body, setBody]                         = useState<Record<string, unknown> | null>(null);
+  const [categoryId, setCategoryId]             = useState<string | null>(null);
+  const [categories, setCategories]             = useState<Category[]>([]);
+  const [placement, setPlacement]               = useState<string | null>(null);
   const [homepageFeatured, setHomepageFeatured] = useState(false);
-  const [isPremium, setIsPremium]       = useState(false);
-  const [allowComments, setAllowComments] = useState(true);
-  const [ogTitle, setOgTitle]           = useState("");
-  const [ogDesc, setOgDesc]             = useState("");
-  const [ogImageUrl, setOgImageUrl]     = useState("");
-  const [coverMedia, setCoverMedia]     = useState<CoverMediaValue | null>(null);
-  const [authorId, setAuthorId]         = useState<string | null>(null);
-  const [scheduledFor, setScheduledFor] = useState<string | null>(null);
-  const [tags, setTags]                 = useState<{name: string; slug: string}[]>([]);
-  const [slug, setSlug]                 = useState("");
+  const [isPremium, setIsPremium]               = useState(false);
+  const [allowComments, setAllowComments]       = useState(true);
+  const [ogTitle, setOgTitle]                   = useState("");
+  const [ogDesc, setOgDesc]                     = useState("");
+  const [ogImageUrl, setOgImageUrl]             = useState("");
+  const [coverMedia, setCoverMedia]             = useState<CoverMediaValue | null>(null);
+  const [authorId, setAuthorId]                 = useState<string | null>(null);
+  const [scheduledFor, setScheduledFor]         = useState<string | null>(null);
+  const [tags, setTags]                         = useState<TagItem[]>([]);
+  const [slug, setSlug]                         = useState("");
 
   const [loading, setLoading]     = useState(true);
   const [saving, setSaving]       = useState(false);
@@ -46,7 +47,7 @@ export default function EditArticlePage() {
   useEffect(() => { categoryRef.current = categoryId; }, [categoryId]);
   useEffect(() => { isPremiumRef.current = isPremium; }, [isPremium]);
 
-  // ── Load article + categories ────────────────────────────
+  // ── Load article + categories ──────────────────────────────────────────────
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -107,6 +108,7 @@ export default function EditArticlePage() {
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const editorScrollRef = useRef<HTMLDivElement>(null);
+
   const handleBodyChange = useCallback((newBody: Record<string, unknown>) => {
     const el = editorScrollRef.current;
     const scrollTop = el?.scrollTop ?? 0;
@@ -122,7 +124,19 @@ export default function EditArticlePage() {
     if (value?.type === "image") setOgImageUrl("");
   };
 
-  // Auto-save every 60s
+  // ── onTagsChange — accepts both direct array and functional updater ────────
+  const handleTagsChange = useCallback(
+    (updater: TagItem[] | ((prev: TagItem[]) => TagItem[])) => {
+      if (typeof updater === "function") {
+        setTags((prev) => updater(prev));
+      } else {
+        setTags(updater);
+      }
+    },
+    []
+  );
+
+  // ── Auto-save every 60s ────────────────────────────────────────────────────
   useEffect(() => {
     if (!title.trim() || loading) return;
     const interval = setInterval(() => { handleSave("draft", true); }, 60000);
@@ -132,10 +146,31 @@ export default function EditArticlePage() {
   const buildPayload = (publishStatus: "draft" | "published" | "scheduled") => {
     const coverFields =
       coverMedia?.type === "image"
-        ? { cover_type: "image", cover_url: coverMedia.imageUrl ?? null, featured_image: coverMedia.imageUrl ?? null, cover_video_id: null, cover_video_provider: null, cover_video_thumbnail: null }
+        ? {
+            cover_type: "image",
+            cover_url: coverMedia.imageUrl ?? null,
+            featured_image: coverMedia.imageUrl ?? null,
+            cover_video_id: null,
+            cover_video_provider: null,
+            cover_video_thumbnail: null,
+          }
         : coverMedia?.type === "video"
-        ? { cover_type: "video", cover_url: null, featured_image: null, cover_video_id: coverMedia.videoMeta?.videoId ?? null, cover_video_provider: coverMedia.videoMeta?.provider ?? null, cover_video_thumbnail: coverMedia.videoMeta?.thumbnailUrl ?? null }
-        : { cover_type: null, cover_url: null, featured_image: null, cover_video_id: null, cover_video_provider: null, cover_video_thumbnail: null };
+        ? {
+            cover_type: "video",
+            cover_url: null,
+            featured_image: null,
+            cover_video_id: coverMedia.videoMeta?.videoId ?? null,
+            cover_video_provider: coverMedia.videoMeta?.provider ?? null,
+            cover_video_thumbnail: coverMedia.videoMeta?.thumbnailUrl ?? null,
+          }
+        : {
+            cover_type: null,
+            cover_url: null,
+            featured_image: null,
+            cover_video_id: null,
+            cover_video_provider: null,
+            cover_video_thumbnail: null,
+          };
 
     const resolvedOgImage =
       ogImageUrl ||
@@ -168,7 +203,7 @@ export default function EditArticlePage() {
 
   const handleSave = async (
     publishStatus: "draft" | "published" | "scheduled",
-    silent = false
+    silent = false,
   ) => {
     if (!title.trim()) { if (!silent) setError("ސުރުހީ ލިޔެލާ"); return; }
     if (!silent) { setSaving(true); setError(null); }
@@ -201,59 +236,6 @@ export default function EditArticlePage() {
   return (
     <div className="flex h-full">
 
-      {/* ── EDITOR ── */}
-      <div ref={editorScrollRef} className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-3xl mx-auto space-y-4">
-
-          {/* Category picker */}
-          <div className="flex gap-2 flex-wrap" dir="rtl">
-            {categories.map((cat) => (
-              <button key={cat.id} type="button"
-                onClick={() => { setCategoryId(cat.id); categoryRef.current = cat.id; }}
-                className={`font-body text-xs px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5 ${
-                  categoryId === cat.id
-                    ? "bg-foreground text-background border-foreground"
-                    : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
-                }`}>
-                {categoryId === cat.id && (
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                    <path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                )}
-                {cat.name}
-              </button>
-            ))}
-          </div>
-
-          {/* Title */}
-          <textarea value={title} onChange={(e) => setTitle(e.target.value)}
-            placeholder="ލިޔުމުގެ ސުރުހީ..." rows={2} dir="rtl"
-            className="w-full font-display text-3xl font-bold bg-transparent border-none outline-none resize-none text-foreground placeholder:text-muted-foreground/40 leading-tight" />
-
-          {/* Excerpt */}
-          <textarea value={excerpt} onChange={(e) => setExcerpt(e.target.value)}
-            placeholder="ކުރު ތަޢާރަފެއް — ކިޔުންތެރިން ފުރަތަމަ ފެންނާ ބައި..." rows={4} dir="rtl"
-            className="w-full font-body text-base text-muted-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 leading-relaxed" />
-
-          {/* Cover media */}
-          <CoverMedia value={coverMedia} onChange={handleCoverMediaChange} />
-
-          {/* Editor — key forces remount when body loads */}
-          <ArticleEditor
-            key={id}
-            content={body ?? undefined}
-            onChange={handleBodyChange}
-            placeholder="ލިޔުން ފަށާ..."
-          />
-
-          {error && (
-            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-              <p className="font-body text-sm text-destructive">{error}</p>
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* ── SIDEBAR ── */}
       <ArticleSidebar
         title={title}
@@ -272,7 +254,7 @@ export default function EditArticlePage() {
         authorId={authorId}
         scheduledAt={scheduledFor}
         tags={tags}
-        onCategoryChange={(id) => { setCategoryId(id); categoryRef.current = id; }}
+        onCategoryChange={(catId) => { setCategoryId(catId); categoryRef.current = catId; }}
         onPlacementChange={setPlacement}
         onHomepageFeaturedChange={setHomepageFeatured}
         onIsPremiumChange={setIsPremium}
@@ -282,7 +264,7 @@ export default function EditArticlePage() {
         onOgImageUrlChange={setOgImageUrl}
         onAuthorIdChange={setAuthorId}
         onScheduledAtChange={setScheduledFor}
-        onTagsChange={setTags}
+        onTagsChange={handleTagsChange}
         onSaveDraft={() => handleSave("draft")}
         onPublish={() => handleSave("published")}
         onSchedule={() => handleSave("scheduled")}
@@ -292,6 +274,73 @@ export default function EditArticlePage() {
         error={error}
         slug={slug}
       />
+
+      {/* ── EDITOR ── */}
+      <div ref={editorScrollRef} className="flex-1 overflow-y-auto p-6">
+        <div className="max-w-3xl mx-auto space-y-4">
+
+          {/* Category picker */}
+          <div className="flex gap-2 flex-wrap" dir="rtl">
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => { setCategoryId(cat.id); categoryRef.current = cat.id; }}
+                className={`font-body text-xs px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5 ${
+                  categoryId === cat.id
+                    ? "bg-foreground text-background border-foreground"
+                    : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
+                }`}
+              >
+                {categoryId === cat.id && (
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                    <path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+                {cat.name}
+              </button>
+            ))}
+          </div>
+
+          {/* Title */}
+          <textarea
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="ލިޔުމުގެ ސުރުހީ..."
+            rows={2}
+            dir="rtl"
+            className="w-full font-display text-3xl font-bold bg-transparent border-none outline-none resize-none text-foreground placeholder:text-muted-foreground/40 leading-tight"
+          />
+
+          {/* Excerpt */}
+          <textarea
+            value={excerpt}
+            onChange={(e) => setExcerpt(e.target.value)}
+            placeholder="ކުރު ތަޢާރަފެއް — ކިޔުންތެރިން ފުރަތަމަ ފެންނާ ބައި..."
+            rows={2}
+            dir="rtl"
+            className="w-full font-body text-base text-muted-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 leading-relaxed"
+          />
+
+          {/* Cover media */}
+          <CoverMedia value={coverMedia} onChange={handleCoverMediaChange} />
+
+          {/* Editor */}
+          <ArticleEditor
+            key={id}
+            content={body ?? undefined}
+            onChange={handleBodyChange}
+            placeholder="ލިޔުން ފަށާ..."
+          />
+
+          {error && (
+            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+              <p className="font-body text-sm text-destructive">{error}</p>
+            </div>
+          )}
+        </div>
+      </div>
+
     </div>
   );
 }
