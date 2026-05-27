@@ -13,10 +13,6 @@ import {
   TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuSeparator, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Select, SelectContent, SelectItem,
   SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -27,8 +23,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Search, PlusCircle, MoreHorizontal, Pencil,
-  Trash2, Eye, Copy, ChevronRight, ChevronLeft, ArrowUpDown,
+  Search, PlusCircle, Pencil, Trash2, Eye,
+  ChevronRight, ChevronLeft, ArrowUpDown,
 } from "lucide-react";
 
 interface Author {
@@ -196,7 +192,7 @@ export default function ArticlesClient({
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border bg-card shadow-sm overflow-visible">
+      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
         <Table dir="rtl">
           <TableHeader>
             <TableRow className="bg-muted/40">
@@ -205,11 +201,11 @@ export default function ArticlesClient({
                   ސުރުހީ <ArrowUpDown className="h-3 w-3" />
                 </button>
               </TableHead>
-              <TableHead className="text-right text-xs font-semibold text-muted-foreground w-28">ސްޓޭޓަސް</TableHead>
-              <TableHead className="text-right text-xs font-semibold text-muted-foreground w-32">ކެޓެގަރީ</TableHead>
+              <TableHead className="text-right text-xs font-semibold text-muted-foreground w-28">ހާލަތު</TableHead>
+              <TableHead className="text-right text-xs font-semibold text-muted-foreground w-32">ބަޔާން</TableHead>
               <TableHead className="text-right text-xs font-semibold text-muted-foreground w-28">
                 <div className="flex items-center justify-end gap-1">
-                  <Eye className="h-3 w-3" /> ވިއުސް
+                  <Eye className="h-3 w-3" /> ވިއު
                 </div>
               </TableHead>
               <TableHead className="text-right text-xs font-semibold text-muted-foreground w-36">
@@ -218,7 +214,7 @@ export default function ArticlesClient({
                 </button>
               </TableHead>
               <TableHead className="text-right text-xs font-semibold text-muted-foreground w-32">ލިޔުންތެރިޔާ</TableHead>
-              <TableHead className="w-12" />
+              <TableHead className="w-24 text-xs font-semibold text-muted-foreground text-center">އެކްޝަން</TableHead>
             </TableRow>
           </TableHeader>
 
@@ -232,7 +228,7 @@ export default function ArticlesClient({
                   <TableCell><Skeleton className="h-4 w-12 ml-auto" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-24 ml-auto" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
-                  <TableCell />
+                  <TableCell><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
                 </TableRow>
               ))
             ) : articles.length === 0 ? (
@@ -250,6 +246,7 @@ export default function ArticlesClient({
               return (
                 <TableRow key={article.id} className="hover:bg-muted/20 transition-colors">
 
+                  {/* Title */}
                   <TableCell className="py-4">
                     <Link href={`/admin/articles/${article.id}`} className="block hover:underline underline-offset-2">
                       <p className="text-sm font-semibold text-foreground leading-snug text-right line-clamp-2">
@@ -263,16 +260,19 @@ export default function ArticlesClient({
                     </Link>
                   </TableCell>
 
+                  {/* Status */}
                   <TableCell className="text-right">
                     <Badge variant={statusCfg.variant} className="text-xs">{statusCfg.label}</Badge>
                   </TableCell>
 
+                  {/* Category */}
                   <TableCell className="text-right">
                     <span className="text-xs text-muted-foreground">
                       {article.category?.name ?? "—"}
                     </span>
                   </TableCell>
 
+                  {/* Views */}
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
                       <Eye className="h-3 w-3 flex-shrink-0" />
@@ -280,10 +280,12 @@ export default function ArticlesClient({
                     </div>
                   </TableCell>
 
+                  {/* Date */}
                   <TableCell className="text-right">
                     <span className="text-xs tabular-nums text-muted-foreground">{displayDate}</span>
                   </TableCell>
 
+                  {/* Author */}
                   <TableCell className="text-right">
                     {article.author?.full_name ? (
                       <div className="flex items-center justify-end gap-2">
@@ -298,41 +300,52 @@ export default function ArticlesClient({
                     )}
                   </TableCell>
 
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-44 z-[100]">
-                        <DropdownMenuItem asChild>
-                          <Link href={`/admin/articles/${article.id}`}
-                            className="flex items-center gap-2 text-sm cursor-pointer">
-                            <Pencil className="h-3.5 w-3.5" /> އެޑިޓް
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href={`/news/${article.slug}`} target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-sm cursor-pointer">
-                            <Eye className="h-3.5 w-3.5" /> ބަލާ
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="flex items-center gap-2 text-sm cursor-pointer"
-                          onClick={() => navigator.clipboard.writeText(
-                            `${window.location.origin}/news/${article.slug}`
-                          )}>
-                          <Copy className="h-3.5 w-3.5" /> ލިންކް ކޮޕީ
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="flex items-center gap-2 text-sm text-destructive focus:text-destructive cursor-pointer"
-                          onClick={() => setDeleteTarget(article)}>
-                          <Trash2 className="h-3.5 w-3.5" /> ފޮހެލާ
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                  {/* Inline actions */}
+                  <TableCell>
+                    <div className="flex items-center justify-center gap-1">
+                      {/* Edit */}
+                      <Link href={`/admin/articles/${article.id}`}>
+                        <button
+                          type="button"
+                          title="އެޑިޓް"
+                          className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                      </Link>
+
+                      {/* View — only published */}
+                      {article.status === "published" ? (
+                        <Link href={`/news/${article.slug}`} target="_blank" rel="noopener noreferrer">
+                          <button
+                            type="button"
+                            title="ބަލާ"
+                            className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </button>
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          title="ޕަބްލިޝްކޮށްގެން ބެލޭނެ"
+                          disabled
+                          className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground/30 cursor-not-allowed"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+
+                      {/* Delete */}
+                      <button
+                        type="button"
+                        title="ފޮހެލާ"
+                        onClick={() => setDeleteTarget(article)}
+                        className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </TableCell>
 
                 </TableRow>
