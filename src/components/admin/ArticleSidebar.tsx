@@ -68,7 +68,9 @@ function slugify(text: string) {
   return text.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "");
 }
 
-// ── Section wrapper ──────────────────────────────────────────────────────────
+// font-body = MVTypewriter (Thaana)
+// font-sans  = Plus Jakarta Sans (Latin UI only)
+
 function Section({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
     <div className={`px-4 py-4 border-b border-border ${className}`}>
@@ -77,8 +79,7 @@ function Section({ children, className = "" }: { children: React.ReactNode; clas
   );
 }
 
-// ── Section label ────────────────────────────────────────────────────────────
-function Label({ children, icon }: { children: React.ReactNode; icon?: React.ReactNode }) {
+function SectionLabel({ children, icon }: { children: React.ReactNode; icon?: React.ReactNode }) {
   return (
     <div className="flex items-center gap-1.5 mb-3">
       {icon && <span className="text-muted-foreground">{icon}</span>}
@@ -89,7 +90,6 @@ function Label({ children, icon }: { children: React.ReactNode; icon?: React.Rea
   );
 }
 
-// ── Toggle ───────────────────────────────────────────────────────────────────
 function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
@@ -108,7 +108,6 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
   );
 }
 
-// ── Collapsible section ──────────────────────────────────────────────────────
 function Collapsible({
   label, icon, children, defaultOpen = false,
 }: {
@@ -138,7 +137,6 @@ function Collapsible({
   );
 }
 
-// ── Main component ───────────────────────────────────────────────────────────
 export default function ArticleSidebar({
   title, excerpt, body, categories, categoryId, placement, homepageFeatured,
   isPremium, allowComments, ogTitle, ogDesc, ogImageUrl, coverMedia,
@@ -150,13 +148,13 @@ export default function ArticleSidebar({
   saving, lastSaved, error, slug,
 }: SidebarProps) {
   const supabase = createClient();
-  const [authors, setAuthors]               = useState<Author[]>([]);
-  const [showScheduler, setShowScheduler]   = useState(!!scheduledAt);
-  const [tagInput, setTagInput]             = useState("");
-  const [aiLoading, setAiLoading]           = useState(false);
-  const [aiSuggestions, setAiSuggestions]   = useState<TagItem[]>([]);
-  const [ogUploading, setOgUploading]       = useState(false);
-  const ogInputRef                          = useRef<HTMLInputElement>(null);
+  const [authors, setAuthors]             = useState<Author[]>([]);
+  const [showScheduler, setShowScheduler] = useState(!!scheduledAt);
+  const [tagInput, setTagInput]           = useState("");
+  const [aiLoading, setAiLoading]         = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<TagItem[]>([]);
+  const [ogUploading, setOgUploading]     = useState(false);
+  const ogInputRef                        = useRef<HTMLInputElement>(null);
 
   const readingTime    = calculateReadingTime(body);
   const isVideoCover   = coverMedia?.type === "video";
@@ -172,7 +170,7 @@ export default function ArticleSidebar({
       .then(({ data }) => { if (data) setAuthors(data); });
   }, [supabase]);
 
-  // ── Tag helpers (functional updates — no stale closure) ───────────────────
+  // ── Tag helpers — functional updates, no stale closure ───────────────────
   const addTag = useCallback((tag: TagItem) => {
     if (!onTagsChange) return;
     onTagsChange((prev: TagItem[]) => {
@@ -196,7 +194,7 @@ export default function ArticleSidebar({
     }
   };
 
-  // ── AI tag generation ─────────────────────────────────────────────────────
+  // ── AI tag generation ────────────────────────────────────────────────────
   const generateTags = async () => {
     if (!title) return;
     setAiLoading(true);
@@ -208,12 +206,19 @@ export default function ArticleSidebar({
         body: JSON.stringify({ title, excerpt }),
       });
       const data = await res.json();
-      if (data.tags) setAiSuggestions(data.tags);
-    } catch { /* silently fail */ }
-    finally { setAiLoading(false); }
+      if (data.tags && Array.isArray(data.tags)) {
+        setAiSuggestions(data.tags);
+      } else {
+        console.error("Tag generation returned unexpected format:", data);
+      }
+    } catch (err) {
+      console.error("Tag generation failed:", err);
+    } finally {
+      setAiLoading(false);
+    }
   };
 
-  // ── OG image upload ───────────────────────────────────────────────────────
+  // ── OG image upload ──────────────────────────────────────────────────────
   const handleOgImageFile = useCallback(async (file: File) => {
     setOgUploading(true);
     try {
@@ -224,8 +229,11 @@ export default function ArticleSidebar({
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(path);
       onOgImageUrlChange(publicUrl);
-    } catch { /* silently fail */ }
-    finally { setOgUploading(false); }
+    } catch (err) {
+      console.error("OG image upload failed:", err);
+    } finally {
+      setOgUploading(false);
+    }
   }, [supabase, onOgImageUrlChange]);
 
   return (
@@ -234,24 +242,17 @@ export default function ArticleSidebar({
 
         {/* ── Publish actions ── */}
         <Section>
-          {/* Preview */}
           <button
-            type="button"
-            onClick={onPreview}
+            type="button" onClick={onPreview}
             className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-border bg-muted/40 hover:bg-muted hover:border-border transition-all group mb-2"
           >
-            <span className="font-sans text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-              Preview
-            </span>
+            <span className="font-sans text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">Preview</span>
             <Eye size={14} className="text-muted-foreground group-hover:text-foreground transition-colors" />
           </button>
 
-          {/* Save draft */}
           <button
-            type="button"
-            onClick={onSaveDraft}
-            disabled={saving}
-            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-border bg-muted/40 hover:bg-muted hover:border-border transition-all group mb-3 disabled:opacity-40"
+            type="button" onClick={onSaveDraft} disabled={saving}
+            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-border bg-muted/40 hover:bg-muted transition-all group mb-3 disabled:opacity-40"
           >
             <span className="font-sans text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
               {saving ? "Saving..." : "Save Draft"}
@@ -262,20 +263,15 @@ export default function ArticleSidebar({
             }
           </button>
 
-          {/* Publish + Schedule row */}
           <div className="flex gap-2">
             <button
-              type="button"
-              onClick={onPublish}
-              disabled={saving}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-foreground text-background font-sans text-xs font-semibold hover:opacity-85 active:scale-[0.98] transition-all disabled:opacity-40"
+              type="button" onClick={onPublish} disabled={saving}
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-foreground text-background font-body text-xs font-semibold hover:opacity-85 active:scale-[0.98] transition-all disabled:opacity-40"
             >
-              <Send size={12} />
-              ލައިވް
+              <Send size={12} /> ލައިވް
             </button>
             <button
-              type="button"
-              onClick={() => setShowScheduler(!showScheduler)}
+              type="button" onClick={() => setShowScheduler(!showScheduler)}
               className={`px-3 py-2.5 rounded-xl border transition-all ${
                 showScheduler
                   ? "border-foreground bg-foreground text-background"
@@ -286,24 +282,18 @@ export default function ArticleSidebar({
             </button>
           </div>
 
-          {/* Scheduler */}
           {showScheduler && (
             <div className="mt-3 p-3 rounded-xl border border-border bg-muted/30 space-y-2">
-              <p className="font-sans text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
-                ތާރީހް
-              </p>
+              <p className="font-body text-[11px] font-semibold text-foreground">ތާރީހް</p>
               <input
-                type="datetime-local"
-                value={scheduledAt ?? ""}
+                type="datetime-local" value={scheduledAt ?? ""}
                 onChange={(e) => onScheduledAtChange(e.target.value || null)}
                 className="w-full font-sans text-xs p-2 rounded-lg border border-border bg-background outline-none focus:border-foreground transition-colors"
               />
               {scheduledAt && (
                 <button
-                  type="button"
-                  onClick={onSchedule}
-                  disabled={saving}
-                  className="w-full py-2 rounded-lg bg-foreground text-background font-sans text-xs font-semibold hover:opacity-80 transition-opacity disabled:opacity-40"
+                  type="button" onClick={onSchedule} disabled={saving}
+                  className="w-full py-2 rounded-lg bg-foreground text-background font-body text-xs font-semibold hover:opacity-80 transition-opacity disabled:opacity-40"
                 >
                   ޝެޑިއުލް ކުރޭ
                 </button>
@@ -311,35 +301,28 @@ export default function ArticleSidebar({
             </div>
           )}
 
-          {/* Last saved */}
           {lastSaved && (
             <p className="font-sans text-[10px] text-muted-foreground/50 text-center mt-2">
               Saved {lastSaved.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
             </p>
           )}
 
-          {/* Error */}
           {error && (
-            <p className="font-body text-[11px] text-destructive text-center mt-2 leading-relaxed">
-              {error}
-            </p>
+            <p className="font-body text-[11px] text-destructive text-center mt-2 leading-relaxed">{error}</p>
           )}
         </Section>
 
         {/* ── Author ── */}
         <Section>
-          <Label icon={<User size={11} />}>ލިޔުންތެރިޔާ</Label>
+          <SectionLabel icon={<User size={11} />}>ލިޔުންތެރިޔާ</SectionLabel>
           <div className="relative">
             <select
-              value={authorId ?? ""}
-              onChange={(e) => onAuthorIdChange(e.target.value || null)}
+              value={authorId ?? ""} onChange={(e) => onAuthorIdChange(e.target.value || null)}
               dir="rtl"
               className="w-full font-body text-xs py-2.5 px-3 pr-8 rounded-xl border border-border bg-muted/40 outline-none focus:border-foreground appearance-none cursor-pointer transition-colors text-foreground"
             >
               <option value="">ހޮވާ...</option>
-              {authors.map((a) => (
-                <option key={a.id} value={a.id}>{a.full_name}</option>
-              ))}
+              {authors.map((a) => <option key={a.id} value={a.id}>{a.full_name}</option>)}
             </select>
             <ChevronDown size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           </div>
@@ -347,17 +330,14 @@ export default function ArticleSidebar({
 
         {/* ── Homepage placement ── */}
         <Section>
-          <Label icon={<Home size={11} />}>ހޯމްޕޭޖް</Label>
+          <SectionLabel icon={<Home size={11} />}>ހޯމްޕޭޖް</SectionLabel>
+          <div className="space-y-0.5">
 
-          <div className="space-y-1">
-            {/* None option */}
+            {/* None */}
             <button
-              type="button"
-              onClick={() => onPlacementChange(null)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all text-right ${
-                placement === null
-                  ? "bg-foreground"
-                  : "hover:bg-muted/60 bg-transparent"
+              type="button" onClick={() => onPlacementChange(null)}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all ${
+                placement === null ? "bg-foreground" : "hover:bg-muted/60"
               }`}
             >
               <div className={`w-3.5 h-3.5 rounded-md flex-shrink-0 flex items-center justify-center border transition-all ${
@@ -369,7 +349,7 @@ export default function ArticleSidebar({
                 <span className={`font-body text-[11px] font-semibold ${placement === null ? "text-background" : "text-foreground"}`}>
                   ނެތް
                 </span>
-                <span className={`font-sans text-[9px] ${placement === null ? "text-background/60" : "text-muted-foreground"}`}>
+                <span className={`font-body text-[9px] ${placement === null ? "text-background/60" : "text-muted-foreground"}`}>
                   ކެޓ. ޕޭޖް
                 </span>
               </div>
@@ -380,11 +360,10 @@ export default function ArticleSidebar({
               const isActive = placement === p.value;
               return (
                 <button
-                  key={p.value}
-                  type="button"
+                  key={p.value} type="button"
                   onClick={() => onPlacementChange(isActive ? null : p.value)}
                   className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all ${
-                    isActive ? "bg-foreground" : "hover:bg-muted/60 bg-transparent"
+                    isActive ? "bg-foreground" : "hover:bg-muted/60"
                   }`}
                 >
                   <div className={`w-3.5 h-3.5 rounded-md flex-shrink-0 flex items-center justify-center border transition-all ${
@@ -397,7 +376,7 @@ export default function ArticleSidebar({
                     <span className={`font-body text-[11px] font-semibold truncate ${isActive ? "text-background" : "text-foreground"}`}>
                       {p.label}
                     </span>
-                    <span className={`font-sans text-[9px] flex-shrink-0 mr-1 ${isActive ? "text-background/60" : "text-muted-foreground"}`}>
+                    <span className={`font-body text-[9px] flex-shrink-0 mr-1 ${isActive ? "text-background/60" : "text-muted-foreground"}`}>
                       {p.desc}
                     </span>
                   </div>
@@ -410,7 +389,7 @@ export default function ArticleSidebar({
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
             <div>
               <p className="font-body text-[11px] font-semibold text-foreground">ލެޓެސްޓް ގްރިޑް</p>
-              <p className="font-sans text-[9px] text-muted-foreground mt-0.5">ހޯމްޕޭޖް ތިރި</p>
+              <p className="font-body text-[9px] text-muted-foreground mt-0.5">ހޯމްޕޭޖް ތިރި</p>
             </div>
             <Toggle value={homepageFeatured} onChange={onHomepageFeaturedChange} />
           </div>
@@ -419,18 +398,16 @@ export default function ArticleSidebar({
         {/* ── Tags ── */}
         <Section>
           <div className="flex items-center justify-between mb-3">
-            <Label icon={<Tag size={11} />}>ޓެގް</Label>
+            <div className="flex items-center gap-1.5">
+              <Tag size={11} className="text-muted-foreground" />
+              <p className="font-sans text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Tags</p>
+            </div>
             <button
-              type="button"
-              onClick={generateTags}
-              disabled={aiLoading || !title}
-              className="flex items-center gap-1 font-sans text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40 mb-3"
+              type="button" onClick={generateTags} disabled={aiLoading || !title}
+              className="flex items-center gap-1 font-sans text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
             >
-              {aiLoading
-                ? <RefreshCw size={10} className="animate-spin" />
-                : <Sparkles size={10} />
-              }
-              {aiLoading ? "ހޯދަނީ..." : "AI"}
+              {aiLoading ? <RefreshCw size={10} className="animate-spin" /> : <Sparkles size={10} />}
+              {aiLoading ? "Loading..." : "AI"}
             </button>
           </div>
 
@@ -444,8 +421,7 @@ export default function ArticleSidebar({
                 >
                   {tag.name}
                   <button
-                    type="button"
-                    onClick={() => removeTag(tag.slug)}
+                    type="button" onClick={() => removeTag(tag.slug)}
                     className="text-muted-foreground hover:text-foreground transition-colors ml-0.5"
                   >
                     <X size={9} />
@@ -458,18 +434,13 @@ export default function ArticleSidebar({
           {/* AI suggestions */}
           {aiSuggestions.length > 0 && (
             <div className="mb-2.5 p-2.5 rounded-xl border border-border bg-muted/30">
-              <p className="font-sans text-[9px] text-muted-foreground mb-2 uppercase tracking-widest">
-                AI ޓެގް
-              </p>
+              <p className="font-sans text-[9px] text-muted-foreground mb-2 uppercase tracking-widest">AI Suggestions</p>
               <div className="flex flex-wrap gap-1.5">
                 {aiSuggestions.map((tag) => {
                   const added = tags.find((t) => t.slug === tag.slug);
                   return (
                     <button
-                      key={tag.slug}
-                      type="button"
-                      onClick={() => addTag(tag)}
-                      disabled={!!added}
+                      key={tag.slug} type="button" onClick={() => addTag(tag)} disabled={!!added}
                       className={`inline-flex items-center gap-1 font-body text-[10px] px-2 py-1 rounded-lg border transition-all ${
                         added
                           ? "bg-foreground text-background border-foreground opacity-50"
@@ -487,8 +458,7 @@ export default function ArticleSidebar({
 
           {/* Tag input */}
           <input
-            type="text"
-            value={tagInput}
+            type="text" value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}
             onKeyDown={handleTagInput}
             placeholder="ޓެގް ލިޔެ Enter..."
@@ -503,20 +473,15 @@ export default function ArticleSidebar({
 
             {/* Category */}
             <div className="mb-3">
-              <p className="font-sans text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-1.5">
-                ކެޓަގަރީ
-              </p>
+              <p className="font-sans text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-1.5">Category</p>
               <div className="relative">
                 <select
-                  value={categoryId ?? ""}
-                  onChange={(e) => onCategoryChange(e.target.value)}
+                  value={categoryId ?? ""} onChange={(e) => onCategoryChange(e.target.value)}
                   dir="rtl"
                   className="w-full font-body text-[11px] py-2.5 px-3 pr-8 rounded-xl border border-border bg-muted/40 outline-none focus:border-foreground appearance-none cursor-pointer transition-colors"
                 >
                   <option value="">ހޮވާ...</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
+                  {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
                 <ChevronDown size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               </div>
@@ -528,9 +493,7 @@ export default function ArticleSidebar({
                 <Clock size={12} className="text-muted-foreground" />
                 <p className="font-sans text-xs text-muted-foreground">Reading time</p>
               </div>
-              <span className="font-sans text-xs font-semibold text-foreground tabular-nums">
-                {readingTime}m
-              </span>
+              <span className="font-sans text-xs font-semibold text-foreground tabular-nums">{readingTime}m</span>
             </div>
 
             <div className="h-px bg-border my-1" />
@@ -541,7 +504,7 @@ export default function ArticleSidebar({
                 <Lock size={12} className="text-muted-foreground" />
                 <div>
                   <p className="font-body text-[11px] font-semibold text-foreground">ޕްރިމިއަމް</p>
-                  <p className="font-sans text-[9px] text-muted-foreground">ލޮގިން ބޭނުންވޭ</p>
+                  <p className="font-body text-[9px] text-muted-foreground">ލޮގިން ބޭނުންވޭ</p>
                 </div>
               </div>
               <Toggle value={isPremium} onChange={onIsPremiumChange} />
@@ -555,7 +518,7 @@ export default function ArticleSidebar({
                 <MessageCircle size={12} className="text-muted-foreground" />
                 <div>
                   <p className="font-body text-[11px] font-semibold text-foreground">ކޮމެންޓް</p>
-                  <p className="font-sans text-[9px] text-muted-foreground">ކިޔުންތެރިންނަށް</p>
+                  <p className="font-body text-[9px] text-muted-foreground">ކިޔުންތެރިންނަށް</p>
                 </div>
               </div>
               <Toggle value={allowComments} onChange={onAllowCommentsChange} />
@@ -567,7 +530,7 @@ export default function ArticleSidebar({
         <Collapsible label="Open Graph" icon={<Globe size={11} />}>
           <div className="space-y-3">
 
-            {/* OG preview card */}
+            {/* Preview card */}
             <div className="rounded-xl overflow-hidden border border-border">
               <div className="h-20 bg-muted flex items-center justify-center overflow-hidden">
                 {ogPreviewImage
@@ -581,23 +544,20 @@ export default function ArticleSidebar({
                     onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                   <p className="font-sans text-[9px] text-muted-foreground uppercase tracking-wider">merihaanaa.com</p>
                 </div>
-                <p className="font-sans text-[11px] font-semibold leading-snug line-clamp-1 text-foreground">
+                <p className="font-body text-[11px] font-semibold leading-snug line-clamp-1 text-foreground">
                   {ogTitle || title || "ލިޔުމުގެ ސުރުހީ"}
                 </p>
-                <p className="font-sans text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
+                <p className="font-body text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
                   {ogDesc || excerpt || "ތަފްސީލް..."}
                 </p>
               </div>
             </div>
 
-            {/* OG image upload — video cover only */}
+            {/* OG image upload — video covers only */}
             {isVideoCover && (
               <>
                 <input
-                  ref={ogInputRef}
-                  type="file"
-                  accept={ACCEPTED_IMAGE_TYPES.join(",")}
-                  className="hidden"
+                  ref={ogInputRef} type="file" accept={ACCEPTED_IMAGE_TYPES.join(",")} className="hidden"
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) handleOgImageFile(f); e.target.value = ""; }}
                 />
                 {ogImageUrl && !ogImageUrl.includes("vimeo") && !ogImageUrl.includes("youtube") ? (
@@ -613,9 +573,7 @@ export default function ArticleSidebar({
                   </div>
                 ) : (
                   <button
-                    type="button"
-                    onClick={() => ogInputRef.current?.click()}
-                    disabled={ogUploading}
+                    type="button" onClick={() => ogInputRef.current?.click()} disabled={ogUploading}
                     className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border border-dashed border-border hover:border-foreground hover:bg-muted/30 transition-all disabled:opacity-40"
                   >
                     {ogUploading
@@ -627,28 +585,20 @@ export default function ArticleSidebar({
               </>
             )}
 
-            {/* OG text fields */}
+            {/* OG text */}
             <div>
-              <label className="font-sans text-[9px] font-semibold text-muted-foreground uppercase tracking-widest block mb-1.5">
-                Title
-              </label>
+              <label className="font-sans text-[9px] font-semibold text-muted-foreground uppercase tracking-widest block mb-1.5">Title</label>
               <textarea
-                value={ogTitle}
-                onChange={(e) => onOgTitleChange(e.target.value)}
-                placeholder={title || "ލިޔުމުގެ ސުރުހީ..."}
-                rows={2}
+                value={ogTitle} onChange={(e) => onOgTitleChange(e.target.value)}
+                placeholder={title || "ލިޔުމުގެ ސުރުހީ..."} rows={2}
                 className="w-full font-body text-[11px] p-2.5 rounded-xl border border-border bg-muted/40 outline-none focus:border-foreground focus:bg-background transition-all resize-none"
               />
             </div>
             <div>
-              <label className="font-sans text-[9px] font-semibold text-muted-foreground uppercase tracking-widest block mb-1.5">
-                Description
-              </label>
+              <label className="font-sans text-[9px] font-semibold text-muted-foreground uppercase tracking-widest block mb-1.5">Description</label>
               <textarea
-                value={ogDesc}
-                onChange={(e) => onOgDescChange(e.target.value)}
-                placeholder={excerpt || "ތަފްސީލް..."}
-                rows={2}
+                value={ogDesc} onChange={(e) => onOgDescChange(e.target.value)}
+                placeholder={excerpt || "ތަފްސީލް..."} rows={2}
                 className="w-full font-body text-[11px] p-2.5 rounded-xl border border-border bg-muted/40 outline-none focus:border-foreground focus:bg-background transition-all resize-none"
               />
             </div>
