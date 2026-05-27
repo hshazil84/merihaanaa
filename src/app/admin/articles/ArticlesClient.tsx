@@ -116,7 +116,6 @@ export default function ArticlesClient({
     startTransition(() => { router.push(`${pathname}?${sp.toString()}`); });
   }, [page, currentStatus, currentQ, pathname, router]);
 
-  // ── Delete directly via Supabase client ──────────────────────────────────
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setIsDeleting(true);
@@ -197,7 +196,7 @@ export default function ArticlesClient({
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+      <div className="rounded-xl border bg-card shadow-sm overflow-visible">
         <Table dir="rtl">
           <TableHeader>
             <TableRow className="bg-muted/40">
@@ -206,12 +205,11 @@ export default function ArticlesClient({
                   ސުރުހީ <ArrowUpDown className="h-3 w-3" />
                 </button>
               </TableHead>
-              <TableHead className="text-right text-xs font-semibold text-muted-foreground w-28">ހާލަތު</TableHead>
-              <TableHead className="text-right text-xs font-semibold text-muted-foreground w-32">ބަޔާން</TableHead>
+              <TableHead className="text-right text-xs font-semibold text-muted-foreground w-28">ސްޓޭޓަސް</TableHead>
+              <TableHead className="text-right text-xs font-semibold text-muted-foreground w-32">ކެޓެގަރީ</TableHead>
               <TableHead className="text-right text-xs font-semibold text-muted-foreground w-28">
                 <div className="flex items-center justify-end gap-1">
-                  <Eye className="h-3 w-3" />
-                  ވިއު
+                  <Eye className="h-3 w-3" /> ވިއުސް
                 </div>
               </TableHead>
               <TableHead className="text-right text-xs font-semibold text-muted-foreground w-36">
@@ -251,6 +249,7 @@ export default function ArticlesClient({
 
               return (
                 <TableRow key={article.id} className="hover:bg-muted/20 transition-colors">
+
                   <TableCell className="py-4">
                     <Link href={`/admin/articles/${article.id}`} className="block hover:underline underline-offset-2">
                       <p className="text-sm font-semibold text-foreground leading-snug text-right line-clamp-2">
@@ -274,7 +273,6 @@ export default function ArticlesClient({
                     </span>
                   </TableCell>
 
-                  {/* View count */}
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
                       <Eye className="h-3 w-3 flex-shrink-0" />
@@ -300,17 +298,17 @@ export default function ArticlesClient({
                     )}
                   </TableCell>
 
-                  {/* Actions dropdown — always visible */}
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-44">
+                      <DropdownMenuContent align="end" className="w-44 z-[100]">
                         <DropdownMenuItem asChild>
-                          <Link href={`/admin/articles/${article.id}`} className="flex items-center gap-2 text-sm cursor-pointer">
+                          <Link href={`/admin/articles/${article.id}`}
+                            className="flex items-center gap-2 text-sm cursor-pointer">
                             <Pencil className="h-3.5 w-3.5" /> އެޑިޓް
                           </Link>
                         </DropdownMenuItem>
@@ -322,7 +320,9 @@ export default function ArticlesClient({
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="flex items-center gap-2 text-sm cursor-pointer"
-                          onClick={() => navigator.clipboard.writeText(`${window.location.origin}/news/${article.slug}`)}>
+                          onClick={() => navigator.clipboard.writeText(
+                            `${window.location.origin}/news/${article.slug}`
+                          )}>
                           <Copy className="h-3.5 w-3.5" /> ލިންކް ކޮޕީ
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
@@ -334,6 +334,7 @@ export default function ArticlesClient({
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
+
                 </TableRow>
               );
             })}
@@ -373,7 +374,7 @@ export default function ArticlesClient({
         </div>
       )}
 
-      {/* Delete confirmation dialog */}
+      {/* Delete confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
         <AlertDialogContent dir="rtl">
           <AlertDialogHeader>
