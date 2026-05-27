@@ -1,5 +1,4 @@
 // app/api/generate-tags/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 
@@ -19,28 +18,35 @@ export async function POST(req: NextRequest) {
       messages: [
         {
           role: "user",
-          content: `You are a content tagger for a Maldivian editorial magazine called Merihaanaa. 
-Generate 4-5 short, relevant tags for this article. Tags should be in Dhivehi (Thaana script) where appropriate, or English for proper nouns/brand names.
+          content: `You are a content tagger for a Maldivian editorial magazine called Merihaanaa.
+Generate 5 short, relevant tags for this article. Tags should be in Dhivehi (Thaana script) where appropriate, or English for proper nouns and brand names.
 
 Article title: ${title}
 ${excerpt ? `Excerpt: ${excerpt}` : ""}
 
-Return ONLY a valid JSON array of tag objects, no explanation, no markdown, no backticks. Format:
-[{"name":"tag name","slug":"tag-slug"},...]
-
-Slugs must be lowercase English, hyphens only, no spaces.`,
+Return ONLY a valid JSON array of tag objects. No explanation, no markdown, no backticks, no extra text.
+Format exactly: [{"name":"tag name","slug":"tag-slug"},...]
+Slugs must be lowercase English letters and hyphens only, no spaces, no special characters.`,
         },
       ],
     });
 
-    const text = message.content[0].type === "text" ? message.content[0].text : "";
+    const raw = message.content[0].type === "text" ? message.content[0].text.trim() : "";
 
-    // Parse the JSON response
-    const tags = JSON.parse(text.trim());
+    // Strip any accidental markdown fences
+    const cleaned = raw.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+
+    const tags = JSON.parse(cleaned);
+
+    if (!Array.isArray(tags)) {
+      throw new Error("Response is not an array");
+    }
 
     return NextResponse.json({ tags });
-  } catch (err) {
-    console.error("Tag generation error:", err);
-    return NextResponse.json({ error: "Failed to generate tags" }, { status: 500 });
+
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("Tag generation error:", message);
+    return NextResponse.json({ error: "Failed to generate tags", detail: message }, { status: 500 });
   }
 }
