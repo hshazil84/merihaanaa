@@ -175,8 +175,8 @@ export default function ArticlesClient({
                   ސުރުހީ <ArrowUpDown className="h-3 w-3" />
                 </button>
               </TableHead>
-              <TableHead className="text-right text-xs font-semibold text-muted-foreground w-28">ހާލަތު</TableHead>
-              <TableHead className="text-right text-xs font-semibold text-muted-foreground w-32">ބަޔާން</TableHead>
+              <TableHead className="text-right text-xs font-semibold text-muted-foreground w-28">ސްޓޭޓަސް</TableHead>
+              <TableHead className="text-right text-xs font-semibold text-muted-foreground w-32">ކެޓަގަރީ</TableHead>
               <TableHead className="text-right text-xs font-semibold text-muted-foreground w-36">
                 <button className="flex items-center gap-1 hover:text-foreground transition-colors">
                   ތާރީހު <ArrowUpDown className="h-3 w-3" />
@@ -251,7 +251,7 @@ export default function ArticlesClient({
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon"
-                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                          className="h-8 w-8">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
