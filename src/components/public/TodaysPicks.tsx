@@ -46,7 +46,7 @@ export default function TodaysPicks({ articles }: Props) {
         {articles.slice(0, 4).map((article) => (
           <Link
             key={article.id}
-            href={`/news/${article.slug}`}
+            href={`/${article.category?.slug ?? "article"}/${article.slug}`}
             className="group block flex-shrink-0 w-[68vw] md:w-auto"
           >
             {/* Image */}
