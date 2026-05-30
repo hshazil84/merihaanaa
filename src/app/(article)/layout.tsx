@@ -1,7 +1,4 @@
 // app/(article)/layout.tsx
-// Static layout for article reader, category, search, tag pages
-// Nav is always locked at top — no scroll tracking
-
 import type { Metadata } from "next";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import PublicNav from "@/components/public/PublicNav";
@@ -24,7 +21,6 @@ export default async function ArticleLayout({ children }: { children: React.Reac
   return (
     <div className="min-h-screen bg-[#F5F3EF]" dir="rtl">
       <PublicNav categories={categories} static />
-      {/* 72px logo bar + 56px category bar */}
       <div style={{ paddingTop: "128px" }}>
         <main>{children}</main>
         <PublicFooter categories={categories} />
