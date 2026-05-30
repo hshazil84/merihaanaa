@@ -70,12 +70,12 @@ export default function HeroSection({ article }: { article: HeroArticle }) {
         ${loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}
       `}>
         {article.category && (
-          <Link href={`/category/${article.category.slug}`}
+          <Link href={`/${article.category.slug}`}
             className="inline-flex items-center font-body text-[10px] font-semibold text-white/80 border border-white/30 rounded-full px-3 py-1 mb-6 hover:border-white/60 transition-colors backdrop-blur-sm w-fit">
             {article.category.name}
           </Link>
         )}
-        <Link href={`/news/${article.slug}`} className="block">
+        <Link href={`/${article.category?.slug ?? "article"}/${article.slug}`} className="block">
           <h1 className="font-display text-4xl text-white leading-snug hover:opacity-80 transition-opacity text-center max-w-lg">
             {article.title}
           </h1>
