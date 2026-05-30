@@ -48,7 +48,7 @@ export default function ReviewsSection({ articles }: { articles: Article[] }) {
               )}
 
               <Link
-                href={`/news/${article.slug}`}
+                href={`/${article.category?.slug ?? "article"}/${article.slug}`}
                 className="group flex flex-col items-center text-center flex-shrink-0 w-[75vw] md:w-auto md:px-8"
               >
                 <div className="w-full aspect-[3/4] overflow-hidden mb-4 rounded-lg bg-[#e8e5de]">
