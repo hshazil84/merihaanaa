@@ -32,8 +32,7 @@ export default function EditArticlePage() {
   const [coverMedia, setCoverMedia]             = useState<CoverMediaValue | null>(null);
   const [authorId, setAuthorId]                 = useState<string | null>(null);
   const [scheduledFor, setScheduledFor]         = useState<string | null>(null);
-  const [tags,
-      reading_time_minutes: calculateReadingTime(body), setTags]                         = useState<TagItem[]>([]);
+  const [tags, setTags]                         = useState<TagItem[]>([]);
   const [slug, setSlug]                         = useState("");
 
   const [loading, setLoading]     = useState(true);
@@ -49,7 +48,6 @@ export default function EditArticlePage() {
   useEffect(() => { categoryRef.current = categoryId; }, [categoryId]);
   useEffect(() => { isPremiumRef.current = isPremium; }, [isPremium]);
 
-  // ── Load article + categories ──────────────────────────────────────────────
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -88,7 +86,6 @@ export default function EditArticlePage() {
       setScheduledFor(a.scheduled_for ?? null);
       setTags(Array.isArray(a.tags) ? a.tags : []);
 
-      // Reconstruct coverMedia
       if (a.cover_type === "image" && (a.cover_url || a.featured_image)) {
         setCoverMedia({ type: "image", imageUrl: a.cover_url || a.featured_image });
       } else if (a.cover_type === "video" && a.cover_video_id) {
@@ -126,7 +123,6 @@ export default function EditArticlePage() {
     if (value?.type === "image") setOgImageUrl("");
   };
 
-  // ── onTagsChange — accepts both direct array and functional updater ────────
   const handleTagsChange = useCallback(
     (updater: TagItem[] | ((prev: TagItem[]) => TagItem[])) => {
       if (typeof updater === "function") {
@@ -138,7 +134,6 @@ export default function EditArticlePage() {
     []
   );
 
-  // ── Auto-save every 60s ────────────────────────────────────────────────────
   useEffect(() => {
     if (!title.trim() || loading) return;
     const interval = setInterval(() => { handleSave("draft", true); }, 60000);
@@ -148,31 +143,10 @@ export default function EditArticlePage() {
   const buildPayload = (publishStatus: "draft" | "published" | "scheduled") => {
     const coverFields =
       coverMedia?.type === "image"
-        ? {
-            cover_type: "image",
-            cover_url: coverMedia.imageUrl ?? null,
-            featured_image: coverMedia.imageUrl ?? null,
-            cover_video_id: null,
-            cover_video_provider: null,
-            cover_video_thumbnail: null,
-          }
+        ? { cover_type: "image", cover_url: coverMedia.imageUrl ?? null, featured_image: coverMedia.imageUrl ?? null, cover_video_id: null, cover_video_provider: null, cover_video_thumbnail: null }
         : coverMedia?.type === "video"
-        ? {
-            cover_type: "video",
-            cover_url: null,
-            featured_image: null,
-            cover_video_id: coverMedia.videoMeta?.videoId ?? null,
-            cover_video_provider: coverMedia.videoMeta?.provider ?? null,
-            cover_video_thumbnail: coverMedia.videoMeta?.thumbnailUrl ?? null,
-          }
-        : {
-            cover_type: null,
-            cover_url: null,
-            featured_image: null,
-            cover_video_id: null,
-            cover_video_provider: null,
-            cover_video_thumbnail: null,
-          };
+        ? { cover_type: "video", cover_url: null, featured_image: null, cover_video_id: coverMedia.videoMeta?.videoId ?? null, cover_video_provider: coverMedia.videoMeta?.provider ?? null, cover_video_thumbnail: coverMedia.videoMeta?.thumbnailUrl ?? null }
+        : { cover_type: null, cover_url: null, featured_image: null, cover_video_id: null, cover_video_provider: null, cover_video_thumbnail: null };
 
     const resolvedOgImage =
       ogImageUrl ||
@@ -239,7 +213,6 @@ export default function EditArticlePage() {
   return (
     <div className="flex h-full">
 
-      {/* ── SIDEBAR ── */}
       <ArticleSidebar
         title={title}
         excerpt={excerpt}
@@ -278,11 +251,9 @@ export default function EditArticlePage() {
         slug={slug}
       />
 
-      {/* ── EDITOR ── */}
       <div ref={editorScrollRef} className="flex-1 overflow-y-auto p-6">
         <div className="max-w-3xl mx-auto space-y-4">
 
-          {/* Category picker */}
           <div className="flex gap-2 flex-wrap" dir="rtl">
             {categories.map((cat) => (
               <button
@@ -305,7 +276,6 @@ export default function EditArticlePage() {
             ))}
           </div>
 
-          {/* Title */}
           <textarea
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -315,7 +285,6 @@ export default function EditArticlePage() {
             className="w-full font-display text-3xl font-bold bg-transparent border-none outline-none resize-none text-foreground placeholder:text-muted-foreground/40 leading-tight"
           />
 
-          {/* Excerpt */}
           <textarea
             value={excerpt}
             onChange={(e) => setExcerpt(e.target.value)}
@@ -325,10 +294,8 @@ export default function EditArticlePage() {
             className="w-full font-body text-base text-muted-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 leading-relaxed"
           />
 
-          {/* Cover media */}
           <CoverMedia value={coverMedia} onChange={handleCoverMediaChange} />
 
-          {/* Editor */}
           <ArticleEditor
             key={id}
             content={body ?? undefined}
