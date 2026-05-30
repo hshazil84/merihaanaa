@@ -36,7 +36,7 @@ export default function FeatureSplit({ article }: { article: Article }) {
         {/* Text panel — black bg, white text, generous padding */}
         <div className="px-10 py-16 w-full md:w-1/2 flex items-center justify-center md:aspect-square">
           <Link
-            href={`/news/${article.slug}`}
+            href={`/${article.category?.slug ?? "article"}/${article.slug}`}
             className="block text-center max-w-md group"
           >
             {/* Category pill — white outline */}
