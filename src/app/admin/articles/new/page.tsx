@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import ArticleEditor from "@/components/admin/ArticleEditor";
 import CoverMedia, { type CoverMediaValue } from "@/components/admin/CoverMedia";
 import ArticleSidebar from "@/components/admin/ArticleSidebar";
-import { createSlug } from "@/lib/utils";
+import { generateArticleSlug } from "@/lib/utils";
 
 interface Category { id: string; name: string; }
 
@@ -29,18 +29,18 @@ export default function NewArticlePage() {
   const [coverMedia, setCoverMedia]     = useState<CoverMediaValue | null>(null);
   const [authorId, setAuthorId]         = useState<string | null>(null);
   const [scheduledFor, setScheduledFor] = useState<string | null>(null);
-  const [tags, setTags]                 = useState<{name: string; slug: string}[]>([]);
+  const [tags, setTags]                 = useState<{ name: string; slug: string }[]>([]);
 
   const [saving, setSaving]       = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [error, setError]         = useState<string | null>(null);
+  const [slug, setSlug]           = useState("");
 
   const articleIdRef = useRef<string | null>(null);
   const slugRef      = useRef<string>("");
   const placementRef = useRef<string | null>(null);
   const categoryRef  = useRef<string | null>(null);
   const isPremiumRef = useRef(false);
-  const [slug, setSlug] = useState("");
 
   useEffect(() => {
     supabase.from("categories").select("id, name").order("name")
@@ -60,6 +60,7 @@ export default function NewArticlePage() {
   useEffect(() => { isPremiumRef.current = isPremium; }, [isPremium]);
 
   const editorScrollRef = useRef<HTMLDivElement>(null);
+
   const handleBodyChange = useCallback((newBody: Record<string, unknown>) => {
     const el = editorScrollRef.current;
     const scrollTop = el?.scrollTop ?? 0;
@@ -69,16 +70,13 @@ export default function NewArticlePage() {
 
   const handleCoverMediaChange = (value: CoverMediaValue | null) => {
     setCoverMedia(value);
-    // Auto-set OG image from video thumbnail only if no custom OG image set
     if (value?.type === "video" && value.videoMeta?.thumbnailUrl && !ogImageUrl) {
       setOgImageUrl(value.videoMeta.thumbnailUrl);
     }
-    // Clear OG image if cover changes away from video
-    if (value?.type === "image") {
-      setOgImageUrl("");
-    }
+    if (value?.type === "image") setOgImageUrl("");
   };
 
+  // Auto-save every 60s
   useEffect(() => {
     if (!title.trim()) return;
     const interval = setInterval(() => { handleSave("draft", true); }, 60000);
@@ -93,9 +91,8 @@ export default function NewArticlePage() {
         ? { cover_type: "video", cover_url: null, featured_image: null, cover_video_id: coverMedia.videoMeta?.videoId ?? null, cover_video_provider: coverMedia.videoMeta?.provider ?? null, cover_video_thumbnail: coverMedia.videoMeta?.thumbnailUrl ?? null }
         : { cover_type: null, cover_url: null, featured_image: null, cover_video_id: null, cover_video_provider: null, cover_video_thumbnail: null };
 
-    // OG image priority: custom upload > cover image > video thumbnail
     const resolvedOgImage =
-      ogImageUrl ||
+      ogImageUrl?.trim() ||
       coverFields.featured_image ||
       coverFields.cover_video_thumbnail ||
       null;
@@ -124,7 +121,7 @@ export default function NewArticlePage() {
 
   const handleSave = async (
     publishStatus: "draft" | "published" | "scheduled",
-    silent = false
+    silent = false,
   ) => {
     if (!title.trim()) { if (!silent) setError("ސުރުހީ ލިޔެލާ"); return; }
     if (!silent) { setSaving(true); setError(null); }
@@ -139,9 +136,8 @@ export default function NewArticlePage() {
       ({ data, error: err } = await supabase
         .from("articles").update(payload).eq("id", articleIdRef.current).select().single());
     } else {
-      const baseSlug = createSlug(title);
-      const uniqueSuffix = Date.now().toString(36).slice(-4);
-      const generatedSlug = `${baseSlug}-${uniqueSuffix}`;
+      // Generate slug — works for both English and Dhivehi titles
+      const generatedSlug = generateArticleSlug(title);
       slugRef.current = generatedSlug;
       setSlug(generatedSlug);
       ({ data, error: err } = await supabase
@@ -150,68 +146,35 @@ export default function NewArticlePage() {
 
     if (!silent) setSaving(false);
     if (err) { if (!silent) setError("ލިޔުން ސޭވް ނުވި: " + err.message); return; }
+
     if (data) {
       articleIdRef.current = data.id;
       slugRef.current = data.slug;
       setSlug(data.slug);
       setLastSaved(new Date());
     }
+
     if (!silent && (publishStatus === "published" || publishStatus === "scheduled")) {
       router.push(`/admin/articles/${articleIdRef.current}`);
     }
   };
 
+  const handleTagsChange = useCallback(
+    (updater: { name: string; slug: string }[] | ((prev: { name: string; slug: string }[]) => { name: string; slug: string }[])) => {
+      if (typeof updater === "function") {
+        setTags((prev) => updater(prev));
+      } else {
+        setTags(updater);
+      }
+    }, []
+  );
+
   const handlePreview = () => {
-    window.open(`/preview/${slugRef.current || createSlug(title)}`, "_blank");
+    window.open(`/preview/${slugRef.current || generateArticleSlug(title)}`, "_blank");
   };
 
   return (
     <div className="flex h-full">
-
-      {/* ── EDITOR ── */}
-      <div ref={editorScrollRef} className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-3xl mx-auto space-y-4">
-
-          {/* Category picker — replaces content type pills */}
-          <div className="flex gap-2 flex-wrap" dir="rtl">
-            {categories.map((cat) => (
-              <button key={cat.id} type="button" onClick={() => { setCategoryId(cat.id); categoryRef.current = cat.id; }}
-                className={`font-body text-xs px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5 ${
-                  categoryId === cat.id
-                    ? "bg-foreground text-background border-foreground"
-                    : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
-                }`}>
-                {categoryId === cat.id && (
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                    <path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                )}
-                {cat.name}
-              </button>
-            ))}
-          </div>
-
-          {/* Title */}
-          <textarea value={title} onChange={(e) => setTitle(e.target.value)}
-            placeholder="ލިޔުމުގެ ސުރުހީ..." rows={2} dir="rtl"
-            className="w-full font-display text-3xl font-bold bg-transparent border-none outline-none resize-none text-foreground placeholder:text-muted-foreground/40 leading-tight" />
-
-          {/* Excerpt */}
-          <textarea value={excerpt} onChange={(e) => setExcerpt(e.target.value)}
-            placeholder="ކުރު ތަޢާރަފެއް — ކިޔުންތެރިން ފުރަތަމަ ފެންނާ ބައި..." rows={2} dir="rtl"
-            className="w-full font-body text-base text-muted-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 leading-relaxed" />
-
-          {/* Cover media */}
-          <CoverMedia value={coverMedia} onChange={handleCoverMediaChange} />
-
-          {/* Article editor */}
-          <ArticleEditor
-            content={body ?? undefined}
-            onChange={handleBodyChange}
-            placeholder="ލިޔުން ފަށާ..."
-          />
-        </div>
-      </div>
 
       {/* ── SIDEBAR ── */}
       <ArticleSidebar
@@ -241,7 +204,7 @@ export default function NewArticlePage() {
         onOgImageUrlChange={setOgImageUrl}
         onAuthorIdChange={setAuthorId}
         onScheduledAtChange={setScheduledFor}
-        onTagsChange={setTags}
+        onTagsChange={handleTagsChange}
         onSaveDraft={() => handleSave("draft")}
         onPublish={() => handleSave("published")}
         onSchedule={() => handleSave("scheduled")}
@@ -251,6 +214,72 @@ export default function NewArticlePage() {
         error={error}
         slug={slug}
       />
+
+      {/* ── EDITOR ── */}
+      <div ref={editorScrollRef} className="flex-1 overflow-y-auto p-6">
+        <div className="max-w-3xl mx-auto space-y-4">
+
+          {/* Category picker */}
+          <div className="flex gap-2 flex-wrap" dir="rtl">
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => { setCategoryId(cat.id); categoryRef.current = cat.id; }}
+                className={`font-body text-xs px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5 ${
+                  categoryId === cat.id
+                    ? "bg-foreground text-background border-foreground"
+                    : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
+                }`}
+              >
+                {categoryId === cat.id && (
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                    <path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+                {cat.name}
+              </button>
+            ))}
+          </div>
+
+          {/* Title */}
+          <textarea
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="ލިޔުމުގެ ސުރުހީ..."
+            rows={2}
+            dir="rtl"
+            className="w-full font-display text-3xl font-bold bg-transparent border-none outline-none resize-none text-foreground placeholder:text-muted-foreground/40 leading-tight"
+          />
+
+          {/* Excerpt */}
+          <textarea
+            value={excerpt}
+            onChange={(e) => setExcerpt(e.target.value)}
+            placeholder="ކުރު ތަޢާރަފެއް — ކިޔުންތެރިން ފުރަތަމަ ފެންނާ ބައި..."
+            rows={2}
+            dir="rtl"
+            className="w-full font-body text-base text-muted-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 leading-relaxed"
+          />
+
+          {/* Cover media */}
+          <CoverMedia value={coverMedia} onChange={handleCoverMediaChange} />
+
+          {/* Editor */}
+          <ArticleEditor
+            content={body ?? undefined}
+            onChange={handleBodyChange}
+            placeholder="ލިޔުން ފަށާ..."
+          />
+
+          {error && (
+            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+              <p className="font-body text-sm text-destructive">{error}</p>
+            </div>
+          )}
+        </div>
+      </div>
+
     </div>
   );
 }
