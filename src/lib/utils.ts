@@ -31,10 +31,9 @@ export function calculateReadingTime(body: Record<string, unknown> | null): numb
   return Math.max(1, minutes);
 }
 
-// Format reading time in Thaana
+// Format reading time in Dhivehi
 export function formatReadingTime(minutes: number): string {
-  if (minutes === 1) return "١ ދަޤީޤާ";
-  return `${minutes} ދަޤީޤާ`;
+  return `${minutes} މިނެޓު`;
 }
 
 // ── DATE FORMATTING ───────────────────────────────────────
@@ -57,22 +56,41 @@ export function formatRelativeTime(date: string): string {
   const diffDays = Math.floor(diffHours / 24);
 
   if (diffMins < 1) return "ދެންމެ";
-  if (diffMins < 60) return `${diffMins} ދަޤީޤާ ކުރިން`;
+  if (diffMins < 60) return `${diffMins} މިނެޓު ކުރިން`;
   if (diffHours < 24) return `${diffHours} ގަޑި ކުރިން`;
   if (diffDays < 7) return `${diffDays} ދުވަސް ކުރިން`;
   return formatDate(date);
 }
 
-// ── SLUG ─────────────────────────────────────────────────
+// ── SLUG GENERATION ───────────────────────────────────────
+//
+// Strategy (matches how Mihaaru and similar Dhivehi news sites work):
+// Articles use a short, unique, URL-safe ID — NOT the title text.
+// This avoids the percent-encoding mess that Thaana characters cause
+// in URLs, and works identically for Dhivehi and English titles.
+//
+// Format: base36 timestamp + 3 random chars.
+//   e.g.  "lrd4k2xa9f"
+// The timestamp keeps slugs roughly chronological; the random suffix
+// guarantees no collision even if multiple saves fire in the same
+// millisecond (e.g. autosave races).
 
+export function generateArticleSlug(_title?: string): string {
+  const timestamp = Date.now().toString(36);
+  const random = Math.random().toString(36).slice(2, 5); // 3 random chars
+  return `${timestamp}${random}`;
+}
+
+// Legacy helper — kept for any code that still imports createSlug.
+// Used for category/tag slugs where a human types a clean english string.
 export function createSlug(text: string): string {
-  return text
+  const latin = text
     .toLowerCase()
     .trim()
-    .replace(/[\u0600-\u06FF]/g, (char) => char) // Keep Thaana/Arabic
-    .replace(/[^\w\s\u0600-\u06FF-]/g, "")
+    .replace(/[^\w\s-]/g, "")
     .replace(/[\s_]+/g, "-")
     .replace(/^-+|-+$/g, "");
+  return latin.length >= 1 ? latin : generateArticleSlug();
 }
 
 // ── TRUNCATE ──────────────────────────────────────────────
@@ -114,19 +132,19 @@ export const PLACEMENT_LABELS: Record<string, string> = {
 export const STATUS_LABELS: Record<string, string> = {
   published: "ލައިވް",
   draft:     "ޑްރާފްޓް",
-  scheduled: "އެޑްމިން",
+  scheduled: "ޝެޑިއުލް",
 };
 
 // ── ROLE LABELS (Thaana) ──────────────────────────────────
 
 export const ROLE_LABELS: Record<string, string> = {
-  admin:       "އެޑްމިން",
-  editor:      "އެޑިޓަރ",
-  author:      "ލިޔުންތެރިޔާ",
-  reader:      "ކިޔުންތެރިޔާ",
-  writer:      "ލިޔުންތެރިޔާ",
-  contributor: "ހިއްސާ ކުރި",
-  photographer:"ފޮޓޯގްރާފަރ",
+  admin:        "އެޑްމިން",
+  editor:       "އެޑިޓަރ",
+  author:       "ލިޔުންތެރިޔާ",
+  reader:       "ކިޔުންތެރިޔާ",
+  writer:       "ލިޔުންތެރިޔާ",
+  contributor:  "ހިއްސާ ކުރި",
+  photographer: "ފޮޓޯގްރާފަރ",
 };
 
 // ── CONTENT TYPE LABELS (Thaana) ──────────────────────────
