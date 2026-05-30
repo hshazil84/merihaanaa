@@ -29,9 +29,7 @@ export default function NewArticlePage() {
   const [coverMedia, setCoverMedia]     = useState<CoverMediaValue | null>(null);
   const [authorId, setAuthorId]         = useState<string | null>(null);
   const [scheduledFor, setScheduledFor] = useState<string | null>(null);
-  const [tags,
-      reading_time_minutes: calculateReadingTime(body),
-      reading_time_minutes: calculateReadingTime(body), setTags]                 = useState<{ name: string; slug: string }[]>([]);
+  const [tags, setTags]                 = useState<{ name: string; slug: string }[]>([]);
 
   const [saving, setSaving]       = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -78,7 +76,6 @@ export default function NewArticlePage() {
     if (value?.type === "image") setOgImageUrl("");
   };
 
-  // Auto-save every 60s
   useEffect(() => {
     if (!title.trim()) return;
     const interval = setInterval(() => { handleSave("draft", true); }, 60000);
@@ -119,7 +116,6 @@ export default function NewArticlePage() {
       og_image_url: resolvedOgImage,
       tags,
       reading_time_minutes: calculateReadingTime(body),
-      reading_time_minutes: calculateReadingTime(body),
     };
   };
 
@@ -140,7 +136,6 @@ export default function NewArticlePage() {
       ({ data, error: err } = await supabase
         .from("articles").update(payload).eq("id", articleIdRef.current).select().single());
     } else {
-      // Generate slug — works for both English and Dhivehi titles
       const generatedSlug = generateArticleSlug(title);
       slugRef.current = generatedSlug;
       setSlug(generatedSlug);
@@ -180,7 +175,6 @@ export default function NewArticlePage() {
   return (
     <div className="flex h-full">
 
-      {/* ── SIDEBAR ── */}
       <ArticleSidebar
         title={title}
         excerpt={excerpt}
@@ -219,11 +213,9 @@ export default function NewArticlePage() {
         slug={slug}
       />
 
-      {/* ── EDITOR ── */}
       <div ref={editorScrollRef} className="flex-1 overflow-y-auto p-6">
         <div className="max-w-3xl mx-auto space-y-4">
 
-          {/* Category picker */}
           <div className="flex gap-2 flex-wrap" dir="rtl">
             {categories.map((cat) => (
               <button
@@ -246,7 +238,6 @@ export default function NewArticlePage() {
             ))}
           </div>
 
-          {/* Title */}
           <textarea
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -256,7 +247,6 @@ export default function NewArticlePage() {
             className="w-full font-display text-3xl font-bold bg-transparent border-none outline-none resize-none text-foreground placeholder:text-muted-foreground/40 leading-tight"
           />
 
-          {/* Excerpt */}
           <textarea
             value={excerpt}
             onChange={(e) => setExcerpt(e.target.value)}
@@ -266,10 +256,8 @@ export default function NewArticlePage() {
             className="w-full font-body text-base text-muted-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 leading-relaxed"
           />
 
-          {/* Cover media */}
           <CoverMedia value={coverMedia} onChange={handleCoverMediaChange} />
 
-          {/* Editor */}
           <ArticleEditor
             content={body ?? undefined}
             onChange={handleBodyChange}
