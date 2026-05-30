@@ -1,9 +1,10 @@
 "use client";
 // components/public/PublicNav.tsx
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Search, User, X, Menu } from "lucide-react";
 
 interface Category { id: string; name: string; slug: string; }
@@ -11,25 +12,33 @@ interface Props {
   categories: Category[];
   static?: boolean;
 }
+interface SearchResult {
+  id: string;
+  title: string;
+  slug: string;
+  category: { name: string; slug: string } | null;
+}
 
 const LOGO_BAR_HEIGHT = 72;
 const CAT_BAR_HEIGHT  = 56;
 
 export default function PublicNav({ categories, static: isStatic = false }: Props) {
-  const [catBarTop, setCatBarTop]           = useState(LOGO_BAR_HEIGHT);
-  const [locked, setLocked]                 = useState(false);
+  const router = useRouter();
+  const [catBarTop, setCatBarTop]             = useState(LOGO_BAR_HEIGHT);
+  const [locked, setLocked]                   = useState(false);
   const [logoTransparent, setLogoTransparent] = useState(false);
-  const [mounted, setMounted]               = useState(false);
-  const [searchOpen, setSearchOpen]         = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mounted, setMounted]                 = useState(false);
+  const [searchOpen, setSearchOpen]           = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen]   = useState(false);
+  const [searchQuery, setSearchQuery]         = useState("");
+  const [searchResults, setSearchResults]     = useState<SearchResult[]>([]);
+  const [searchLoading, setSearchLoading]     = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+  const searchTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // After mount, initialize transparency based on isStatic and scroll
   useEffect(() => {
     setMounted(true);
-    if (!isStatic) {
-      setLogoTransparent(window.scrollY < 20);
-    }
+    if (!isStatic) setLogoTransparent(window.scrollY < 20);
   }, [isStatic]);
 
   useEffect(() => {
@@ -39,19 +48,15 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
       setLogoTransparent(false);
       return;
     }
-
     const update = () => {
-      const scrollY     = window.scrollY;
-      const heroHeight  = window.innerHeight;
-      const naturalTop  = heroHeight - CAT_BAR_HEIGHT - scrollY;
-      const clampedTop  = Math.max(LOGO_BAR_HEIGHT, naturalTop);
-      const isLocked    = naturalTop <= LOGO_BAR_HEIGHT;
-
+      const scrollY    = window.scrollY;
+      const heroHeight = window.innerHeight;
+      const naturalTop = heroHeight - CAT_BAR_HEIGHT - scrollY;
+      const clampedTop = Math.max(LOGO_BAR_HEIGHT, naturalTop);
       setCatBarTop(clampedTop);
-      setLocked(isLocked);
+      setLocked(naturalTop <= LOGO_BAR_HEIGHT);
       setLogoTransparent(scrollY < 20);
     };
-
     update();
     window.addEventListener("scroll", update, { passive: true });
     window.addEventListener("resize", update, { passive: true });
@@ -60,6 +65,43 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
       window.removeEventListener("resize", update);
     };
   }, [isStatic]);
+
+  // Live search with debounce
+  const handleSearchInput = useCallback((val: string) => {
+    setSearchQuery(val);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (val.trim().length < 2) { setSearchResults([]); return; }
+    searchTimer.current = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(val.trim())}`);
+        const data = await res.json();
+        setSearchResults(data.results ?? []);
+      } catch { setSearchResults([]); }
+      finally { setSearchLoading(false); }
+    }, 300);
+  }, []);
+
+  const openSearch = () => {
+    setSearchOpen(true);
+    setSearchQuery("");
+    setSearchResults([]);
+    setTimeout(() => searchRef.current?.focus(), 100);
+  };
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setSearchQuery("");
+    setSearchResults([]);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") closeSearch();
+    if (e.key === "Enter" && searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      closeSearch();
+    }
+  };
 
   const iconColor = (mounted && logoTransparent) ? "rgb(255,255,255)" : "rgb(26,26,26)";
 
@@ -74,11 +116,9 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         }}
       >
         <div className="max-w-7xl mx-auto px-5 md:px-6 h-full flex items-center justify-center relative">
-
           <Link href="/" className="flex items-center md:relative absolute right-5 md:right-auto">
             <Image src="/logo.svg" alt="މެރިހާނާ" width={60} height={60} priority className="object-contain" />
           </Link>
-
           <div className="absolute left-5 md:hidden">
             <button type="button" onClick={() => setMobileMenuOpen(true)}
               className="p-2 rounded-full hover:bg-black/5 transition-colors"
@@ -86,10 +126,8 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
               <Menu className="w-5 h-5" />
             </button>
           </div>
-
           <div className="absolute right-5 md:right-6 hidden md:flex items-center gap-3">
-            <button type="button" aria-label="ހޯދާ"
-              onClick={() => { setSearchOpen(true); setTimeout(() => searchRef.current?.focus(), 100); }}
+            <button type="button" aria-label="ހޯދާ" onClick={openSearch}
               className="p-2 rounded-full hover:bg-black/5 transition-colors"
               style={{ color: iconColor }}>
               <Search className="w-[18px] h-[18px]" />
@@ -124,6 +162,104 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         </div>
       </div>
 
+      {/* ── Search dropdown — New Yorker style ── */}
+      {searchOpen && (
+        <div
+          className="fixed left-0 right-0 z-[60] bg-[#F5F3EF] border-b border-black/10 shadow-sm"
+          style={{ top: `${LOGO_BAR_HEIGHT}px` }}
+        >
+          <div className="max-w-2xl mx-auto px-6 py-4">
+            {/* Input row */}
+            <div className="flex items-center gap-3 border border-black/15 rounded-full px-4 py-2.5 bg-white">
+              <Search className="w-4 h-4 text-black/30 flex-shrink-0" />
+              <input
+                ref={searchRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => handleSearchInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="ހޯދާ..."
+                dir="rtl"
+                className="flex-1 bg-transparent outline-none text-[15px]"
+                style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', color: "rgb(26,26,26)" }}
+              />
+              <button type="button" onClick={closeSearch}
+                className="text-[12px] text-black/40 hover:text-black/70 transition-colors flex-shrink-0"
+                style={{ fontFamily: '"MVTypewriter", sans-serif' }}>
+                ކެންސަލް
+              </button>
+            </div>
+
+            {/* Results */}
+            {searchQuery.trim().length >= 2 && (
+              <div className="mt-3 pb-2">
+                {searchLoading && (
+                  <p className="text-center py-4" style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "12px", color: "rgb(160,158,152)" }}>
+                    ހޯދަނީ...
+                  </p>
+                )}
+
+                {!searchLoading && searchResults.length > 0 && (
+                  <>
+                    <p className="mb-2" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "11px", color: "rgb(160,158,152)", lineHeight: 2 }}>
+                      ނަތީޖާ
+                    </p>
+                    <div className="space-y-0">
+                      {searchResults.slice(0, 5).map((result) => (
+                        <Link
+                          key={result.id}
+                          href={`/${result.category?.slug ?? "article"}/${result.slug}`}
+                          onClick={closeSearch}
+                          className="flex items-center justify-between py-3 border-b border-black/6 hover:opacity-60 transition-opacity group"
+                        >
+                          <h3 style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "14px", fontWeight: 700, color: "rgb(26,26,26)", lineHeight: 1.6 }}>
+                            {result.title}
+                          </h3>
+                          {result.category && (
+                            <span className="flex-shrink-0 mr-4 text-[10px] px-2.5 py-1 rounded-full border" style={{
+                              fontFamily: "'MVTypewriter', sans-serif",
+                              color: "rgb(100,100,100)",
+                              borderColor: "rgb(210,207,200)",
+                              backgroundColor: "rgb(240,239,233)",
+                              lineHeight: 2,
+                            }}>
+                              {result.category.name}
+                            </span>
+                          )}
+                        </Link>
+                      ))}
+                    </div>
+
+                    {/* View all */}
+                    <div className="mt-4 text-center">
+                      <Link
+                        href={`/search?q=${encodeURIComponent(searchQuery.trim())}`}
+                        onClick={closeSearch}
+                        className="inline-flex items-center justify-center px-6 py-2.5 rounded-full transition-colors hover:opacity-80"
+                        style={{ backgroundColor: "rgb(26,26,26)", color: "rgb(249,248,245)", fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "12px", fontWeight: 700 }}
+                      >
+                        އިތުރު އާޓިކަލް ބެލުމަށް
+                      </Link>
+                    </div>
+                  </>
+                )}
+
+                {!searchLoading && searchResults.length === 0 && (
+                  <p className="text-center py-4" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "13px", color: "rgb(160,158,152)", lineHeight: 2 }}>
+                    ނަތީޖާ ނެތް
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Backdrop */}
+      {searchOpen && (
+        <div className="fixed inset-0 z-[55]" onClick={closeSearch} />
+      )}
+
       {/* ── Mobile menu ── */}
       <div
         className="fixed inset-0 z-[55] transition-opacity duration-300"
@@ -156,25 +292,6 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           </nav>
         </div>
       </div>
-
-      {/* ── Search overlay ── */}
-      {searchOpen && (
-        <div className="fixed inset-0 z-[60] bg-[#F5F3EF]/98 backdrop-blur-sm flex items-center justify-center px-6">
-          <button type="button" onClick={() => setSearchOpen(false)}
-            className="absolute top-6 left-6 w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/10">
-            <X size={18} />
-          </button>
-          <div className="w-full max-w-xl">
-            <p style={{ fontFamily: "'MVTypewriter', sans-serif", fontSize: "11px", color: "rgb(160,158,152)" }}
-              className="text-center mb-4">ލިޔުންތައް ހޯދާ</p>
-            <form action="/search" method="get">
-              <input ref={searchRef} name="q" type="text" placeholder="ހޯދާ..." dir="rtl"
-                className="w-full bg-transparent border-b-2 border-black/20 focus:border-black outline-none text-3xl text-center pb-3 transition-colors placeholder:text-black/20"
-                style={{ fontFamily: "'MVTypewriter', sans-serif" }} />
-            </form>
-          </div>
-        </div>
-      )}
     </>
   );
 }
