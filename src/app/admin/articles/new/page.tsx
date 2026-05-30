@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import ArticleEditor from "@/components/admin/ArticleEditor";
 import CoverMedia, { type CoverMediaValue } from "@/components/admin/CoverMedia";
 import ArticleSidebar from "@/components/admin/ArticleSidebar";
-import { generateArticleSlug } from "@/lib/utils";
+import { generateArticleSlug, calculateReadingTime } from "@/lib/utils";
 
 interface Category { id: string; name: string; }
 
@@ -29,7 +29,9 @@ export default function NewArticlePage() {
   const [coverMedia, setCoverMedia]     = useState<CoverMediaValue | null>(null);
   const [authorId, setAuthorId]         = useState<string | null>(null);
   const [scheduledFor, setScheduledFor] = useState<string | null>(null);
-  const [tags, setTags]                 = useState<{ name: string; slug: string }[]>([]);
+  const [tags,
+      reading_time_minutes: calculateReadingTime(body),
+      reading_time_minutes: calculateReadingTime(body), setTags]                 = useState<{ name: string; slug: string }[]>([]);
 
   const [saving, setSaving]       = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -116,6 +118,8 @@ export default function NewArticlePage() {
       og_description: ogDesc || excerpt,
       og_image_url: resolvedOgImage,
       tags,
+      reading_time_minutes: calculateReadingTime(body),
+      reading_time_minutes: calculateReadingTime(body),
     };
   };
 

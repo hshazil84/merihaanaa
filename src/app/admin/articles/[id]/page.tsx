@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { calculateReadingTime } from "@/lib/utils";
 import ArticleEditor from "@/components/admin/ArticleEditor";
 import CoverMedia, { type CoverMediaValue } from "@/components/admin/CoverMedia";
 import ArticleSidebar from "@/components/admin/ArticleSidebar";
@@ -31,7 +32,8 @@ export default function EditArticlePage() {
   const [coverMedia, setCoverMedia]             = useState<CoverMediaValue | null>(null);
   const [authorId, setAuthorId]                 = useState<string | null>(null);
   const [scheduledFor, setScheduledFor]         = useState<string | null>(null);
-  const [tags, setTags]                         = useState<TagItem[]>([]);
+  const [tags,
+      reading_time_minutes: calculateReadingTime(body), setTags]                         = useState<TagItem[]>([]);
   const [slug, setSlug]                         = useState("");
 
   const [loading, setLoading]     = useState(true);
@@ -197,6 +199,7 @@ export default function EditArticlePage() {
       og_description: ogDesc || excerpt,
       og_image_url: resolvedOgImage,
       tags,
+      reading_time_minutes: calculateReadingTime(body),
       updated_at: new Date().toISOString(),
     };
   };
