@@ -18,10 +18,19 @@ const CAT_BAR_HEIGHT  = 56;
 export default function PublicNav({ categories, static: isStatic = false }: Props) {
   const [catBarTop, setCatBarTop]           = useState(LOGO_BAR_HEIGHT);
   const [locked, setLocked]                 = useState(false);
-  const [logoTransparent, setLogoTransparent] = useState(!isStatic);
+  const [logoTransparent, setLogoTransparent] = useState(false);
+  const [mounted, setMounted]               = useState(false);
   const [searchOpen, setSearchOpen]         = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+
+  // After mount, initialize transparency based on isStatic and scroll
+  useEffect(() => {
+    setMounted(true);
+    if (!isStatic) {
+      setLogoTransparent(window.scrollY < 20);
+    }
+  }, [isStatic]);
 
   useEffect(() => {
     if (isStatic) {
@@ -33,7 +42,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
 
     const update = () => {
       const scrollY     = window.scrollY;
-      const heroHeight  = window.innerHeight; // hero is always 100vh
+      const heroHeight  = window.innerHeight;
       const naturalTop  = heroHeight - CAT_BAR_HEIGHT - scrollY;
       const clampedTop  = Math.max(LOGO_BAR_HEIGHT, naturalTop);
       const isLocked    = naturalTop <= LOGO_BAR_HEIGHT;
@@ -43,7 +52,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
       setLogoTransparent(scrollY < 20);
     };
 
-    update(); // run once on mount
+    update();
     window.addEventListener("scroll", update, { passive: true });
     window.addEventListener("resize", update, { passive: true });
     return () => {
@@ -52,7 +61,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
     };
   }, [isStatic]);
 
-  const iconColor = logoTransparent ? "rgb(255,255,255)" : "rgb(26,26,26)";
+  const iconColor = (mounted && logoTransparent) ? "rgb(255,255,255)" : "rgb(26,26,26)";
 
   return (
     <>
@@ -61,7 +70,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         className="fixed top-0 right-0 left-0 z-50 transition-colors duration-200"
         style={{
           height: `${LOGO_BAR_HEIGHT}px`,
-          backgroundColor: logoTransparent ? "transparent" : "rgb(249, 248, 245)",
+          backgroundColor: (mounted && logoTransparent) ? "transparent" : "rgb(249, 248, 245)",
         }}
       >
         <div className="max-w-7xl mx-auto px-5 md:px-6 h-full flex items-center justify-center relative">
@@ -92,7 +101,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         </div>
       </header>
 
-      {/* ── Category bar — no transition, tracks scroll precisely ── */}
+      {/* ── Category bar ── */}
       <div
         className="fixed z-40 w-full hidden md:block"
         style={{
@@ -105,7 +114,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         <div className="max-w-7xl mx-auto px-6 h-full">
           <div className="flex items-center justify-center gap-1 h-full">
             {categories.map((cat) => (
-              <Link key={cat.id} href={`/category/${cat.slug}`}
+              <Link key={cat.id} href={`/${cat.slug}`}
                 className="whitespace-nowrap px-4 py-2 transition-colors hover:text-[rgb(26,26,26)]"
                 style={{ fontFamily: "'MVTypewriter', 'MV Boli', sans-serif", fontSize: "13px", color: "rgb(153,153,153)" }}>
                 {cat.name}
@@ -137,7 +146,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
                 transform: mobileMenuOpen ? "translateX(0)" : "translateX(20px)",
                 transition: `opacity 0.3s ease ${i * 0.04}s, transform 0.3s ease ${i * 0.04}s`,
               }}>
-                <Link href={`/category/${cat.slug}`} onClick={() => setMobileMenuOpen(false)}
+                <Link href={`/${cat.slug}`} onClick={() => setMobileMenuOpen(false)}
                   className="block py-3 border-b border-[#e0ddd6]/60 transition-colors text-[#999] hover:text-[#333]"
                   style={{ fontFamily: "'MVTypewriter', 'MV Boli', sans-serif", fontSize: "1.2rem" }}>
                   {cat.name}
