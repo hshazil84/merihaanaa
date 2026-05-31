@@ -246,8 +246,10 @@ export default async function ArticlePage({ params }: PageProps) {
 
       {/* ── Related ── */}
       {related.length > 0 && (
-        <section className="max-w-6xl mx-auto px-6 py-12 border-t border-black/10">
-          <h2 className="text-center mb-10" style={{
+          <section className="mt-12 border-t border-black/10 pt-10">
+                <h2 className="mb-6" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "22px", fontWeight: 400, color: "rgb(26,26,26)", lineHeight: 2 }}>
+                  ކޮމެންޓް ({comments.length})
+                </h2>
             fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
             fontWeight: 400, fontSize: "22px", color: "rgb(26,26,26)", lineHeight: 2,
           }}>
@@ -298,9 +300,11 @@ export default async function ArticlePage({ params }: PageProps) {
       )}
 
       {/* ── Comments ── */}
-      {article.allow_comments && (
-        <CommentSection articleId={article.id} />
-      )}
+            {article.allow_comments && (
+              <div className="max-w-3xl mx-auto px-6 pb-16">
+                <CommentSection articleId={article.id} />
+              </div>
+            )}
 
     </div>
   );
