@@ -277,7 +277,7 @@ export default function AuthorsClient({ authors: initial }: Props) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((author, index) => (
+              {filtered.map((author: Author, index: number) => (
                 <AuthorRow
                   key={author.id}
                   author={author}
