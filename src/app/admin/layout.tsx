@@ -127,13 +127,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="h-screen flex flex-row-reverse overflow-hidden bg-muted/30">
 
-      {/* ── SIDEBAR (renders on the right visually) ── */}
-      <aside className={`
-        ${sidebarOpen ? "w-52" : "w-0 overflow-hidden"}
-        flex-shrink-0 bg-background border-l border-border
-        flex flex-col transition-all duration-300 ease-in-out
-      `}>
-
         {/* Logo */}
         <div className="h-12 flex-shrink-0 flex items-center px-4 border-b border-border">
           <Link href="/" className="flex items-center hover:opacity-70 transition-opacity">
@@ -209,7 +202,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* ── MAIN ── */}
       <div className="flex-1 flex flex-col overflow-hidden">
-
+        
+        {/* ── SIDEBAR (renders on the right visually) ── */}
+        <aside className={`
+          ${sidebarOpen ? "w-52" : "w-0 overflow-hidden"}
+          flex-shrink-0 bg-background border-l border-border
+          flex flex-col transition-all duration-300 ease-in-out
+        `}>
+        
         {/* Header */}
         <header className="h-12 flex-shrink-0 bg-background border-b border-border flex items-center justify-between px-4 gap-4">
           <div className="flex items-center gap-3">
