@@ -40,6 +40,7 @@ const NAV = [
       { href: "/admin",               label: "ޑޭޝްބޯޑް",        icon: LayoutDashboard },
       { href: "/admin/articles",      label: "ހުރިހާ ލިޔުން",    icon: FileText },
       { href: "/admin/articles/new",  label: "އާ ލިޔުން",        icon: FilePlus },
+      { href: "/admin/media", label: "މީޑިއާ", icon: ImageIcon },
     ],
   },
   {
