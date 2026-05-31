@@ -39,10 +39,10 @@ export default function CommentsClient({ comments: initial }: { comments: Commen
     setComments((prev) => prev.filter((c) => c.id !== id));
   };
   const FILTERS: { value: CommentFilter; label: string }[] = [
-    { value: "pending", label: "Pending" },
-    { value: "approved", label: "Approved" },
-    { value: "rejected", label: "Rejected" },
-    { value: "all", label: "All" },
+    { value: "ޕެންޑިންގ", label: "ޕެންޑިންގ" },
+    { value: "އެޕްރޫވްޑް", label: "އެޕްރޫވްޑް" },
+    { value: "ރިޖެކްޓެޑް", label: "ރިޖެކްޓެޑް" },
+    { value: "ހުރިހާ", label: "ހުރިހާ" },
   ];
   return (
     <div className="max-w-4xl mx-auto px-6 py-8" dir="rtl">
@@ -78,7 +78,7 @@ export default function CommentsClient({ comments: initial }: { comments: Commen
                     <p className="font-body text-[10px] text-muted-foreground">{formatDate(comment.created_at)}</p>
                   </div>
                   <span className={`font-body text-[9px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider ${comment.is_approved === null ? "bg-amber-100 text-amber-700" : comment.is_approved ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                    {comment.is_approved === null ? "Pending" : comment.is_approved ? "Approved" : "Rejected"}
+                    {comment.is_approved === null ? "ޕެންޑިންގ" : comment.is_approved ? "އެޕްރޫވްޑް" : "ރިޖެކްޓެޑް"}
                   </span>
                 </div>
                 {comment.articles && (
