@@ -293,4 +293,246 @@ function QuoteModal({
                   <label className="font-body text-xs text-muted-foreground block mb-1 text-right">ސުވާލު</label>
                   <textarea value={question} onChange={(e) => setQuestion(e.target.value)} rows={2} dir="rtl" autoFocus
                     className="w-full font-body text-sm p-2.5 rounded-xl border border-border bg-muted/40 outline-none focus:border-foreground resize-none transition-colors"
-                    placeholder="ސު
+                    placeholder="ސުވާލު ލިޔެލާ..." />
+                </div>
+                <div>
+                  <label className="font-body text-xs text-muted-foreground block mb-1 text-right">ޖަވާބު</label>
+                  <textarea value={answer} onChange={(e) => setAnswer(e.target.value)} rows={3} dir="rtl"
+                    className="w-full font-body text-sm p-2.5 rounded-xl border border-border bg-muted/40 outline-none focus:border-foreground resize-none transition-colors"
+                    placeholder="ޖަވާބު ލިޔެލާ..." />
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label className="font-body text-xs text-muted-foreground block mb-1 text-right">ޖުމްލަ</label>
+                  <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} dir="rtl" autoFocus
+                    className="w-full font-body text-sm p-2.5 rounded-xl border border-border bg-muted/40 outline-none focus:border-foreground resize-none transition-colors"
+                    placeholder="ޖުމްލަ ލިޔެލާ..." />
+                </div>
+                <div>
+                  <label className="font-body text-xs text-muted-foreground block mb-1 text-right">ލިޔުންތެރިޔާ / މަސްދަރު (އިހްތިޔާރީ)</label>
+                  <input value={author} onChange={(e) => setAuthor(e.target.value)} dir="rtl"
+                    className="w-full font-body text-sm p-2.5 rounded-xl border border-border bg-muted/40 outline-none focus:border-foreground transition-colors"
+                    placeholder="ނަން ނުވަތަ މަސްދަރު..." />
+                </div>
+              </>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <button type="submit"
+                className="flex-1 py-2.5 rounded-xl bg-foreground text-background font-body text-xs font-semibold hover:opacity-80 transition-opacity">
+                އިންސާޓް
+              </button>
+              <button type="button" onClick={onClose}
+                className="px-4 py-2.5 rounded-xl border border-border font-body text-xs text-muted-foreground hover:bg-muted transition-colors">
+                ނޫން
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Editor component ───────────────────────────────────────
+
+interface ArticleEditorProps {
+  content?: Record<string, unknown>;
+  onChange?: (content: Record<string, unknown>) => void;
+  placeholder?: string;
+}
+
+const DEBOUNCE_MS = 600;
+
+export default function ArticleEditor({ content, onChange, placeholder = "ލިޔުން ފަށާ..." }: ArticleEditorProps) {
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onChangeRef = useRef(onChange);
+  useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
+
+  const [mediaModalOpen, setMediaModalOpen] = useState(false);
+  const [quoteModalOpen, setQuoteModalOpen] = useState(false);
+
+  const handleUpdate = useCallback(({ editor }: any) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      onChangeRef.current?.(editor.getJSON() as Record<string, unknown>);
+    }, DEBOUNCE_MS);
+  }, []);
+
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions: [
+      StarterKit,
+      Placeholder.configure({ placeholder }),
+      Image.configure({ allowBase64: false, inline: false }),
+      Link.configure({ openOnClick: false }),
+      Underline,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      CharacterCount,
+      Youtube.configure({ controls: true, nocookie: true, width: 640, height: 360 }),
+      VimeoNode,
+      SocialNode,
+      PullQuoteNode,
+      InterviewNode,
+      StyledBlockquoteNode,
+    ],
+    content: content || "",
+    editorProps: {
+      attributes: { class: "tiptap-editor-content focus:outline-none", dir: "rtl" },
+      scrollThreshold: 0,
+      scrollMargin: 0,
+    },
+    onUpdate: handleUpdate,
+  });
+
+  useEffect(() => {
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, []);
+
+  const handleInsertMedia = useCallback((attrs: MediaBlockAttrs) => {
+    if (!editor) return;
+    if (attrs.type === "image" && attrs.src) {
+      editor.commands.focus();
+      editor.commands.setImage({ src: attrs.src, alt: attrs.alt ?? "" });
+      editor.commands.createParagraphNear();
+      return;
+    }
+    if (attrs.type === "video" && attrs.videoId) {
+      if (attrs.videoProvider === "youtube") {
+        editor.commands.focus();
+        editor.commands.setYoutubeVideo({ src: "https://www.youtube.com/watch?v=" + attrs.videoId, width: 640, height: 360 });
+      } else {
+        (editor.chain().focus() as any).insertVimeo({ videoId: attrs.videoId, caption: attrs.caption ?? "" }).focus().run();
+      }
+      return;
+    }
+    if (attrs.type === "social" && attrs.socialUrl) {
+      const cleanUrl = attrs.socialUrl.startsWith("http") ? attrs.socialUrl : "https://" + attrs.socialUrl;
+      (editor.chain().focus() as any).insertSocial({ provider: attrs.socialProvider, url: cleanUrl, author: attrs.socialAuthor ?? "", text: attrs.socialText ?? "", thumb: attrs.socialThumb ?? null }).focus().run();
+      return;
+    }
+  }, [editor]);
+
+  const handleQuoteInsert = (type: QuoteType, data: any) => {
+    if (!editor) return;
+    if (type === "pullQuote") (editor.chain().focus() as any).insertPullQuote(data).focus().run();
+    if (type === "interview") (editor.chain().focus() as any).insertInterview(data).focus().run();
+    if (type === "styledBlockquote") (editor.chain().focus() as any).insertStyledBlockquote(data).focus().run();
+  };
+
+  const addLink = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const url = window.prompt("ލިންކް URL:");
+    if (url) editor?.chain().focus().setLink({ href: url }).run();
+  };
+
+  if (!editor) return null;
+
+  return (
+    <>
+      <div className="border border-border rounded-xl overflow-hidden bg-background">
+
+        <BubbleMenu
+          editor={editor}
+          tippyOptions={{ duration: 150, placement: "top" }}
+          shouldShow={({ editor }) => editor.isActive("image")}
+        >
+          <div className="flex items-center gap-0.5 px-1.5 py-1 rounded-lg bg-background border border-border shadow-lg">
+            <BubbleBtn title="ފޮހެލާ" danger onClick={() => editor.chain().focus().deleteSelection().run()}>
+              <Trash2 size={13} />
+            </BubbleBtn>
+          </div>
+        </BubbleMenu>
+
+        {/* Sticky Toolbar */}
+        <div className="flex flex-wrap items-center gap-0.5 p-2 border-b border-border bg-background sticky top-0 z-10">
+          <ToolbarGroup>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleBold().run(); }}      active={editor.isActive("bold")}      title="ބޯލްޑް"><Bold size={14} /></ToolbarBtn>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleItalic().run(); }}    active={editor.isActive("italic")}    title="އިޓަލިކް"><Italic size={14} /></ToolbarBtn>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleUnderline().run(); }} active={editor.isActive("underline")} title="އަންޑަލައިން"><UnderlineIcon size={14} /></ToolbarBtn>
+          </ToolbarGroup>
+          <Divider />
+          <ToolbarGroup>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 2 }).run(); }} active={editor.isActive("heading", { level: 2 })} title="ސުރުހީ ٢"><Heading2 size={14} /></ToolbarBtn>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 3 }).run(); }} active={editor.isActive("heading", { level: 3 })} title="ސުރުހީ ٣"><Heading3 size={14} /></ToolbarBtn>
+          </ToolbarGroup>
+          <Divider />
+          <ToolbarGroup>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleBulletList().run(); }}  active={editor.isActive("bulletList")}  title="ލިސްޓް"><List size={14} /></ToolbarBtn>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleOrderedList().run(); }} active={editor.isActive("orderedList")} title="ނަންބަރު ލިސްޓް"><ListOrdered size={14} /></ToolbarBtn>
+          </ToolbarGroup>
+          <Divider />
+          <ToolbarGroup>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); setQuoteModalOpen(true); }} title="ކޯޓް"><Quote size={14} /></ToolbarBtn>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().setHorizontalRule().run(); }} title="ތިރި"><Minus size={14} /></ToolbarBtn>
+          </ToolbarGroup>
+          <Divider />
+          <ToolbarGroup>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().setTextAlign("right").run(); }}  active={editor.isActive({ textAlign: "right" })}  title="ކަނާތް"><AlignRight size={14} /></ToolbarBtn>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().setTextAlign("center").run(); }} active={editor.isActive({ textAlign: "center" })} title="މެދު"><AlignCenter size={14} /></ToolbarBtn>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().setTextAlign("left").run(); }}   active={editor.isActive({ textAlign: "left" })}   title="ވައަތް"><AlignLeft size={14} /></ToolbarBtn>
+          </ToolbarGroup>
+          <Divider />
+          <ToolbarGroup>
+            <ToolbarBtn onClick={addLink} title="ލިންކް"><LinkIcon size={14} /></ToolbarBtn>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); setMediaModalOpen(true); }} active={mediaModalOpen} title="މީޑިއާ">
+              <LayoutGrid size={14} />
+            </ToolbarBtn>
+          </ToolbarGroup>
+          <div className="mr-auto font-body text-xs text-muted-foreground px-2">
+            {editor.storage.characterCount.words()} ބަސް
+          </div>
+        </div>
+
+        <div className="p-6 min-h-96">
+          <EditorContent editor={editor} className="article-body" />
+        </div>
+      </div>
+
+      <InsertMediaModal
+        open={mediaModalOpen}
+        onClose={() => setMediaModalOpen(false)}
+        onInsert={handleInsertMedia}
+      />
+
+      {quoteModalOpen && (
+        <QuoteModal
+          onInsert={handleQuoteInsert}
+          onClose={() => setQuoteModalOpen(false)}
+        />
+      )}
+    </>
+  );
+}
+
+function BubbleBtn({ children, onClick, title, danger }: {
+  children: React.ReactNode; onClick: () => void; title?: string; danger?: boolean;
+}) {
+  return (
+    <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={onClick} title={title}
+      className={"w-6 h-6 rounded-md flex items-center justify-center transition-colors " + (danger ? "text-destructive hover:bg-destructive/10" : "text-muted-foreground hover:bg-muted hover:text-foreground")}>
+      {children}
+    </button>
+  );
+}
+
+function ToolbarGroup({ children }: { children: React.ReactNode }) {
+  return <div className="flex items-center gap-0.5">{children}</div>;
+}
+
+function ToolbarBtn({ children, onClick, active, title }: {
+  children: React.ReactNode; onClick: (e: React.MouseEvent) => void; active?: boolean; title?: string;
+}) {
+  return (
+    <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={onClick} title={title}
+      className={"p-1.5 rounded-md transition-colors " + (active ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted hover:text-foreground")}>
+      {children}
+    </button>
+  );
+}
+
+function Divider() {
+  return <div className="w-px h-5 bg-border mx-1" />;
+}
