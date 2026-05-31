@@ -186,7 +186,7 @@ const StyledBlockquoteNode = Node.create({
   },
 });
 
-// ── Quote picker + form modal ──────────────────────────────
+// ── Quote modal ────────────────────────────────────────────
 type QuoteType = "pullQuote" | "interview" | "styledBlockquote";
 
 const QUOTE_STYLES: { type: QuoteType; label: string; preview: React.ReactNode }[] = [
@@ -194,9 +194,8 @@ const QUOTE_STYLES: { type: QuoteType; label: string; preview: React.ReactNode }
     type: "pullQuote",
     label: "ޕުލް ކޯޓް",
     preview: (
-      <div className="text-center px-3 py-2">
-        <p className="font-body text-sm font-bold text-foreground leading-relaxed">"ޖުމްލަ އިދެ..."</p>
-        <p className="font-body text-[10px] text-muted-foreground mt-1">— މަސްދަރު</p>
+      <div className="flex items-center justify-center h-16">
+        <span className="text-4xl font-bold text-foreground/20 leading-none">"</span>
       </div>
     ),
   },
@@ -204,24 +203,21 @@ const QUOTE_STYLES: { type: QuoteType; label: string; preview: React.ReactNode }
     type: "styledBlockquote",
     label: "ބްލޮކްކޯޓް",
     preview: (
-      <div className="border-r-2 border-foreground/50 pr-3 py-1 text-right">
-        <p className="font-body text-xs text-foreground leading-relaxed">ޖުމްލަ އިދެ...</p>
-        <p className="font-body text-[10px] text-muted-foreground mt-1">— މަސްދަރު</p>
+      <div className="flex items-center justify-end h-16 pr-3">
+        <div className="border-r-2 border-foreground/30 pr-3 h-8" />
       </div>
     ),
   },
   {
     type: "interview",
-    label: "Q&A",
+    label: "ސ / ޖ",
     preview: (
-      <div className="space-y-1.5 text-right">
-        <div className="bg-muted rounded-lg px-3 py-2">
-          <p className="font-body text-[10px] font-bold text-muted-foreground">ސ</p>
-          <p className="font-body text-xs text-foreground">ސުވާލު...</p>
+      <div className="flex flex-col gap-1.5 justify-center h-16">
+        <div className="bg-muted rounded-md px-2 py-1 text-right">
+          <span className="font-body text-[10px] font-bold text-muted-foreground">ސ</span>
         </div>
-        <div className="bg-background border border-border rounded-lg px-3 py-2">
-          <p className="font-body text-[10px] font-bold text-muted-foreground">ޖ</p>
-          <p className="font-body text-xs text-foreground">ޖަވާބު...</p>
+        <div className="border border-border rounded-md px-2 py-1 text-right">
+          <span className="font-body text-[10px] font-bold text-muted-foreground">ޖ</span>
         </div>
       </div>
     ),
@@ -259,7 +255,6 @@ function QuoteModal({
       <div className="bg-background rounded-2xl border border-border shadow-xl w-full max-w-lg mx-4 p-5" onClick={(e) => e.stopPropagation()}>
         <h3 className="font-body text-sm font-semibold text-foreground mb-4 text-right">ކޯޓް ސްޓައިލް</h3>
 
-        {/* Style picker */}
         {!selected && (
           <div className="grid grid-cols-3 gap-3">
             {QUOTE_STYLES.map((s) => (
@@ -270,13 +265,12 @@ function QuoteModal({
                 className="border border-border rounded-xl p-3 hover:border-foreground hover:bg-muted/40 transition-all text-right"
               >
                 <div className="mb-2">{s.preview}</div>
-                <p className="font-body text-[11px] text-muted-foreground text-right">{s.label}</p>
+                <p className="font-body text-[11px] text-muted-foreground text-right" dir="rtl">{s.label}</p>
               </button>
             ))}
           </div>
         )}
 
-        {/* Form after style picked */}
         {selected && (
           <form onSubmit={handleSubmit} className="space-y-3">
             <button
@@ -432,7 +426,7 @@ export default function ArticleEditor({ content, onChange, placeholder = "ލިޔ
 
   return (
     <>
-      <div className="border border-border rounded-xl overflow-hidden bg-background">
+      <div className="border border-border rounded-xl bg-background">
 
         <BubbleMenu
           editor={editor}
@@ -447,7 +441,7 @@ export default function ArticleEditor({ content, onChange, placeholder = "ލިޔ
         </BubbleMenu>
 
         {/* Sticky Toolbar */}
-        <div className="flex flex-wrap items-center gap-0.5 p-2 border-b border-border bg-background sticky top-0 z-10">
+        <div className="flex flex-wrap items-center gap-0.5 p-2 border-b border-border bg-background sticky top-0 z-10 rounded-t-xl">
           <ToolbarGroup>
             <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleBold().run(); }}      active={editor.isActive("bold")}      title="ބޯލްޑް"><Bold size={14} /></ToolbarBtn>
             <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleItalic().run(); }}    active={editor.isActive("italic")}    title="އިޓަލިކް"><Italic size={14} /></ToolbarBtn>
