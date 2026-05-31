@@ -20,6 +20,7 @@ import {
   Link as LinkIcon, LayoutGrid,
   List, ListOrdered,
   Maximize2, Trash2,
+  MessageSquareQuote, MessageSquare,
 } from "lucide-react";
 
 // ── Vimeo node ────────────────────────────────────────────
@@ -41,7 +42,7 @@ const VimeoNode = Node.create({
       ["div", { style: "position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:12px;background:#000;" },
         ["iframe", { src: `https://player.vimeo.com/video/${videoId}?autoplay=0&title=0&byline=0&portrait=0`, style: "position:absolute;top:0;left:0;width:100%;height:100%;border:0;", allowfullscreen: "true", loading: "lazy" }],
       ],
-      ...(caption ? [["p", { style: "text-align:center;font-size:11px;color:#888;font-style:italic;margin-top:4px;" }, caption]] : []),
+      ...(caption ? [["p", { style: "text-align:center;font-size:11px;color:#888;margin-top:4px;" }, caption]] : []),
     ];
   },
   addCommands() {
@@ -70,7 +71,6 @@ const SocialNode = Node.create({
   renderHTML({ HTMLAttributes }) {
     const { provider, url, author, text, thumb } = HTMLAttributes;
     const icon = provider === "twitter" ? "𝕏" : provider === "instagram" ? "📸" : "🎵";
-    // Ensure absolute URL and LTR display
     const safeUrl = url && !url.startsWith("http") ? `https://${url}` : (url ?? "");
     return [
       "div", mergeAttributes({ "data-social-embed": "" }, { style: "border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;margin:1rem 0;max-width:540px;direction:ltr;text-align:left;" }),
@@ -93,6 +93,185 @@ const SocialNode = Node.create({
   },
 });
 
+// ── Pull Quote node ───────────────────────────────────────
+const PullQuoteNode = Node.create({
+  name: "pullQuote",
+  group: "block",
+  atom: true,
+  addAttributes() {
+    return {
+      text:   { default: "" },
+      author: { default: "" },
+    };
+  },
+  parseHTML() { return [{ tag: "div[data-pull-quote]" }]; },
+  renderHTML({ HTMLAttributes }) {
+    const { text, author } = HTMLAttributes;
+    return [
+      "div", mergeAttributes({ "data-pull-quote": "" }, {
+        style: "margin:2rem auto;padding:0 2rem;text-align:center;max-width:600px;",
+      }),
+      ["p", { style: "font-family:'MVTypewriter','Noto Sans Thaana',sans-serif;font-size:1.35rem;font-weight:700;color:rgb(26,26,26);line-height:1.8;margin:0 0 0.5rem;" }, `"${text}"`],
+      ...(author ? [["p", { style: "font-family:'MVTypewriter',sans-serif;font-size:11px;color:rgb(160,158,152);line-height:2;margin:0;" }, `— ${author}`]] : []),
+    ];
+  },
+  addCommands() {
+    return {
+      insertPullQuote: (attrs: { text: string; author?: string }) => ({ commands }: any) =>
+        commands.insertContent([{ type: "pullQuote", attrs }, { type: "paragraph" }]),
+    } as any;
+  },
+});
+
+// ── Interview Q&A node ────────────────────────────────────
+const InterviewNode = Node.create({
+  name: "interview",
+  group: "block",
+  atom: true,
+  addAttributes() {
+    return {
+      question: { default: "" },
+      answer:   { default: "" },
+    };
+  },
+  parseHTML() { return [{ tag: "div[data-interview]" }]; },
+  renderHTML({ HTMLAttributes }) {
+    const { question, answer } = HTMLAttributes;
+    return [
+      "div", mergeAttributes({ "data-interview": "" }, { style: "margin:1.5rem 0;" }),
+      ["div", { style: "background:rgb(240,239,233);border:1px solid rgb(224,221,214);border-radius:8px;padding:14px 18px;margin-bottom:8px;direction:rtl;" },
+        ["p", { style: "font-family:'MVTypewriter',sans-serif;font-size:10px;font-weight:700;color:rgb(100,98,92);letter-spacing:0.05em;margin:0 0 4px;opacity:0.7;" }, "ސ"],
+        ["p", { style: "font-family:'MVTypewriter','Noto Sans Thaana',sans-serif;font-size:14px;color:rgb(26,26,26);line-height:1.9;margin:0;" }, question],
+      ],
+      ["div", { style: "background:rgb(249,248,245);border:1px solid rgb(224,221,214);border-radius:8px;padding:14px 18px;direction:rtl;" },
+        ["p", { style: "font-family:'MVTypewriter',sans-serif;font-size:10px;font-weight:700;color:rgb(100,98,92);letter-spacing:0.05em;margin:0 0 4px;opacity:0.7;" }, "ޖ"],
+        ["p", { style: "font-family:'MVTypewriter','Noto Sans Thaana',sans-serif;font-size:14px;color:rgb(26,26,26);line-height:1.9;margin:0;" }, answer],
+      ],
+    ];
+  },
+  addCommands() {
+    return {
+      insertInterview: (attrs: { question: string; answer: string }) => ({ commands }: any) =>
+        commands.insertContent([{ type: "interview", attrs }, { type: "paragraph" }]),
+    } as any;
+  },
+});
+
+// ── Styled Blockquote node ────────────────────────────────
+const StyledBlockquoteNode = Node.create({
+  name: "styledBlockquote",
+  group: "block",
+  atom: true,
+  addAttributes() {
+    return {
+      text:   { default: "" },
+      author: { default: "" },
+    };
+  },
+  parseHTML() { return [{ tag: "div[data-styled-blockquote]" }]; },
+  renderHTML({ HTMLAttributes }) {
+    const { text, author } = HTMLAttributes;
+    return [
+      "div", mergeAttributes({ "data-styled-blockquote": "" }, {
+        style: "margin:1.5rem 0;padding:4px 0 4px 0;border-right:2px solid rgba(0,0,0,0.5);padding-right:20px;direction:rtl;",
+      }),
+      ["p", { style: "font-family:'MVTypewriter','Noto Sans Thaana',sans-serif;font-size:16px;color:rgb(60,58,52);line-height:2;margin:0 0 4px;" }, text],
+      ...(author ? [["p", { style: "font-family:'MVTypewriter',sans-serif;font-size:11px;color:rgb(160,158,152);line-height:2;margin:0;" }, `— ${author}`]] : []),
+    ];
+  },
+  addCommands() {
+    return {
+      insertStyledBlockquote: (attrs: { text: string; author?: string }) => ({ commands }: any) =>
+        commands.insertContent([{ type: "styledBlockquote", attrs }, { type: "paragraph" }]),
+    } as any;
+  },
+});
+
+// ── Quote dialog component ────────────────────────────────
+function QuoteDialog({
+  type,
+  onInsert,
+  onClose,
+}: {
+  type: "pullQuote" | "interview" | "styledBlockquote";
+  onInsert: (data: any) => void;
+  onClose: () => void;
+}) {
+  const [text, setText]         = useState("");
+  const [author, setAuthor]     = useState("");
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer]     = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (type === "interview") {
+      if (!question.trim() || !answer.trim()) return;
+      onInsert({ question, answer });
+    } else {
+      if (!text.trim()) return;
+      onInsert({ text, author });
+    }
+    onClose();
+  };
+
+  const titles = {
+    pullQuote: "ޕުލް ކޯޓް",
+    interview: "އިންޓަވިއު Q&A",
+    styledBlockquote: "ބްލޮކްކޯޓް",
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-background rounded-2xl border border-border shadow-xl w-full max-w-md mx-4 p-5" onClick={(e) => e.stopPropagation()}>
+        <h3 className="font-body text-sm font-semibold text-foreground mb-4" dir="rtl">{titles[type]}</h3>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          {type === "interview" ? (
+            <>
+              <div>
+                <label className="font-body text-xs text-muted-foreground block mb-1" dir="rtl">ސުވާލު</label>
+                <textarea value={question} onChange={(e) => setQuestion(e.target.value)} rows={2} dir="rtl"
+                  className="w-full font-body text-sm p-2.5 rounded-xl border border-border bg-muted/40 outline-none focus:border-foreground resize-none transition-colors"
+                  placeholder="ސުވާލު ލިޔެލާ..." autoFocus />
+              </div>
+              <div>
+                <label className="font-body text-xs text-muted-foreground block mb-1" dir="rtl">ޖަވާބު</label>
+                <textarea value={answer} onChange={(e) => setAnswer(e.target.value)} rows={3} dir="rtl"
+                  className="w-full font-body text-sm p-2.5 rounded-xl border border-border bg-muted/40 outline-none focus:border-foreground resize-none transition-colors"
+                  placeholder="ޖަވާބު ލިޔެލާ..." />
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="font-body text-xs text-muted-foreground block mb-1" dir="rtl">ޖުމްލަ</label>
+                <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} dir="rtl"
+                  className="w-full font-body text-sm p-2.5 rounded-xl border border-border bg-muted/40 outline-none focus:border-foreground resize-none transition-colors"
+                  placeholder="ޖުމްލަ ލިޔެލާ..." autoFocus />
+              </div>
+              <div>
+                <label className="font-body text-xs text-muted-foreground block mb-1" dir="rtl">ލިޔުންތެރިޔާ / މަސްދަރު (އިހްތިޔާރީ)</label>
+                <input value={author} onChange={(e) => setAuthor(e.target.value)} dir="rtl"
+                  className="w-full font-body text-sm p-2.5 rounded-xl border border-border bg-muted/40 outline-none focus:border-foreground transition-colors"
+                  placeholder="ނަން ނުވަތަ މަސްދަރު..." />
+              </div>
+            </>
+          )}
+          <div className="flex gap-2 pt-1">
+            <button type="submit"
+              className="flex-1 py-2.5 rounded-xl bg-foreground text-background font-body text-xs font-semibold hover:opacity-80 transition-opacity">
+              އިންސާޓް
+            </button>
+            <button type="button" onClick={onClose}
+              className="px-4 py-2.5 rounded-xl border border-border font-body text-xs text-muted-foreground hover:bg-muted transition-colors">
+              ނޫން
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ── Editor component ──────────────────────────────────────
 
 interface ArticleEditorProps {
@@ -109,6 +288,7 @@ export default function ArticleEditor({ content, onChange, placeholder = "ލިޔ
   useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
 
   const [mediaModalOpen, setMediaModalOpen] = useState(false);
+  const [quoteDialog, setQuoteDialog] = useState<"pullQuote" | "interview" | "styledBlockquote" | null>(null);
 
   const handleUpdate = useCallback(({ editor }: any) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -130,6 +310,9 @@ export default function ArticleEditor({ content, onChange, placeholder = "ލިޔ
       Youtube.configure({ controls: true, nocookie: true, width: 640, height: 360 }),
       VimeoNode,
       SocialNode,
+      PullQuoteNode,
+      InterviewNode,
+      StyledBlockquoteNode,
     ],
     content: content || "",
     editorProps: {
@@ -146,46 +329,34 @@ export default function ArticleEditor({ content, onChange, placeholder = "ލިޔ
 
   const handleInsertMedia = useCallback((attrs: MediaBlockAttrs) => {
     if (!editor) return;
-
     if (attrs.type === "image" && attrs.src) {
       editor.commands.focus();
       editor.commands.setImage({ src: attrs.src, alt: attrs.alt ?? "" });
       editor.commands.createParagraphNear();
       return;
     }
-
     if (attrs.type === "video" && attrs.videoId) {
       if (attrs.videoProvider === "youtube") {
         editor.commands.focus();
-        editor.commands.setYoutubeVideo({
-          src: `https://www.youtube.com/watch?v=${attrs.videoId}`,
-          width: 640,
-          height: 360,
-        });
+        editor.commands.setYoutubeVideo({ src: `https://www.youtube.com/watch?v=${attrs.videoId}`, width: 640, height: 360 });
       } else {
-        (editor.chain().focus() as any)
-          .insertVimeo({ videoId: attrs.videoId, caption: attrs.caption ?? "" })
-          .focus().run();
+        (editor.chain().focus() as any).insertVimeo({ videoId: attrs.videoId, caption: attrs.caption ?? "" }).focus().run();
       }
       return;
     }
-
     if (attrs.type === "social" && attrs.socialUrl) {
-      const cleanUrl = attrs.socialUrl.startsWith("http")
-        ? attrs.socialUrl
-        : `https://${attrs.socialUrl}`;
-      (editor.chain().focus() as any)
-        .insertSocial({
-          provider: attrs.socialProvider,
-          url: cleanUrl,
-          author: attrs.socialAuthor ?? "",
-          text: attrs.socialText ?? "",
-          thumb: attrs.socialThumb ?? null,
-        })
-        .focus().run();
+      const cleanUrl = attrs.socialUrl.startsWith("http") ? attrs.socialUrl : `https://${attrs.socialUrl}`;
+      (editor.chain().focus() as any).insertSocial({ provider: attrs.socialProvider, url: cleanUrl, author: attrs.socialAuthor ?? "", text: attrs.socialText ?? "", thumb: attrs.socialThumb ?? null }).focus().run();
       return;
     }
   }, [editor]);
+
+  const handleQuoteInsert = (data: any) => {
+    if (!editor || !quoteDialog) return;
+    if (quoteDialog === "pullQuote") (editor.chain().focus() as any).insertPullQuote(data).focus().run();
+    if (quoteDialog === "interview") (editor.chain().focus() as any).insertInterview(data).focus().run();
+    if (quoteDialog === "styledBlockquote") (editor.chain().focus() as any).insertStyledBlockquote(data).focus().run();
+  };
 
   const addLink = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -199,16 +370,12 @@ export default function ArticleEditor({ content, onChange, placeholder = "ލިޔ
     <>
       <div className="border border-border rounded-xl overflow-hidden bg-background">
 
-        {/* ── Image bubble menu ── */}
         <BubbleMenu
           editor={editor}
           tippyOptions={{ duration: 150, placement: "top" }}
           shouldShow={({ editor }) => editor.isActive("image")}
         >
           <div className="flex items-center gap-0.5 px-1.5 py-1 rounded-lg bg-background border border-border shadow-lg">
-            <BubbleBtn title="ފުރިހަމަ" onClick={() => editor.chain().focus().setImage({ src: editor.getAttributes("image").src, alt: editor.getAttributes("image").alt }).run()}>
-              <Maximize2 size={13} />
-            </BubbleBtn>
             <BubbleBtn title="ފޮހެލާ" danger onClick={() => editor.chain().focus().deleteSelection().run()}>
               <Trash2 size={13} />
             </BubbleBtn>
@@ -234,7 +401,9 @@ export default function ArticleEditor({ content, onChange, placeholder = "ލިޔ
           </ToolbarGroup>
           <Divider />
           <ToolbarGroup>
-            <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleBlockquote().run(); }}   active={editor.isActive("blockquote")} title="ޕުލް ކޯޓް"><Quote size={14} /></ToolbarBtn>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); setQuoteDialog("pullQuote"); }}       title="ޕުލް ކޯޓް"><Quote size={14} /></ToolbarBtn>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); setQuoteDialog("interview"); }}       title="Q&A"><MessageSquare size={14} /></ToolbarBtn>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); setQuoteDialog("styledBlockquote"); }} title="ބްލޮކްކޯޓް"><MessageSquareQuote size={14} /></ToolbarBtn>
             <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().setHorizontalRule().run(); }} title="ތިރި"><Minus size={14} /></ToolbarBtn>
           </ToolbarGroup>
           <Divider />
@@ -265,15 +434,20 @@ export default function ArticleEditor({ content, onChange, placeholder = "ލިޔ
         onClose={() => setMediaModalOpen(false)}
         onInsert={handleInsertMedia}
       />
+
+      {quoteDialog && (
+        <QuoteDialog
+          type={quoteDialog}
+          onInsert={handleQuoteInsert}
+          onClose={() => setQuoteDialog(null)}
+        />
+      )}
     </>
   );
 }
 
 function BubbleBtn({ children, onClick, title, danger }: {
-  children: React.ReactNode;
-  onClick: () => void;
-  title?: string;
-  danger?: boolean;
+  children: React.ReactNode; onClick: () => void; title?: string; danger?: boolean;
 }) {
   return (
     <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={onClick} title={title}
@@ -288,10 +462,7 @@ function ToolbarGroup({ children }: { children: React.ReactNode }) {
 }
 
 function ToolbarBtn({ children, onClick, active, title }: {
-  children: React.ReactNode;
-  onClick: (e: React.MouseEvent) => void;
-  active?: boolean;
-  title?: string;
+  children: React.ReactNode; onClick: (e: React.MouseEvent) => void; active?: boolean; title?: string;
 }) {
   return (
     <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={onClick} title={title}
