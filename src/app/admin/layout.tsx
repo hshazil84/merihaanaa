@@ -24,12 +24,12 @@ import {
   MessageSquare,
   Mail,
   Users,
-  Settings,
   Moon,
   Sun,
   LogOut,
   Menu,
   ChevronRight,
+  Image,
 } from "lucide-react";
 import type { UserProfile } from "@/types";
 
@@ -37,10 +37,10 @@ const NAV = [
   {
     section: "ލިޔުންތައް",
     items: [
-      { href: "/admin",               label: "ޑޭޝްބޯޑް",        icon: LayoutDashboard },
-      { href: "/admin/articles",      label: "ހުރިހާ ލިޔުން",    icon: FileText },
-      { href: "/admin/articles/new",  label: "އާ ލިޔުން",        icon: FilePlus },
-      { href: "/admin/media", label: "މީޑިއާ", icon: ImageIcon },
+      { href: "/admin",               label: "ޑޭޝްބޯޑް",       icon: LayoutDashboard },
+      { href: "/admin/articles",      label: "ހުރިހާ ލިޔުން",   icon: FileText },
+      { href: "/admin/articles/new",  label: "އާ ލިޔުން",       icon: FilePlus },
+      { href: "/admin/media",         label: "މީޑިއާ",           icon: Image },
     ],
   },
   {
@@ -65,14 +65,14 @@ const NAV = [
   {
     section: "ކޮމިއުނިޓީ",
     items: [
-      { href: "/admin/comments",     label: "ކޮމެންޓް",       icon: MessageSquare },
-      { href: "/admin/subscribers",  label: "ސަބްސްކްރައިބަރ", icon: Mail },
+      { href: "/admin/comments",    label: "ކޮމެންޓް",        icon: MessageSquare },
+      { href: "/admin/subscribers", label: "ސަބްސްކްރައިބަރ", icon: Mail },
     ],
   },
   {
     section: "އެޑްމިން",
     items: [
-      { href: "/admin/authors",  label: "ލިޔުންތެރިން", icon: Users },
+      { href: "/admin/authors", label: "ލިޔުންތެރިން", icon: Users },
     ],
   },
 ];
@@ -88,6 +88,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
   "/admin":               "ޑޭޝްބޯޑް",
   "/admin/articles":      "ލިޔުންތައް",
   "/admin/articles/new":  "އާ ލިޔުން",
+  "/admin/media":         "މީޑިއާ",
   "/admin/homepage":      "ހޯމްޕޭޖް",
   "/admin/videos":        "ވީޑިއޯ",
   "/admin/series":        "ސީރީސް",
@@ -98,13 +99,13 @@ const BREADCRUMB_MAP: Record<string, string> = {
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
+  const router   = useRouter();
   const pathname = usePathname();
   const supabase = createClient();
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser]           = useState<UserProfile | null>(null);
+  const [loading, setLoading]     = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [dark, setDark] = useState(false);
+  const [dark, setDark]           = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -112,10 +113,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       if (!session) { router.push("/login"); return; }
 
       const { data: profile } = await supabase
-        .from("user_profiles")
-        .select("*")
-        .eq("id", session.user.id)
-        .single();
+        .from("user_profiles").select("*").eq("id", session.user.id).single();
 
       if (!profile || !["author","editor","admin"].includes(profile.role)) {
         router.push("/"); return;
@@ -125,7 +123,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     };
     init();
     setDark(document.documentElement.classList.contains("dark"));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleDark = () => {
     const isDark = document.documentElement.classList.toggle("dark");
@@ -157,19 +155,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         flex-shrink-0 bg-background border-l border-border
         flex flex-col transition-all duration-300 ease-in-out
       `}>
-        {/* Logo */}
         <div className="px-4 py-4 border-b border-border flex items-center justify-between">
           <Link href="/" className="font-display text-lg font-bold text-foreground hover:opacity-70 transition-opacity">
             މެރިހާނާ
           </Link>
-          <Badge variant="secondary" className="font-body text-[10px]">އެޑްމިން</Badge>
+          <Badge>އެޑްމިން</Badge>
         </div>
 
-        {/* Nav */}
         <nav className="flex-1 overflow-y-auto py-3 px-2">
           {NAV.map((section, si) => (
             <div key={section.section} className={si > 0 ? "mt-4" : ""}>
-              <p className="px-3 mb-1 font-body text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
+              <p className="px-3 mb-1 font-body text-[10px] font-semibold text-muted-foreground">
                 {section.section}
               </p>
               {section.items.map((item) => {
@@ -197,7 +193,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         <Separator />
 
-        {/* User */}
         <div className="p-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -230,7 +225,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* ── MAIN ── */}
       <div className="flex-1 flex flex-col overflow-hidden">
 
-        {/* Topbar */}
         <header className="h-12 flex-shrink-0 bg-background border-b border-border flex items-center justify-between px-4 gap-4">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="h-8 w-8">
@@ -256,7 +250,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </header>
 
-        {/* Content */}
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>
@@ -265,10 +258,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   );
 }
 
-// Local Badge import for logo area
-function Badge({ children, variant, className }: { children: React.ReactNode; variant?: string; className?: string }) {
+function Badge({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground ${className}`}>
+    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground ${className ?? ""}`}>
       {children}
     </span>
   );
