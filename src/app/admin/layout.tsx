@@ -125,9 +125,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const breadcrumb = BREADCRUMB_MAP[pathname] || "އެޑްމިން";
 
   return (
-    <div className="h-screen flex overflow-hidden bg-muted/30">
+    <div className="h-screen flex flex-row-reverse overflow-hidden bg-muted/30">
 
-      {/* ── SIDEBAR ── */}
+      {/* ── SIDEBAR (renders on the right visually) ── */}
       <aside className={`
         ${sidebarOpen ? "w-52" : "w-0 overflow-hidden"}
         flex-shrink-0 bg-background border-l border-border
@@ -210,7 +210,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* ── MAIN ── */}
       <div className="flex-1 flex flex-col overflow-hidden">
 
-        {/* Header — same height as sidebar logo row */}
+        {/* Header */}
         <header className="h-12 flex-shrink-0 bg-background border-b border-border flex items-center justify-between px-4 gap-4">
           <div className="flex items-center gap-3">
             <button
