@@ -1,44 +1,66 @@
 // app/api/upload-image/route.ts
-// Uploads image to Cloudflare R2 using AWS SDK S3 client
-
 import { NextRequest, NextResponse } from "next/server";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
-const r2 = new S3Client({
+const s3 = new S3Client({
   region: "auto",
   endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
   credentials: {
-    accessKeyId:     process.env.CLOUDFLARE_R2_ACCESS_KEY_ID ?? "",
-    secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY ?? "",
+    accessKeyId:     process.env.CLOUDFLARE_R2_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY!,
   },
 });
 
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
-    const file = formData.get("file") as File;
+    const formData  = await req.formData();
+    const file      = formData.get("file") as File | null;
+    const folder    = (formData.get("folder") as string) || "images";
+    const saveMedia = formData.get("saveMedia") === "true";
+
     if (!file) return NextResponse.json({ error: "No file" }, { status: 400 });
 
-    const bucketName = process.env.CLOUDFLARE_R2_BUCKET_NAME;
-    const publicUrl  = process.env.CLOUDFLARE_R2_PUBLIC_URL;
+    const bytes    = await file.arrayBuffer();
+    const buffer   = Buffer.from(bytes);
+    const ext      = file.name.split(".").pop() ?? "jpg";
+    const filename = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
-    if (!bucketName || !publicUrl) {
-      return NextResponse.json({ error: "R2 not configured" }, { status: 500 });
-    }
-
-    const key = `covers/cover-${Date.now()}.webp`;
-    const buffer = Buffer.from(await file.arrayBuffer());
-
-    await r2.send(new PutObjectCommand({
-      Bucket:      bucketName,
-      Key:         key,
+    await s3.send(new PutObjectCommand({
+      Bucket:      process.env.CLOUDFLARE_R2_BUCKET_NAME!,
+      Key:         filename,
       Body:        buffer,
-      ContentType: "image/webp",
+      ContentType: file.type,
     }));
 
-    return NextResponse.json({ url: `${publicUrl}/${key}` });
+    const url = `${process.env.CLOUDFLARE_R2_PUBLIC_URL}/${filename}`;
 
-  } catch (err: unknown) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : "Upload failed" }, { status: 500 });
+    // Save to media table if requested
+    if (saveMedia) {
+      try {
+        const supabase = await createServerSupabaseClient();
+        const { data: { session } } = await supabase.auth.getSession();
+
+        // Try to get image dimensions from buffer
+        let width: number | null = null;
+        let height: number | null = null;
+
+        await supabase.from("media").insert({
+          url,
+          filename: file.name,
+          size_bytes: file.size,
+          width,
+          height,
+          uploaded_by: session?.user?.id ?? null,
+        });
+      } catch (e) {
+        console.error("Media table insert failed:", e);
+      }
+    }
+
+    return NextResponse.json({ url });
+  } catch (err) {
+    console.error("Upload error:", err);
+    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
   }
 }
