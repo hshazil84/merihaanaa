@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '50mb',
+    },
+  },
   images: {
     remotePatterns: [
       {
@@ -18,6 +23,10 @@ const nextConfig = {
         protocol: "https",
         hostname: "**.supabase.co",
       },
+      {
+        protocol: "https",
+        hostname: "pub-090f0530b5a94c70b2bba8776eefb48e.r2.dev",
+      },
     ],
   },
   async headers() {
@@ -34,5 +43,4 @@ const nextConfig = {
     ];
   },
 };
-
 module.exports = nextConfig;

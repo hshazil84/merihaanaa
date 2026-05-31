@@ -70,7 +70,6 @@ export default function CommentsClient({ comments: initial }: { comments: Commen
           </p>
         </div>
       </div>
-
       <div className="flex gap-1 p-1 bg-muted/40 rounded-xl w-fit mb-6">
         {FILTERS.map((f) => (
           <button
@@ -92,7 +91,6 @@ export default function CommentsClient({ comments: initial }: { comments: Commen
           </button>
         ))}
       </div>
-
       {filtered.length === 0 ? (
         <div className="flex items-center justify-center h-48">
           <p className="font-body text-sm text-muted-foreground">ކޮމެންޓެއް ނެތް</p>
@@ -126,7 +124,6 @@ export default function CommentsClient({ comments: initial }: { comments: Commen
                     {comment.is_approved === null ? "ޕެންޑިން" : comment.is_approved ? "އެޕްރޫވްޑް" : "ރިޖެކްޓެޑް"}
                   </span>
                 </div>
-
                 {comment.articles && (
                   
                     href={`/${comment.articles.slug}`}
@@ -140,12 +137,10 @@ export default function CommentsClient({ comments: initial }: { comments: Commen
                     <ExternalLink size={9} className="text-muted-foreground flex-shrink-0" />
                   </a>
                 )}
-
                 <p className="font-body text-sm text-foreground leading-relaxed">
                   {comment.body}
                 </p>
               </div>
-
               <div className="flex items-center gap-1 px-4 pb-3">
                 {comment.is_approved !== true && (
                   <button type="button" onClick={() => update(comment.id, true)}

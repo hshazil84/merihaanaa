@@ -1,7 +1,7 @@
 "use client";
 // components/admin/InsertMediaModal.tsx
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   processImage, ASPECT_RATIOS, type AspectRatioKey,
@@ -14,10 +14,12 @@ import {
   ImageIcon, Video, Share2, UploadCloud,
   Loader2, AlertCircle, X, AlignCenter,
   AlignLeft, AlignRight, ExternalLink,
+  Library, Check, Search,
 } from "lucide-react";
 
 const BUCKET = "article-images";
 type Tab = "image" | "video" | "social";
+type ImageSubTab = "upload" | "library";
 
 export interface MediaBlockAttrs {
   type: "image" | "video" | "social";
@@ -67,7 +69,7 @@ export default function InsertMediaModal({ open, onClose, onInsert }: Props) {
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="w-full max-w-lg bg-background rounded-2xl border border-border shadow-2xl overflow-hidden">
+      <div className="w-full max-w-2xl bg-background rounded-2xl border border-border shadow-2xl overflow-hidden">
 
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <h2 className="font-body text-sm font-semibold">މީޑިއާ އިންސާޓް ކޮށްލާ</h2>
@@ -85,7 +87,7 @@ export default function InsertMediaModal({ open, onClose, onInsert }: Props) {
           ))}
         </div>
 
-        <div className="px-5 py-4 max-h-[60vh] overflow-y-auto">
+        <div className="px-5 py-4 max-h-[65vh] overflow-y-auto">
           {activeTab === "image"  && <ImageTab  onInsert={handleInsert} />}
           {activeTab === "video"  && <VideoTab  onInsert={handleInsert} />}
           {activeTab === "social" && <SocialTab onInsert={handleInsert} />}
@@ -122,9 +124,34 @@ export default function InsertMediaModal({ open, onClose, onInsert }: Props) {
   );
 }
 
-// ── Image Tab ─────────────────────────────────────────────
+// ── Image Tab (with Upload + Library sub-tabs) ────────────
 
 function ImageTab({ onInsert }: { onInsert: (attrs: Omit<MediaBlockAttrs, "size" | "align">) => void }) {
+  const [subTab, setSubTab] = useState<ImageSubTab>("upload");
+
+  return (
+    <div className="space-y-4">
+      {/* Sub-tab switcher */}
+      <div className="flex gap-1 p-1 bg-muted/50 rounded-xl w-fit">
+        <button type="button" onClick={() => setSubTab("upload")}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-body text-xs font-semibold transition-all ${subTab === "upload" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+          <UploadCloud size={13} /> އަޕްލޯޑް
+        </button>
+        <button type="button" onClick={() => setSubTab("library")}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-body text-xs font-semibold transition-all ${subTab === "library" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+          <Library size={13} /> ލައިބްރަރީ
+        </button>
+      </div>
+
+      {subTab === "upload"  && <UploadSubTab  onInsert={onInsert} />}
+      {subTab === "library" && <LibrarySubTab onInsert={onInsert} />}
+    </div>
+  );
+}
+
+// ── Upload sub-tab ────────────────────────────────────────
+
+function UploadSubTab({ onInsert }: { onInsert: (attrs: Omit<MediaBlockAttrs, "size" | "align">) => void }) {
   const supabase = createClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging]   = useState(false);
@@ -171,7 +198,6 @@ function ImageTab({ onInsert }: { onInsert: (attrs: Omit<MediaBlockAttrs, "size"
 
       {preview ? (
         <div className="relative rounded-xl overflow-hidden" style={{ aspectRatio: aspectRatio.replace(":", "/") }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={preview} alt="" className="w-full h-full object-cover" />
           <button type="button" onClick={() => setPreview(null)}
             className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-black/80 transition-colors">
@@ -210,6 +236,109 @@ function ImageTab({ onInsert }: { onInsert: (attrs: Omit<MediaBlockAttrs, "size"
   );
 }
 
+// ── Library sub-tab ───────────────────────────────────────
+
+interface MediaItem {
+  id: string;
+  url: string;
+  filename: string | null;
+}
+
+function LibrarySubTab({ onInsert }: { onInsert: (attrs: Omit<MediaBlockAttrs, "size" | "align">) => void }) {
+  const supabase = createClient();
+  const [items, setItems]       = useState<MediaItem[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [search, setSearch]     = useState("");
+  const [selected, setSelected] = useState<MediaItem | null>(null);
+  const [alt, setAlt]           = useState("");
+  const [caption, setCaption]   = useState("");
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      let query = supabase
+        .from("media")
+        .select("id, url, filename")
+        .order("created_at", { ascending: false })
+        .limit(48);
+      if (search.trim()) query = query.ilike("filename", `%${search.trim()}%`);
+      const { data } = await query;
+      setItems(data ?? []);
+      setLoading(false);
+    };
+    load();
+  }, [search]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div className="space-y-3">
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="ހޯދާ..."
+          dir="rtl"
+          className="w-full font-body text-xs pr-8 pl-3 py-2 rounded-xl border border-border bg-muted/40 outline-none focus:border-foreground transition-colors"
+        />
+      </div>
+
+      {/* Grid */}
+      {loading ? (
+        <div className="flex items-center justify-center h-48">
+          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : items.length === 0 ? (
+        <div className="flex items-center justify-center h-48">
+          <p className="font-body text-xs text-muted-foreground">ފޮޓޯތަކެއް ނެތް</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-4 gap-2 max-h-64 overflow-y-auto pr-1">
+          {items.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setSelected(selected?.id === item.id ? null : item)}
+              className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${selected?.id === item.id ? "border-foreground" : "border-transparent hover:border-border"}`}
+            >
+              <img src={item.url} alt={item.filename ?? ""} className="w-full h-full object-cover" loading="lazy" />
+              {selected?.id === item.id && (
+                <div className="absolute inset-0 bg-foreground/20 flex items-center justify-center">
+                  <div className="w-5 h-5 rounded-full bg-foreground flex items-center justify-center">
+                    <Check className="w-3 h-3 text-background" />
+                  </div>
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Selected detail */}
+      {selected && (
+        <div className="space-y-2 pt-1 border-t border-border">
+          <div className="flex items-center gap-3">
+            <img src={selected.url} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+            <p className="font-body text-xs text-muted-foreground truncate flex-1">{selected.filename ?? selected.url}</p>
+          </div>
+          <input type="text" value={alt} onChange={(e) => setAlt(e.target.value)} placeholder="Alt text..." dir="auto"
+            className="w-full font-body text-xs p-2.5 rounded-lg border border-border bg-background outline-none focus:border-foreground transition-colors" />
+          <input type="text" value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="ކެޕްޝަން (އިހްތިޔާރީ)..." dir="rtl"
+            className="w-full font-body text-xs p-2.5 rounded-lg border border-border bg-background outline-none focus:border-foreground transition-colors" />
+        </div>
+      )}
+
+      <button type="button"
+        onClick={() => selected && onInsert({ type: "image", src: selected.url, alt, caption })}
+        disabled={!selected}
+        className="w-full py-2.5 rounded-xl bg-foreground text-background font-body text-sm font-semibold disabled:opacity-30 hover:opacity-80 transition-opacity">
+        ފޮޓޯ އިންސާޓް ކޮށްލާ
+      </button>
+    </div>
+  );
+}
+
 // ── Video Tab ─────────────────────────────────────────────
 
 function VideoTab({ onInsert }: { onInsert: (attrs: Omit<MediaBlockAttrs, "size" | "align">) => void }) {
@@ -230,23 +359,16 @@ function VideoTab({ onInsert }: { onInsert: (attrs: Omit<MediaBlockAttrs, "size"
   return (
     <div className="space-y-4">
       <div className="flex gap-2">
-        <input
-          type="text"
-          value={url}
-          onChange={(e) => { setUrl(e.target.value); setMeta(null); }}
+        <input type="text" value={url} onChange={(e) => { setUrl(e.target.value); setMeta(null); }}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleFetch(); } }}
-          placeholder="Vimeo · YouTube ލިންކް..."
-          dir="ltr"
-          className="flex-1 font-body text-xs p-2.5 rounded-lg border border-border bg-background outline-none focus:border-foreground transition-colors"
-        />
+          placeholder="Vimeo · YouTube ލިންކް..." dir="ltr"
+          className="flex-1 font-body text-xs p-2.5 rounded-lg border border-border bg-background outline-none focus:border-foreground transition-colors" />
         <FetchBtn onClick={handleFetch} loading={loading} disabled={!url.trim()} />
       </div>
-
       {meta && (
         <div className="rounded-xl overflow-hidden border border-border">
           <div className="relative" style={{ aspectRatio: "16/9" }}>
             {meta.thumbnailUrl
-              // eslint-disable-next-line @next/next/no-img-element
               ? <img src={meta.thumbnailUrl} alt={meta.title} className="w-full h-full object-cover" />
               : <div className="w-full h-full bg-muted flex items-center justify-center"><Video size={32} className="text-muted-foreground" /></div>
             }
@@ -265,7 +387,6 @@ function VideoTab({ onInsert }: { onInsert: (attrs: Omit<MediaBlockAttrs, "size"
           </div>
         </div>
       )}
-
       <input type="text" value={caption} onChange={(e) => setCaption(e.target.value)}
         placeholder="ކެޕްޝަން (އިހްތިޔާރީ)..." dir="rtl"
         className="w-full font-body text-xs p-2.5 rounded-lg border border-border bg-background outline-none focus:border-foreground transition-colors" />
@@ -328,27 +449,17 @@ function SocialTab({ onInsert }: { onInsert: (attrs: Omit<MediaBlockAttrs, "size
           );
         })}
       </div>
-
       <div className="flex gap-2">
-        <input
-          type="text"
-          value={url}
-          onChange={(e) => { setUrl(e.target.value); setPreview(null); setError(null); }}
+        <input type="text" value={url} onChange={(e) => { setUrl(e.target.value); setPreview(null); setError(null); }}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleFetch(); } }}
-          placeholder="ޕޯސްޓް ލިންކް ޖަހާ..."
-          dir="ltr"
-          className="flex-1 font-body text-xs p-2.5 rounded-lg border border-border bg-background outline-none focus:border-foreground transition-colors"
-        />
+          placeholder="ޕޯސްޓް ލިންކް ޖަހާ..." dir="ltr"
+          className="flex-1 font-body text-xs p-2.5 rounded-lg border border-border bg-background outline-none focus:border-foreground transition-colors" />
         <FetchBtn onClick={handleFetch} loading={loading} disabled={!url.trim() || !detectedProvider} />
       </div>
-
       {preview && (
         <a href={url} target="_blank" rel="noopener noreferrer"
           className="block rounded-xl border border-border overflow-hidden hover:border-foreground transition-colors group/card no-underline">
-          {preview.thumbnailUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={preview.thumbnailUrl} alt="" className="w-full h-44 object-cover" />
-          )}
+          {preview.thumbnailUrl && <img src={preview.thumbnailUrl} alt="" className="w-full h-44 object-cover" />}
           <div className="p-3 space-y-2 bg-background">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -362,9 +473,7 @@ function SocialTab({ onInsert }: { onInsert: (attrs: Omit<MediaBlockAttrs, "size
               </div>
               <ExternalLink size={13} className="text-muted-foreground opacity-0 group-hover/card:opacity-100 transition-opacity flex-shrink-0" />
             </div>
-            {preview.text && (
-              <p className="font-body text-xs text-muted-foreground leading-relaxed line-clamp-3" dir="auto">{preview.text}</p>
-            )}
+            {preview.text && <p className="font-body text-xs text-muted-foreground leading-relaxed line-clamp-3" dir="auto">{preview.text}</p>}
             {detectedProvider === "instagram" && (
               <p className="font-body text-[10px] text-muted-foreground/60 italic">ލިޔުމުގައި ދައްކާނީ ފުރިހަމަ ޕޯސްޓް</p>
             )}
@@ -372,9 +481,7 @@ function SocialTab({ onInsert }: { onInsert: (attrs: Omit<MediaBlockAttrs, "size
           </div>
         </a>
       )}
-
       {error && <ErrorMsg>{error}</ErrorMsg>}
-
       <button type="button" onClick={handleInsert} disabled={!preview}
         className="w-full py-2.5 rounded-xl bg-foreground text-background font-body text-sm font-semibold disabled:opacity-30 hover:opacity-80 transition-opacity">
         ޕޯސްޓް އިންސާޓް ކޮށްލާ
