@@ -5,7 +5,6 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -35,23 +34,23 @@ import type { UserProfile } from "@/types";
 
 const NAV_GROUPS = [
   [
-    { href: "/admin",              label: "ޑޭޝްބޯޑް",        icon: LayoutDashboard },
-    { href: "/admin/articles",     label: "ހުރިހާ ލިޔުން",    icon: FileText },
-    { href: "/admin/articles/new", label: "އާ ލިޔުން",        icon: FilePlus },
-    { href: "/admin/media",        label: "މީޑިއާ",            icon: ImageIcon },
+    { href: "/admin",              label: "ޑޭޝްބޯޑް",       icon: LayoutDashboard },
+    { href: "/admin/articles",     label: "ހުރިހާ ލިޔުން",   icon: FileText },
+    { href: "/admin/articles/new", label: "އާ ލިޔުން",       icon: FilePlus },
+    { href: "/admin/media",        label: "މީޑިއާ",           icon: ImageIcon },
   ],
   [
-    { href: "/admin/homepage",     label: "ލޭއައުޓް",         icon: LayoutTemplate },
+    { href: "/admin/homepage",     label: "ލޭއައުޓް",        icon: LayoutTemplate },
   ],
   [
-    { href: "/admin/videos",       label: "ވީޑިއޯތައް",       icon: Video },
-    { href: "/admin/series",       label: "ސީރީސް",            icon: Clapperboard },
-    { href: "/admin/podcast",      label: "ޕޮޑްކާސްޓް",       icon: Mic },
+    { href: "/admin/videos",       label: "ވީޑިއޯތައް",      icon: Video },
+    { href: "/admin/series",       label: "ސީރީސް",           icon: Clapperboard },
+    { href: "/admin/podcast",      label: "ޕޮޑްކާސްޓް",      icon: Mic },
   ],
   [
-    { href: "/admin/comments",     label: "ކޮމެންޓް",         icon: MessageSquare },
-    { href: "/admin/subscribers",  label: "ސަބްސްކްރައިބަރ",  icon: Mail },
-    { href: "/admin/authors",      label: "ލިޔުންތެރިން",      icon: Users },
+    { href: "/admin/comments",     label: "ކޮމެންޓް",        icon: MessageSquare },
+    { href: "/admin/subscribers",  label: "ސަބްސްކްރައިބަރ", icon: Mail },
+    { href: "/admin/authors",      label: "ލިޔުންތެރިން",     icon: Users },
   ],
 ];
 
@@ -89,10 +88,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { router.push("/login"); return; }
-
       const { data: profile } = await supabase
         .from("user_profiles").select("*").eq("id", session.user.id).single();
-
       if (!profile || !["author", "editor", "admin"].includes(profile.role)) {
         router.push("/"); return;
       }
@@ -116,7 +113,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (loading) {
     return (
-      <div className="h-screen flex overflow-hidden bg-muted/30">
+      <div className="h-screen flex items-center justify-center bg-background">
         <p className="font-body text-muted-foreground text-sm">ލޯޑްވަނީ...</p>
       </div>
     );
@@ -125,9 +122,53 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const breadcrumb = BREADCRUMB_MAP[pathname] || "އެޑްމިން";
 
   return (
-    <div className="h-screen flex flex-row-reverse overflow-hidden bg-muted/30">
+    <div className="h-screen flex overflow-hidden bg-muted/30">
 
-        {/* Logo */}
+      {/* ── MAIN ── */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+
+        <header className="h-12 flex-shrink-0 bg-background border-b border-border flex items-center justify-between px-4 gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <Menu size={15} />
+            </button>
+            <div className="flex items-center gap-1.5 font-body text-sm text-muted-foreground">
+              <span>އެޑްމިން</span>
+              <ChevronRight size={12} className="opacity-40" />
+              <span className="text-foreground font-semibold">{breadcrumb}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={toggleDark}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              {dark ? <Sun size={14} /> : <Moon size={14} />}
+            </button>
+            <Link href="/admin/articles/new">
+              <button className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-foreground text-background font-body text-xs font-semibold hover:opacity-80 transition-opacity">
+                <FilePlus size={13} />
+                އާ ލިޔުން
+              </button>
+            </Link>
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-y-auto">
+          {children}
+        </main>
+      </div>
+
+      {/* ── SIDEBAR — right ── */}
+      <aside className={`
+        ${sidebarOpen ? "w-52" : "w-0 overflow-hidden"}
+        flex-shrink-0 bg-background border-l border-border
+        flex flex-col transition-all duration-300 ease-in-out
+      `}>
+
         <div className="h-12 flex-shrink-0 flex items-center px-4 border-b border-border">
           <Link href="/" className="flex items-center hover:opacity-70 transition-opacity">
             <Image
@@ -141,7 +182,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Link>
         </div>
 
-        {/* Nav */}
         <nav className="flex-1 overflow-y-auto py-2 px-2">
           {NAV_GROUPS.map((group, gi) => (
             <div key={gi}>
@@ -169,7 +209,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           ))}
         </nav>
 
-        {/* User */}
         <div className="border-t border-border p-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -200,52 +239,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      {/* ── MAIN ── */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        
-        {/* ── SIDEBAR (renders on the right visually) ── */}
-        <aside className={`
-          ${sidebarOpen ? "w-52" : "w-0 overflow-hidden"}
-          flex-shrink-0 bg-background border-l border-border
-          flex flex-col transition-all duration-300 ease-in-out
-        `}>
-        
-        {/* Header */}
-        <header className="h-12 flex-shrink-0 bg-background border-b border-border flex items-center justify-between px-4 gap-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            >
-              <Menu size={15} />
-            </button>
-            <div className="flex items-center gap-1.5 font-body text-sm text-muted-foreground">
-              <span>އެޑްމިން</span>
-              <ChevronRight size={12} className="opacity-40" />
-              <span className="text-foreground font-semibold">{breadcrumb}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <button
-              onClick={toggleDark}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            >
-              {dark ? <Sun size={14} /> : <Moon size={14} />}
-            </button>
-            <Link href="/admin/articles/new">
-              <button className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-foreground text-background font-body text-xs font-semibold hover:opacity-80 transition-opacity">
-                <FilePlus size={13} />
-                އާ ލިޔުން
-              </button>
-            </Link>
-          </div>
-        </header>
-
-        <main className="flex-1 overflow-y-auto">
-          {children}
-        </main>
-      </div>
     </div>
   );
 }
