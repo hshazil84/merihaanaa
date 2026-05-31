@@ -39,10 +39,10 @@ export default function CommentsClient({ comments: initial }: { comments: Commen
     setComments((prev) => prev.filter((c) => c.id !== id));
   };
   const FILTERS: { value: CommentFilter; label: string }[] = [
-    { value: "ޕެންޑިންގ", label: "ޕެންޑިންގ" },
-    { value: "އެޕްރޫވްޑް", label: "އެޕްރޫވްޑް" },
-    { value: "ރިޖެކްޓެޑް", label: "ރިޖެކްޓެޑް" },
-    { value: "ހުރިހާ", label: "ހުރިހާ" },
+    { value: "pending",  label: "ޕެންޑިން" },
+    { value: "approved", label: "އެޕްރޫވްޑް" },
+    { value: "rejected", label: "ރިޖެކްޓެޑް" },
+    { value: "all",      label: "ހުރިހާ" },
   ];
   return (
     <div className="max-w-4xl mx-auto px-6 py-8" dir="rtl">
