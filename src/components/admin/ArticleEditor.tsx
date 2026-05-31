@@ -441,7 +441,7 @@ export default function ArticleEditor({ content, onChange, placeholder = "ލިޔ
         </BubbleMenu>
 
         {/* Sticky Toolbar */}
-        <div className="flex flex-wrap items-center gap-0.5 p-2 border-b border-border sticky top-0 z-10 rounded-t-xl" style={{ backgroundColor: "#f9fafb" }}>
+        <div className="flex flex-wrap items-center gap-0.5 p-2 border-b border-border sticky top-0 z-10 rounded-t-xl" style={{ backgroundColor: "#f9fafb", backdropFilter: "none", isolation: "isolate" }}>
           <ToolbarGroup>
             <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleBold().run(); }}      active={editor.isActive("bold")}      title="ބޯލްޑް"><Bold size={14} /></ToolbarBtn>
             <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleItalic().run(); }}    active={editor.isActive("italic")}    title="އިޓަލިކް"><Italic size={14} /></ToolbarBtn>
