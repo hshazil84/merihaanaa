@@ -124,45 +124,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="h-screen flex overflow-hidden bg-muted/30">
 
-      {/* ── MAIN ── */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-
-        <header className="h-12 flex-shrink-0 bg-background border-b border-border flex items-center justify-between px-4 gap-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            >
-              <Menu size={15} />
-            </button>
-            <div className="flex items-center gap-1.5 font-body text-sm text-muted-foreground">
-              <span>އެޑްމިން</span>
-              <ChevronRight size={12} className="opacity-40" />
-              <span className="text-foreground font-semibold">{breadcrumb}</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={toggleDark}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            >
-              {dark ? <Sun size={14} /> : <Moon size={14} />}
-            </button>
-            <Link href="/admin/articles/new">
-              <button className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-foreground text-background font-body text-xs font-semibold hover:opacity-80 transition-opacity">
-                <FilePlus size={13} />
-                އާ ލިޔުން
-              </button>
-            </Link>
-          </div>
-        </header>
-
-        <main className="flex-1 overflow-y-auto">
-          {children}
-        </main>
-      </div>
-
-      {/* ── SIDEBAR — right ── */}
+      {/* ── NAV — first in DOM = visual right in RTL ── */}
       <aside className={`
         ${sidebarOpen ? "w-52" : "w-0 overflow-hidden"}
         flex-shrink-0 bg-background border-l border-border
@@ -239,6 +201,44 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
+      {/* ── MAIN — last in DOM = visual left in RTL ── */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+
+        <header className="h-12 flex-shrink-0 bg-background border-b border-border flex items-center justify-between px-4 gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <Menu size={15} />
+            </button>
+            <div className="flex items-center gap-1.5 font-body text-sm text-muted-foreground">
+              <span>އެޑްމިން</span>
+              <ChevronRight size={12} className="opacity-40" />
+              <span className="text-foreground font-semibold">{breadcrumb}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={toggleDark}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              {dark ? <Sun size={14} /> : <Moon size={14} />}
+            </button>
+            <Link href="/admin/articles/new">
+              <button className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-foreground text-background font-body text-xs font-semibold hover:opacity-80 transition-opacity">
+                <FilePlus size={13} />
+                އާ ލިޔުން
+              </button>
+            </Link>
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-y-auto">
+          {children}
+        </main>
+
+      </div>
     </div>
   );
 }
