@@ -1,8 +1,10 @@
-import { createClient } from "@/lib/supabase/server";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import CommentsClient from "./CommentsClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function CommentsPage() {
-  const supabase = await createClient();
+  const supabase = await createServerSupabaseClient();
 
   const { data: comments } = await supabase
     .from("comments")
