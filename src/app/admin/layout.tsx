@@ -116,7 +116,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-background">
+      <div className="h-screen flex overflow-hidden bg-muted/30">
         <p className="font-body text-muted-foreground text-sm">ލޯޑްވަނީ...</p>
       </div>
     );
