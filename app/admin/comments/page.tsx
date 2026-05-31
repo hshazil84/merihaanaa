@@ -12,8 +12,8 @@ export default async function CommentsPage() {
       is_approved,
       created_at,
       article_id,
-      articles (id, title, slug),
-      user_profiles (full_name, avatar)
+      articles!comments_article_id_fkey (id, title, slug),
+      user_profiles!comments_user_id_fkey (full_name, avatar)
     `)
     .order("created_at", { ascending: false });
 
