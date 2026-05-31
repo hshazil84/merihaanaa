@@ -101,7 +101,7 @@ export default function ArticleSidebar({
   }, [supabase]);
 
   return (
-    <aside className="w-60 flex-shrink-0 border-l border-border bg-background flex flex-col h-full overflow-hidden">
+    <aside className="w-60 flex-shrink-0 border-0 border-border bg-background flex flex-col h-full overflow-hidden">
       <div className="flex-1 overflow-y-auto">
         <div className="p-4 space-y-1">
 
