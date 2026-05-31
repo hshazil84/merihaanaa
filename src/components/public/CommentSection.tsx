@@ -149,8 +149,8 @@ export default function CommentSection({ articleId }: Props) {
   if (loading) return null;
 
   return (
-    <section className="mt-12 border-t border-gray-100 dark:border-gray-800 pt-10">
-      <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
+    <section className="mt-12 border-t border-black/10 pt-10">
+      <h2 className="mb-6" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontWeight: 400, fontSize: "22px", color: "rgb(26,26,26)", lineHeight: 2 }}>
         ކޮމެންޓް ({comments.length})
       </h2>
 
