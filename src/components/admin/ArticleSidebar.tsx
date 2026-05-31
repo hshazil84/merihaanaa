@@ -229,7 +229,7 @@ export default function ArticleSidebar({
   }, [supabase, onOgImageUrlChange]);
 
   return (
-    <aside className="w-60 flex-shrink-0 border-r border-border bg-background flex flex-col h-full overflow-hidden">
+    <aside className="w-60 flex-shrink-0 border-1 border-border bg-background flex flex-col h-full overflow-hidden">
       <div className="flex-1 overflow-y-auto no-scrollbar">
 
         {/* ── Actions ── */}
