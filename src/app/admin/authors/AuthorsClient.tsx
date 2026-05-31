@@ -277,7 +277,7 @@ export default function AuthorsClient({ authors: initial }: Props) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((author: Author, index: number) => (
+              {filtered.map((author, index) => (
                 <AuthorRow
                   key={author.id}
                   author={author}
@@ -354,7 +354,7 @@ export default function AuthorsClient({ authors: initial }: Props) {
                 <textarea
                   value={form.bio}
                   onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
-                  placeholder="ލިޔުންތެރިޔާ މިއީ ކޮން ވައްތަރެއްގެ ލިޔުމެއް ލިޔާ ބޭފުޅެއްތޯ..."
+                  placeholder="ލިޔުންތެރިޔާ ކޮން ވައްތަރެއްގެ ލިޔުމެއް ލިޔާ ބޭފުޅެއްތޯ..."
                   rows={3}
                   className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
                 />
@@ -411,7 +411,7 @@ export default function AuthorsClient({ authors: initial }: Props) {
                 disabled={saving || !form.full_name.trim() || !form.slug.trim()}
                 className="px-5 py-2 text-sm bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {saving ? "ސޭވްކުރަނީ..." : editing ? "ސޭވް"}
+                {saving ? "ރައްކާ ކުރަނީ..." : editing ? "ސޭވް ޗޭންޖް" : "އެޑިޓް"}
               </button>
             </div>
           </div>
@@ -423,7 +423,7 @@ export default function AuthorsClient({ authors: initial }: Props) {
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6" dir="rtl">
             <h2 className="font-semibold text-gray-900 dark:text-white mb-2">ލިޔުންތެރިޔާ ފޮހެލާ؟</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-              <span className="font-medium text-gray-700 dark:text-gray-200">{deleteTarget.full_name}</span> އެކަށްފުހެވިގެންދާނެ
+              <span className="font-medium text-gray-700 dark:text-gray-200">{deleteTarget.full_name}</span> ދާއިމީ ގޮތަށް ފޮހެވިދާނެ. މި ކަން ނުހެދޭ.
             </p>
             <div className="flex items-center gap-3">
               <button onClick={() => handleDelete(deleteTarget)} className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
