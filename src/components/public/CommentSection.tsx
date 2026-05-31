@@ -14,13 +14,19 @@ type Comment = {
   } | null;
 };
 
+type UserProfile = {
+  id: string;
+  full_name: string;
+  avatar: string | null;
+};
+
 type Props = {
   articleId: string;
 };
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
-function avatarUrl(path: string | null): string | null {
+function getAvatarUrl(path: string | null): string | null {
   if (!path) return null;
   if (path.startsWith("http")) return path;
   return `${SUPABASE_URL}/storage/v1/object/public/avatars/${path}`;
@@ -34,18 +40,66 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(diff / 86400)} ދުވަސް`;
 }
 
+function Avatar({ path, name, size = 9 }: { path: string | null; name: string; size?: number }) {
+  const url = getAvatarUrl(path);
+  const cls = `w-${size} h-${size} rounded-full`;
+  if (url) {
+    return <img src={url} alt={name} className={`${cls} object-cover`} />;
+  }
+  return (
+    <div className={`${cls} bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-sm font-medium text-gray-500`}>
+      {name.charAt(0).toUpperCase()}
+    </div>
+  );
+}
+
+function CommentItem({ comment }: { comment: Comment }) {
+  const profile = comment.user_profiles;
+  const name = profile?.full_name ?? "ނަމެއް ނެތް";
+  return (
+    <div className="flex gap-3">
+      <div className="flex-shrink-0">
+        <Avatar path={profile?.avatar ?? null} name={name} />
+      </div>
+      <div className="flex-1">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-sm font-medium text-gray-900 dark:text-white">{name}</span>
+          <span className="text-xs text-gray-400">{timeAgo(comment.created_at)} ކުރިން</span>
+        </div>
+        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{comment.body}</p>
+      </div>
+    </div>
+  );
+}
+
+function CommentList({ comments }: { comments: Comment[] }) {
+  if (comments.length === 0) {
+    return (
+      <p className="text-sm text-gray-400 text-center py-8">
+        އަދި ކޮމެންޓެއް ނެތް. ފުރަތަމަ ކޮމެންޓް ކޮށްލާ!
+      </p>
+    );
+  }
+  const items: React.ReactNode[] = [];
+  for (let i = 0; i < comments.length; i++) {
+    items.push(<CommentItem key={comments[i].id} comment={comments[i]} />);
+  }
+  return <div className="space-y-6">{items}</div>;
+}
+
 export default function CommentSection({ articleId }: Props) {
   const supabase = createClient();
   const [comments, setComments] = useState<Comment[]>([]);
-  const [user, setUser] = useState<{ id: string; full_name: string; avatar: string | null } | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function init() {
-      // Fetch approved comments
       const { data: commentData } = await supabase
         .from("comments")
         .select("id, body, created_at, user_id, user_profiles(full_name, avatar)")
@@ -53,42 +107,42 @@ export default function CommentSection({ articleId }: Props) {
         .eq("is_approved", true)
         .order("created_at", { ascending: false });
 
-      if (commentData) setComments(commentData as Comment[]);
+      if (!cancelled && commentData) {
+        setComments(commentData as Comment[]);
+      }
 
-      // Fetch current user
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (authUser) {
+      const { data: authData } = await supabase.auth.getUser();
+      if (!cancelled && authData.user) {
         const { data: profile } = await supabase
           .from("user_profiles")
           .select("full_name, avatar")
-          .eq("id", authUser.id)
+          .eq("id", authData.user.id)
           .single();
         if (profile) {
-          setUser({ id: authUser.id, full_name: profile.full_name, avatar: profile.avatar });
+          setUser({ id: authData.user.id, full_name: profile.full_name, avatar: profile.avatar });
         }
       }
 
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     }
+
     init();
+    return () => { cancelled = true; };
   }, [articleId]);
 
   async function handleSubmit() {
     if (!body.trim() || !user) return;
     setSubmitting(true);
-
     const { error } = await supabase.from("comments").insert({
       article_id: articleId,
       user_id: user.id,
       body: body.trim(),
       is_approved: false,
     });
-
     if (!error) {
       setBody("");
       setSubmitted(true);
     }
-
     setSubmitting(false);
   }
 
@@ -100,7 +154,6 @@ export default function CommentSection({ articleId }: Props) {
         ކޮމެންޓް ({comments.length})
       </h2>
 
-      {/* Comment form */}
       {user ? (
         <div className="mb-8">
           {submitted ? (
@@ -109,22 +162,9 @@ export default function CommentSection({ articleId }: Props) {
             </div>
           ) : (
             <div className="flex gap-3">
-              {/* Avatar */}
               <div className="flex-shrink-0">
-                {avatarUrl(user.avatar) ? (
-                  <img
-                    src={avatarUrl(user.avatar)!}
-                    alt={user.full_name}
-                    className="w-9 h-9 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-9 h-9 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-sm font-medium text-gray-500">
-                    {user.full_name.charAt(0).toUpperCase()}
-                  </div>
-                )}
+                <Avatar path={user.avatar} name={user.full_name} />
               </div>
-
-              {/* Input */}
               <div className="flex-1">
                 <textarea
                   value={body}
@@ -147,4 +187,15 @@ export default function CommentSection({ articleId }: Props) {
           )}
         </div>
       ) : (
-        <div className="mb-8 rounded-xl border border-gray-200 dark:border-gray-700 px-5 py-4 text-sm text-gray-500 dark:text-gray-400 bg-gray-50
+        <div className="mb-8 rounded-xl border border-gray-200 dark:border-gray-700 px-5 py-4 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50">
+          ކޮމެންޓް ކުރަން{" "}
+          <a href="/login" className="text-gray-900 dark:text-white underline underline-offset-2">
+            ލޮގިން ވޭ
+          </a>
+        </div>
+      )}
+
+      <CommentList comments={comments} />
+    </section>
+  );
+}
