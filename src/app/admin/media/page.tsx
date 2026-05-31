@@ -65,23 +65,48 @@ export default function AdminMediaPage() {
 
   useEffect(() => { load(true); }, [search]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleUpload = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    setUploading(true);
-    for (const file of Array.from(files)) {
-      try {
-        const fd = new FormData();
-        fd.append("file", file);
-        fd.append("folder", "media");
-        fd.append("saveMedia", "true");
-        await fetch("/api/upload-image", { method: "POST", body: fd });
-      } catch (e) {
-        console.error("Upload failed:", e);
+    const compressImage = (file: File): Promise<Blob> => {
+      return new Promise((resolve) => {
+        const img = document.createElement("img");
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          const canvas = document.createElement("canvas");
+          const MAX = 2400;
+          let { width, height } = img;
+          if (width > MAX || height > MAX) {
+            const ratio = Math.min(MAX / width, MAX / height);
+            width = Math.round(width * ratio);
+            height = Math.round(height * ratio);
+          }
+          canvas.width = width;
+          canvas.height = height;
+          canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+          canvas.toBlob((blob) => resolve(blob!), "image/jpeg", 0.88);
+        };
+        img.src = url;
+      });
+    };
+    
+    const handleUpload = async (files: FileList | null) => {
+      if (!files || files.length === 0) return;
+      setUploading(true);
+      for (const file of Array.from(files)) {
+        try {
+          const compressed = await compressImage(file);
+          const compressedFile = new File([compressed], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" });
+          const fd = new FormData();
+          fd.append("file", compressedFile);
+          fd.append("folder", "media");
+          fd.append("saveMedia", "true");
+          await fetch("/api/upload-image", { method: "POST", body: fd });
+        } catch (e) {
+          console.error("Upload failed:", e);
+        }
       }
-    }
-    setUploading(false);
-    load(true);
-  };
+      setUploading(false);
+      load(true);
+    };
 
   const handleDelete = async (item: MediaItem) => {
     if (!confirm(`"${item.filename}" ފޮހެލަންތޯ؟`)) return;
