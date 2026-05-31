@@ -16,7 +16,6 @@ import {
   LayoutDashboard,
   FileText,
   FilePlus,
-  LayoutTemplate,
   Video,
   Clapperboard,
   Mic,
@@ -34,23 +33,22 @@ import type { UserProfile } from "@/types";
 
 const NAV_GROUPS = [
   [
-    { href: "/admin",              label: "ޑޭޝްބޯޑް",       icon: LayoutDashboard },
-    { href: "/admin/articles",     label: "ހުރިހާ ލިޔުން",   icon: FileText },
-    { href: "/admin/articles/new", label: "އާ ލިޔުން",       icon: FilePlus },
-    { href: "/admin/media",        label: "މީޑިއާ",           icon: ImageIcon },
+    { href: "/admin",              label: "ޑޭޝްބޯޑް",       icon: LayoutDashboard, comingSoon: false },
+    { href: "/admin/articles",     label: "ހުރިހާ ލިޔުން",   icon: FileText,        comingSoon: false },
+    { href: "/admin/articles/new", label: "އާ ލިޔުން",       icon: FilePlus,        comingSoon: false },
+    { href: "/admin/media",        label: "މީޑިއާ",           icon: ImageIcon,       comingSoon: false },
   ],
   [
-    { href: "/admin/homepage",     label: "ލޭއައުޓް",        icon: LayoutTemplate },
+    { href: "/admin/videos",       label: "ވީޑިއޯތައް",      icon: Video,           comingSoon: false },
+    { href: "/admin/series",       label: "ސީރީސް",           icon: Clapperboard,    comingSoon: true  },
+    { href: "/admin/podcast",      label: "ޕޮޑްކާސްޓް",      icon: Mic,             comingSoon: true  },
   ],
   [
-    { href: "/admin/videos",       label: "ވީޑިއޯތައް",      icon: Video },
-    { href: "/admin/series",       label: "ސީރީސް",           icon: Clapperboard },
-    { href: "/admin/podcast",      label: "ޕޮޑްކާސްޓް",      icon: Mic },
+    { href: "/admin/comments",     label: "ކޮމެންޓް",        icon: MessageSquare,   comingSoon: false },
+    { href: "/admin/subscribers",  label: "ސަބްސްކްރައިބަރ", icon: Mail,            comingSoon: false },
   ],
   [
-    { href: "/admin/comments",     label: "ކޮމެންޓް",        icon: MessageSquare },
-    { href: "/admin/subscribers",  label: "ސަބްސްކްރައިބަރ", icon: Mail },
-    { href: "/admin/authors",      label: "ލިޔުންތެރިން",     icon: Users },
+    { href: "/admin/authors",      label: "ލިޔުންތެރިން",     icon: Users,           comingSoon: false },
   ],
 ];
 
@@ -59,7 +57,6 @@ const BREADCRUMB_MAP: Record<string, string> = {
   "/admin/articles":     "ލިޔުންތައް",
   "/admin/articles/new": "އާ ލިޔުން",
   "/admin/media":        "މީޑިއާ",
-  "/admin/homepage":     "ހޯމްޕޭޖް",
   "/admin/videos":       "ވީޑިއޯ",
   "/admin/series":       "ސީރީސް",
   "/admin/podcast":      "ޕޮޑްކާސްޓް",
@@ -151,6 +148,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               {group.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
+
+                if (item.comingSoon) {
+                  return (
+                    <div key={item.href}
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg mb-0.5 cursor-not-allowed opacity-40"
+                    >
+                      <Icon size={14} className="flex-shrink-0 text-muted-foreground" />
+                      <span className="font-body text-sm text-muted-foreground flex-1">{item.label}</span>
+                      <span className="text-[9px] font-body font-semibold px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground uppercase tracking-wider">
+                        Soon
+                      </span>
+                    </div>
+                  );
+                }
+
                 return (
                   <Link key={item.href} href={item.href}>
                     <div className={`
