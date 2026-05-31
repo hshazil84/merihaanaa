@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export default async function CommentsPage() {
   const supabase = await createServerSupabaseClient();
 
-  const { data: comments } = await supabase
+  const { data } = await supabase
     .from("comments")
     .select(`
       id,
@@ -18,5 +18,10 @@ export default async function CommentsPage() {
     `)
     .order("created_at", { ascending: false });
 
-  return <CommentsClient comments={comments ?? []} />;
+  const comments = (data ?? []).map((c: any) => ({
+    ...c,
+    articles: Array.isArray(c.articles) ? c.articles[0] ?? null : c.articles,
+  }));
+
+  return <CommentsClient comments={comments} />;
 }
