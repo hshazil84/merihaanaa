@@ -28,24 +28,22 @@ export default function CommentsClient({ comments: initial }: { comments: Commen
   const [comments, setComments] = useState(initial);
 
   const filtered = comments.filter((c) => {
-    if (filter === "pending")  return c.is_approved === null;
+    if (filter === "pending") return c.is_approved === null;
     if (filter === "approved") return c.is_approved === true;
     if (filter === "rejected") return c.is_approved === false;
     return true;
   });
 
   const counts = {
-    all:      comments.length,
-    pending:  comments.filter((c) => c.is_approved === null).length,
+    all: comments.length,
+    pending: comments.filter((c) => c.is_approved === null).length,
     approved: comments.filter((c) => c.is_approved === true).length,
     rejected: comments.filter((c) => c.is_approved === false).length,
   };
 
   const update = async (id: string, is_approved: boolean | null) => {
     await supabase.from("comments").update({ is_approved }).eq("id", id);
-    setComments((prev) =>
-      prev.map((c) => c.id === id ? { ...c, is_approved } : c)
-    );
+    setComments((prev) => prev.map((c) => (c.id === id ? { ...c, is_approved } : c)));
   };
 
   const remove = async (id: string) => {
@@ -54,22 +52,21 @@ export default function CommentsClient({ comments: initial }: { comments: Commen
   };
 
   const FILTERS: { value: CommentFilter; label: string }[] = [
-    { value: "pending",  label: "ޕެންޑިން" },
-    { value: "approved", label: "އެޕްރޫވްޑް" },
-    { value: "rejected", label: "ރިޖެކްޓެޑް" },
-    { value: "all",      label: "ހުރިހާ" },
+    { value: "pending", label: "Pending" },
+    { value: "approved", label: "Approved" },
+    { value: "rejected", label: "Rejected" },
+    { value: "all", label: "All" },
   ];
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-8" dir="rtl">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="font-body text-xl font-bold text-foreground">ކޮމެންޓް</h1>
-          <p className="font-body text-sm text-muted-foreground mt-0.5">
-            <span className="text-foreground font-semibold tabular-nums">{counts.pending}</span> ޕެންޑިން
-          </p>
-        </div>
+      <div className="mb-6">
+        <h1 className="font-body text-xl font-bold text-foreground">Comments</h1>
+        <p className="font-body text-sm text-muted-foreground mt-0.5">
+          <span className="text-foreground font-semibold tabular-nums">{counts.pending}</span> pending
+        </p>
       </div>
+
       <div className="flex gap-1 p-1 bg-muted/40 rounded-xl w-fit mb-6">
         {FILTERS.map((f) => (
           <button
@@ -83,25 +80,28 @@ export default function CommentsClient({ comments: initial }: { comments: Commen
             }`}
           >
             {f.label}
-            <span className={`tabular-nums text-[10px] ${
-              filter === f.value ? "text-muted-foreground" : "text-muted-foreground/50"
-            }`}>
+            <span className={`tabular-nums text-[10px] ${filter === f.value ? "text-muted-foreground" : "text-muted-foreground/50"}`}>
               {counts[f.value]}
             </span>
           </button>
         ))}
       </div>
+
       {filtered.length === 0 ? (
         <div className="flex items-center justify-center h-48">
-          <p className="font-body text-sm text-muted-foreground">ކޮމެންޓެއް ނެތް</p>
+          <p className="font-body text-sm text-muted-foreground">No comments</p>
         </div>
       ) : (
         <div className="space-y-3">
           {filtered.map((comment) => (
-            <div key={comment.id}
+            <div
+              key={comment.id}
               className={`bg-background rounded-xl border border-border transition-all ${
-                comment.is_approved === true ? "opacity-60" :
-                comment.is_approved === false ? "opacity-40" : ""
+                comment.is_approved === true
+                  ? "opacity-60"
+                  : comment.is_approved === false
+                  ? "opacity-40"
+                  : ""
               }`}
             >
               <div className="p-4">
@@ -114,16 +114,23 @@ export default function CommentsClient({ comments: initial }: { comments: Commen
                       {formatDate(comment.created_at)}
                     </p>
                   </div>
-                  <span className={`font-body text-[9px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                    comment.is_approved === null
-                      ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                  <span
+                    className={`font-body text-[9px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                      comment.is_approved === null
+                        ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                        : comment.is_approved
+                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                        : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                    }`}
+                  >
+                    {comment.is_approved === null
+                      ? "Pending"
                       : comment.is_approved
-                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                      : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                  }`}>
-                    {comment.is_approved === null ? "ޕެންޑިން" : comment.is_approved ? "އެޕްރޫވްޑް" : "ރިޖެކްޓެޑް"}
+                      ? "Approved"
+                      : "Rejected"}
                   </span>
                 </div>
+
                 {comment.articles && (
                   
                     href={`/${comment.articles.slug}`}
@@ -137,32 +144,46 @@ export default function CommentsClient({ comments: initial }: { comments: Commen
                     <ExternalLink size={9} className="text-muted-foreground flex-shrink-0" />
                   </a>
                 )}
+
                 <p className="font-body text-sm text-foreground leading-relaxed">
                   {comment.body}
                 </p>
               </div>
+
               <div className="flex items-center gap-1 px-4 pb-3">
                 {comment.is_approved !== true && (
-                  <button type="button" onClick={() => update(comment.id, true)}
-                    className="flex items-center gap-1.5 h-7 px-3 rounded-lg bg-green-500/10 text-green-700 dark:text-green-400 hover:bg-green-500/20 font-body text-xs font-semibold transition-colors">
-                    <Check size={12} /> އެޕްރޫވް
+                  <button
+                    type="button"
+                    onClick={() => update(comment.id, true)}
+                    className="flex items-center gap-1.5 h-7 px-3 rounded-lg bg-green-500/10 text-green-700 dark:text-green-400 hover:bg-green-500/20 font-body text-xs font-semibold transition-colors"
+                  >
+                    <Check size={12} /> Approve
                   </button>
                 )}
                 {comment.is_approved !== false && (
-                  <button type="button" onClick={() => update(comment.id, false)}
-                    className="flex items-center gap-1.5 h-7 px-3 rounded-lg bg-red-500/10 text-red-700 dark:text-red-400 hover:bg-red-500/20 font-body text-xs font-semibold transition-colors">
-                    <X size={12} /> ރިޖެކްޓް
+                  <button
+                    type="button"
+                    onClick={() => update(comment.id, false)}
+                    className="flex items-center gap-1.5 h-7 px-3 rounded-lg bg-red-500/10 text-red-700 dark:text-red-400 hover:bg-red-500/20 font-body text-xs font-semibold transition-colors"
+                  >
+                    <X size={12} /> Reject
                   </button>
                 )}
                 {comment.is_approved !== null && (
-                  <button type="button" onClick={() => update(comment.id, null)}
-                    className="flex items-center gap-1.5 h-7 px-3 rounded-lg hover:bg-muted text-muted-foreground font-body text-xs transition-colors">
-                    ޕެންޑިންއަށް
+                  <button
+                    type="button"
+                    onClick={() => update(comment.id, null)}
+                    className="flex items-center gap-1.5 h-7 px-3 rounded-lg hover:bg-muted text-muted-foreground font-body text-xs transition-colors"
+                  >
+                    Pending
                   </button>
                 )}
                 <div className="flex-1" />
-                <button type="button" onClick={() => remove(comment.id)}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
+                <button
+                  type="button"
+                  onClick={() => remove(comment.id)}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                >
                   <Trash2 size={13} />
                 </button>
               </div>
