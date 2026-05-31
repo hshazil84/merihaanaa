@@ -411,7 +411,7 @@ export default function AuthorsClient({ authors: initial }: Props) {
                 disabled={saving || !form.full_name.trim() || !form.slug.trim()}
                 className="px-5 py-2 text-sm bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {saving ? "ރައްކާ ކުރަނީ..." : editing ? "ސޭވް ޗޭންޖް" : "އެޑިޓް"}
+                {saving ? "ރައްކާ ކުރަނީ..." : editing ? "ސޭވް ޗޭންޖް" : "ސޭވް"}
               </button>
             </div>
           </div>
