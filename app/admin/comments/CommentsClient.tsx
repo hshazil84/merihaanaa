@@ -15,7 +15,7 @@ interface Comment {
   user_profiles: { full_name: string; avatar: string | null } | null;
 }
 
-type Filter = "all" | "pending" | "approved" | "rejected";
+type CommentFilter = "all" | "pending" | "approved" | "rejected";
 
 function formatDate(iso: string) {
   return new Intl.DateTimeFormat("en", {
@@ -28,7 +28,7 @@ export default function CommentsClient({ comments: initial }: { comments: Commen
   const router = useRouter();
   const supabase = createClient();
   const [isPending, startTransition] = useTransition();
-  const [filter, setFilter] = useState<Filter>("pending");
+  const FILTERS: { value: CommentFilter; label: string }[] = [
   const [comments, setComments] = useState(initial);
 
   const filtered = comments.filter((c) => {
