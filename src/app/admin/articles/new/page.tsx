@@ -175,7 +175,46 @@ export default function NewArticlePage() {
   return (
     <div className="flex h-full">
 
-      {/* ── Editor — main content, left ── */}
+      {/* ── Article sidebar — first in DOM = visual right in RTL ── */}
+      <ArticleSidebar
+        title={title}
+        excerpt={excerpt}
+        body={body}
+        categories={categories}
+        categoryId={categoryId}
+        placement={placement}
+        homepageFeatured={homepageFeatured}
+        isPremium={isPremium}
+        allowComments={allowComments}
+        ogTitle={ogTitle}
+        ogDesc={ogDesc}
+        ogImageUrl={ogImageUrl}
+        coverMedia={coverMedia}
+        authorId={authorId}
+        scheduledAt={scheduledFor}
+        tags={tags}
+        onCategoryChange={(id) => { setCategoryId(id); categoryRef.current = id; }}
+        onPlacementChange={setPlacement}
+        onHomepageFeaturedChange={setHomepageFeatured}
+        onIsPremiumChange={setIsPremium}
+        onAllowCommentsChange={setAllowComments}
+        onOgTitleChange={setOgTitle}
+        onOgDescChange={setOgDesc}
+        onOgImageUrlChange={setOgImageUrl}
+        onAuthorIdChange={setAuthorId}
+        onScheduledAtChange={setScheduledFor}
+        onTagsChange={handleTagsChange}
+        onSaveDraft={() => handleSave("draft")}
+        onPublish={() => handleSave("published")}
+        onSchedule={() => handleSave("scheduled")}
+        onPreview={handlePreview}
+        saving={saving}
+        lastSaved={lastSaved}
+        error={error}
+        slug={slug}
+      />
+
+      {/* ── Editor — last in DOM = visual left in RTL ── */}
       <div ref={editorScrollRef} className="flex-1 overflow-y-auto p-6">
         <div className="max-w-3xl mx-auto space-y-4">
 
@@ -235,44 +274,6 @@ export default function NewArticlePage() {
         </div>
       </div>
 
-      {/* ── Article sidebar — right ── */}
-      <ArticleSidebar
-        title={title}
-        excerpt={excerpt}
-        body={body}
-        categories={categories}
-        categoryId={categoryId}
-        placement={placement}
-        homepageFeatured={homepageFeatured}
-        isPremium={isPremium}
-        allowComments={allowComments}
-        ogTitle={ogTitle}
-        ogDesc={ogDesc}
-        ogImageUrl={ogImageUrl}
-        coverMedia={coverMedia}
-        authorId={authorId}
-        scheduledAt={scheduledFor}
-        tags={tags}
-        onCategoryChange={(id) => { setCategoryId(id); categoryRef.current = id; }}
-        onPlacementChange={setPlacement}
-        onHomepageFeaturedChange={setHomepageFeatured}
-        onIsPremiumChange={setIsPremium}
-        onAllowCommentsChange={setAllowComments}
-        onOgTitleChange={setOgTitle}
-        onOgDescChange={setOgDesc}
-        onOgImageUrlChange={setOgImageUrl}
-        onAuthorIdChange={setAuthorId}
-        onScheduledAtChange={setScheduledFor}
-        onTagsChange={handleTagsChange}
-        onSaveDraft={() => handleSave("draft")}
-        onPublish={() => handleSave("published")}
-        onSchedule={() => handleSave("scheduled")}
-        onPreview={handlePreview}
-        saving={saving}
-        lastSaved={lastSaved}
-        error={error}
-        slug={slug}
-      />
     </div>
   );
 }
