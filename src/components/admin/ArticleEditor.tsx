@@ -426,7 +426,7 @@ export default function ArticleEditor({ content, onChange, placeholder = "ލިޔ
 
   return (
     <>
-      <div className="border border-border rounded-xl bg-background">
+      <div className="border border-border rounded-xl bg-background flex flex-col">
 
         <BubbleMenu
           editor={editor}
@@ -480,7 +480,7 @@ export default function ArticleEditor({ content, onChange, placeholder = "ލިޔ
           </div>
         </div>
 
-        <div className="p-6 min-h-96">
+        <div className="p-6 min-h-96 overflow-y-auto">
           <EditorContent editor={editor} className="article-body" />
         </div>
       </div>
