@@ -11,6 +11,7 @@ import { fetchVideoMeta, type VideoMeta } from "@/lib/videoUtils";
 import {
   ImageIcon, UploadCloud, X, Loader2, AlertCircle, Video, Play,
 } from "lucide-react";
+import InsertMediaModal, { type MediaBlockAttrs } from "@/components/admin/InsertMediaModal";
 
 export type CoverMediaType = "image" | "video";
 
@@ -94,7 +95,17 @@ function ImageUploader({ onChange }: { onChange: (v: CoverMediaValue) => void })
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
+  // Called when user picks from InsertMediaModal
+  const handleModalInsert = useCallback((attrs: MediaBlockAttrs) => {
+    if (attrs.type === "image" && attrs.src) {
+      onChange({ type: "image", imageUrl: attrs.src });
+    }
+    setModalOpen(false);
+  }, [onChange]);
+
+  // Direct file drop still works (drag & drop onto the zone)
   const handleFile = useCallback(async (file: File) => {
     setError(null);
 
@@ -111,10 +122,9 @@ function ImageUploader({ onChange }: { onChange: (v: CoverMediaValue) => void })
     setProgress("ފޮޓޯ ތައްޔާރު ކުރަނީ...");
 
     try {
-      // Compress to 1200×675 JPEG — iterative loop targets <300KB
       const blob = await processImage(file, {
-        targetW:   1200,
-        targetH:   675,
+        targetW: 1200,
+        targetH: 675,
         watermark: false,
       });
 
@@ -141,46 +151,57 @@ function ImageUploader({ onChange }: { onChange: (v: CoverMediaValue) => void })
   }, [onChange]);
 
   return (
-    <div className="space-y-2">
-      <input ref={inputRef} type="file" accept={ACCEPTED_IMAGE_TYPES.join(",")} className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }} />
-      <div
-        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(e) => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files?.[0]; if (f) handleFile(f); }}
-        onClick={() => !uploading && inputRef.current?.click()}
-        className={`w-full rounded-xl border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center gap-3 select-none
-          ${dragging ? "border-foreground bg-muted/40 scale-[1.01]" : "border-border bg-muted/20 hover:border-foreground hover:bg-muted/30"}
-          ${uploading ? "pointer-events-none" : ""}`}
-        style={{ aspectRatio: "16/9", maxHeight: "260px" }}
-      >
-        {uploading ? (
-          <>
-            <Loader2 size={28} className="animate-spin text-muted-foreground" />
-            <p className="font-body text-sm text-muted-foreground">{progress}</p>
-          </>
-        ) : (
-          <>
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${dragging ? "bg-foreground text-background" : "bg-muted text-muted-foreground"}`}>
-              {dragging ? <UploadCloud size={22} /> : <ImageIcon size={22} />}
-            </div>
-            <div className="text-center space-y-1">
-              <p className="font-body text-sm font-semibold text-foreground">
-                {dragging ? "ދޫކޮށްލާ" : "ކަވަރ ފޮޓޯ ލޯޑްކޮށްލާ"}
-              </p>
-              <p className="font-body text-xs text-muted-foreground">ކްލިކް ކުރޭ ނުވަތަ ދަމާ ގެންނާ</p>
-              <p className="font-body text-[10px] text-muted-foreground/60">JPG · PNG · WebP · HEIC · max {MAX_IMAGE_SIZE_MB}MB</p>
-            </div>
-            <div className="px-3 py-1.5 rounded-lg bg-muted border border-border">
-              <p className="font-body text-[10px] text-muted-foreground">
-                ކޮންމެ ފޮޓޯއެއް ވެސް 1200×675 WebP އަށް ބަދަލުކުރެވޭ
-              </p>
-            </div>
-          </>
-        )}
+    <>
+      <div className="space-y-2">
+        {/* Hidden input kept only for drag-drop flow */}
+        <input ref={inputRef} type="file" accept={ACCEPTED_IMAGE_TYPES.join(",")} className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }} />
+
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(e) => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files?.[0]; if (f) handleFile(f); }}
+          onClick={() => !uploading && setModalOpen(true)}
+          className={`w-full rounded-xl border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center gap-3 select-none
+            ${dragging ? "border-foreground bg-muted/40 scale-[1.01]" : "border-border bg-muted/20 hover:border-foreground hover:bg-muted/30"}
+            ${uploading ? "pointer-events-none" : ""}`}
+          style={{ aspectRatio: "16/9", maxHeight: "260px" }}
+        >
+          {uploading ? (
+            <>
+              <Loader2 size={28} className="animate-spin text-muted-foreground" />
+              <p className="font-body text-sm text-muted-foreground">{progress}</p>
+            </>
+          ) : (
+            <>
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${dragging ? "bg-foreground text-background" : "bg-muted text-muted-foreground"}`}>
+                {dragging ? <UploadCloud size={22} /> : <ImageIcon size={22} />}
+              </div>
+              <div className="text-center space-y-1">
+                <p className="font-body text-sm font-semibold text-foreground">
+                  {dragging ? "ދޫކޮށްލާ" : "ކަވަރ ފޮޓޯ ލޯޑްކޮށްލާ"}
+                </p>
+                <p className="font-body text-xs text-muted-foreground">ކްލިކް ކުރޭ ނުވަތަ ދަމާ ގެންނާ</p>
+                <p className="font-body text-[10px] text-muted-foreground/60">JPG · PNG · WebP · HEIC · max {MAX_IMAGE_SIZE_MB}MB</p>
+              </div>
+              <div className="px-3 py-1.5 rounded-lg bg-muted border border-border">
+                <p className="font-body text-[10px] text-muted-foreground">
+                  ކޮންމެ ފޮޓޯއެއް ވެސް 1200×675 WebP އަށް ބަދަލުކުރެވޭ
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+
+        {error && <ErrorMsg>{error}</ErrorMsg>}
       </div>
-      {error && <ErrorMsg>{error}</ErrorMsg>}
-    </div>
+
+      <InsertMediaModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onInsert={handleModalInsert}
+      />
+    </>
   );
 }
 
