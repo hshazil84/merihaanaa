@@ -108,7 +108,7 @@ export default function CommentSection({ articleId }: Props) {
         .order("created_at", { ascending: false });
 
       if (!cancelled && commentData) {
-        setComments(commentData as Comment[]);
+        setComments(commentData as unknown as Comment[]);
       }
 
       const { data: authData } = await supabase.auth.getUser();
