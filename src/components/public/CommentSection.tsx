@@ -1,173 +1,203 @@
 "use client";
-// components/public/CommentSection.tsx
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { Check, X, Trash2, ExternalLink } from "lucide-react";
 
 interface Comment {
   id: string;
   body: string;
+  is_approved: boolean | null;
   created_at: string;
-  user_id: string;
+  article_id: string | null;
+  articles: { id: string; title: string; slug: string } | null;
 }
 
-interface Props {
-  articleId: string;
+type CommentFilter = "all" | "pending" | "approved" | "rejected";
+
+function formatDate(iso: string) {
+  return new Intl.DateTimeFormat("en", {
+    month: "short", day: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  }).format(new Date(iso));
 }
 
-export default function CommentSection({ articleId }: Props) {
+export default function CommentsClient({ comments: initial }: { comments: Comment[] }) {
   const supabase = createClient();
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [body, setBody]         = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted]   = useState(false);
-  const [user, setUser]         = useState<any>(null);
-  const [loading, setLoading]   = useState(true);
+  const [filter, setFilter] = useState<CommentFilter>("pending");
+  const [comments, setComments] = useState(initial);
 
-  useEffect(() => {
-    const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
+  const filtered = comments.filter((c) => {
+    if (filter === "pending")  return c.is_approved === null;
+    if (filter === "approved") return c.is_approved === true;
+    if (filter === "rejected") return c.is_approved === false;
+    return true;
+  });
 
-      const { data } = await supabase
-        .from("comments")
-        .select("id, body, created_at, user_id")
-        .eq("article_id", articleId)
-        .eq("is_approved", true)
-        .order("created_at", { ascending: true });
-
-      setComments(data ?? []);
-      setLoading(false);
-    };
-    init();
-  }, [articleId, supabase]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!body.trim() || !user) return;
-    setSubmitting(true);
-
-    const { error } = await supabase.from("comments").insert({
-      article_id: articleId,
-      user_id: user.id,
-      body: body.trim(),
-      is_approved: false,
-    });
-
-    setSubmitting(false);
-    if (!error) {
-      setBody("");
-      setSubmitted(true);
-    }
+  const counts = {
+    all:      comments.length,
+    pending:  comments.filter((c) => c.is_approved === null).length,
+    approved: comments.filter((c) => c.is_approved === true).length,
+    rejected: comments.filter((c) => c.is_approved === false).length,
   };
 
-  return (
-    <section className="max-w-3xl mx-auto px-6 py-12 border-t border-black/10" dir="rtl">
+  const update = async (id: string, is_approved: boolean | null) => {
+    await supabase.from("comments").update({ is_approved }).eq("id", id);
+    setComments((prev) =>
+      prev.map((c) => c.id === id ? { ...c, is_approved } : c)
+    );
+  };
 
-      <h2
-        className="mb-8"
-        style={{
-          fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
-          fontWeight: 400,
-          fontSize: "20px",
-          color: "rgb(26,26,26)",
-          lineHeight: 2,
-        }}>
-        ކޮމެންޓް
-      </h2>
+  const remove = async (id: string) => {
+    await supabase.from("comments").delete().eq("id", id);
+    setComments((prev) => prev.filter((c) => c.id !== id));
+  };
+
+  const FILTERS: { value: CommentFilter; label: string }[] = [
+    { value: "pending",  label: "ޕެންޑިން" },
+    { value: "approved", label: "އެޕްރޫވްޑް" },
+    { value: "rejected", label: "ރިޖެކްޓެޑް" },
+    { value: "all",      label: "ހުރިހާ" },
+  ];
+
+  return (
+    <div className="max-w-4xl mx-auto px-6 py-8" dir="rtl">
+
+      {/* Header */}
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="font-body text-xl font-bold text-foreground">ކޮމެންޓް</h1>
+          <p className="font-body text-sm text-muted-foreground mt-0.5">
+            <span className="text-foreground font-semibold tabular-nums">{counts.pending}</span> ޕެންޑިން
+          </p>
+        </div>
+      </div>
+
+      {/* Filter tabs */}
+      <div className="flex gap-1 p-1 bg-muted/40 rounded-xl w-fit mb-6">
+        {FILTERS.map((f) => (
+          <button
+            key={f.value}
+            type="button"
+            onClick={() => setFilter(f.value)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-body text-xs font-semibold transition-all ${
+              filter === f.value
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {f.label}
+            <span className={`tabular-nums text-[10px] ${
+              filter === f.value ? "text-muted-foreground" : "text-muted-foreground/50"
+            }`}>
+              {counts[f.value]}
+            </span>
+          </button>
+        ))}
+      </div>
 
       {/* Comments list */}
-      {loading ? (
-        <p style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "12px", color: "rgb(160,158,152)", lineHeight: 2 }}>
-          ލޯޑްވަނީ...
-        </p>
-      ) : comments.length > 0 ? (
-        <div className="space-y-6 mb-10">
-          {comments.map((comment) => (
-            <div key={comment.id} className="flex gap-3">
-              <div
-                className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center"
-                style={{ backgroundColor: "rgb(210,207,200)" }}>
-                <span style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "10px", color: "rgb(100,98,92)" }}>
-                  ك
-                </span>
-              </div>
-              <div className="flex-1">
-                <p
-                  style={{
-                    fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
-                    fontSize: "14px",
-                    color: "rgb(26,26,26)",
-                    lineHeight: 2,
-                  }}>
+      {filtered.length === 0 ? (
+        <div className="flex items-center justify-center h-48">
+          <p className="font-body text-sm text-muted-foreground">ކޮމެންޓެއް ނެތް</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((comment) => (
+            <div key={comment.id}
+              className={`bg-background rounded-xl border border-border transition-all ${
+                comment.is_approved === true ? "opacity-60" :
+                comment.is_approved === false ? "opacity-40" : ""
+              }`}
+            >
+              <div className="p-4">
+
+                {/* Meta row */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                      <span className="font-body text-xs text-muted-foreground">?</span>
+                    </div>
+                    <p className="font-body text-[10px] text-muted-foreground">
+                      {formatDate(comment.created_at)}
+                    </p>
+                  </div>
+
+                  {/* Status badge */}
+                  <span className={`font-body text-[9px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                    comment.is_approved === null
+                      ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                      : comment.is_approved
+                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                      : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                  }`}>
+                    {comment.is_approved === null ? "ޕެންޑިން" : comment.is_approved ? "އެޕްރޫވްޑް" : "ރިޖެކްޓެޑް"}
+                  </span>
+                </div>
+
+                {/* Article link */}
+                {comment.articles && (
+                  
+                    href={`/${comment.articles.slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 mb-2 group w-fit"
+                  >
+                    <p className="font-body text-[10px] text-muted-foreground group-hover:text-foreground transition-colors line-clamp-1">
+                      {comment.articles.title}
+                    </p>
+                    <ExternalLink size={9} className="text-muted-foreground flex-shrink-0" />
+                  </a>
+                )}
+
+                {/* Comment body */}
+                <p className="font-body text-sm text-foreground leading-relaxed">
                   {comment.body}
                 </p>
-                <p style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "10px", color: "rgb(160,158,152)", lineHeight: 2 }}>
-                  {new Date(comment.created_at).toLocaleDateString("dv-MV", { year: "numeric", month: "short", day: "numeric" })}
-                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-1 px-4 pb-3">
+                {comment.is_approved !== true && (
+                  <button
+                    type="button"
+                    onClick={() => update(comment.id, true)}
+                    className="flex items-center gap-1.5 h-7 px-3 rounded-lg bg-green-500/10 text-green-700 dark:text-green-400 hover:bg-green-500/20 font-body text-xs font-semibold transition-colors"
+                  >
+                    <Check size={12} /> އެޕްރޫވް
+                  </button>
+                )}
+                {comment.is_approved !== false && (
+                  <button
+                    type="button"
+                    onClick={() => update(comment.id, false)}
+                    className="flex items-center gap-1.5 h-7 px-3 rounded-lg bg-red-500/10 text-red-700 dark:text-red-400 hover:bg-red-500/20 font-body text-xs font-semibold transition-colors"
+                  >
+                    <X size={12} /> ރިޖެކްޓް
+                  </button>
+                )}
+                {comment.is_approved !== null && (
+                  <button
+                    type="button"
+                    onClick={() => update(comment.id, null)}
+                    className="flex items-center gap-1.5 h-7 px-3 rounded-lg hover:bg-muted text-muted-foreground font-body text-xs transition-colors"
+                  >
+                    ޕެންޑިންއަށް
+                  </button>
+                )}
+                <div className="flex-1" />
+                <button
+                  type="button"
+                  onClick={() => remove(comment.id)}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                >
+                  <Trash2 size={13} />
+                </button>
               </div>
             </div>
           ))}
         </div>
-      ) : (
-        <p className="mb-8" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "13px", color: "rgb(160,158,152)", lineHeight: 2 }}>
-          އަދި ކޮމެންޓެއް ނެތް. ފުރަތަމަ ކޮމެންޓް ލިޔޭ!
-        </p>
       )}
-
-      {/* Comment form */}
-      {submitted ? (
-        <div
-          className="p-4 rounded-xl border"
-          style={{ backgroundColor: "rgb(240,239,233)", borderColor: "rgb(210,207,200)" }}>
-          <p style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "13px", color: "rgb(100,98,92)", lineHeight: 2 }}>
-            ތިޔަ ކޮމެންޓް ލިބިއްޖެ. ރިވިއު ކުރުމަށްފަހު ޝާއިއުކުރެވޭނެ.
-          </p>
-        </div>
-      ) : user ? (
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder="ކޮމެންޓް ލިޔޭ..."
-            rows={3}
-            dir="rtl"
-            className="w-full p-3 rounded-xl border outline-none resize-none transition-colors focus:border-black/30"
-            style={{
-              fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
-              fontSize: "14px",
-              color: "rgb(26,26,26)",
-              lineHeight: 2,
-              backgroundColor: "rgb(240,239,233)",
-              borderColor: "rgb(210,207,200)",
-            }}
-          />
-          <button
-            type="submit"
-            disabled={submitting || !body.trim()}
-            className="px-5 py-2 rounded-full transition-opacity hover:opacity-80 disabled:opacity-40"
-            style={{
-              fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
-              fontSize: "12px",
-              fontWeight: 700,
-              backgroundColor: "rgb(26,26,26)",
-              color: "rgb(249,248,245)",
-            }}>
-            {submitting ? "ފޮނުވަނީ..." : "ފޮނުވާ"}
-          </button>
-        </form>
-      ) : (
-        <div
-          className="p-4 rounded-xl border text-center"
-          style={{ backgroundColor: "rgb(240,239,233)", borderColor: "rgb(210,207,200)" }}>
-          <p style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "13px", color: "rgb(100,98,92)", lineHeight: 2 }}>
-            ކޮމެންޓް ކުރުމަށް{" "}
-            <a href="/login" style={{ color: "rgb(26,26,26)", fontWeight: 700 }}>
-              ލޮގިން ކުރޭ
-            </a>
-          </p>
-        </div>
-      )}
-    </section>
+    </div>
   );
 }
