@@ -20,16 +20,12 @@ type Author = {
 type Props = { authors: Author[] };
 
 function slugify(name: string) {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/[^\w-]/g, "");
+  return name.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^\w-]/g, "");
 }
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
-function avatarUrl(path: string | null) {
+function avatarUrl(path: string | null): string | null {
   if (!path) return null;
   if (path.startsWith("http")) return path;
   return `${SUPABASE_URL}/storage/v1/object/public/avatars/${path}`;
@@ -104,7 +100,10 @@ export default function AuthorsClient({ authors: initial }: Props) {
     const { error } = await supabase.storage
       .from("avatars")
       .upload(path, file, { upsert: true });
-    if (error) { console.error(error); return null; }
+    if (error) {
+      console.error(error);
+      return null;
+    }
     return path;
   }
 
@@ -113,7 +112,6 @@ export default function AuthorsClient({ authors: initial }: Props) {
     setSaving(true);
 
     let avatarPath = form.avatar;
-
     if (avatarFile) {
       const uploaded = await uploadAvatar(avatarFile, form.slug);
       if (uploaded) avatarPath = uploaded;
@@ -125,8 +123,8 @@ export default function AuthorsClient({ authors: initial }: Props) {
       bio: form.bio.trim() || null,
       avatar: avatarPath || null,
       role: form.role,
-      social_twitter: form.social_twitter.trim() || null,
-      social_instagram: form.social_instagram.trim() || null,
+      social_twitter: form.social_twitter.replace("@", "").trim() || null,
+      social_instagram: form.social_instagram.replace("@", "").trim() || null,
       is_active: form.is_active,
     };
 
@@ -180,6 +178,112 @@ export default function AuthorsClient({ authors: initial }: Props) {
     a.full_name.toLowerCase().includes(search.toLowerCase())
   );
 
+  const rows: React.ReactNode[] = [];
+  for (let i = 0; i < filtered.length; i++) {
+    const author = filtered[i];
+    rows.push(
+      <tr
+        key={author.id}
+        className={`border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${
+          i % 2 === 0 ? "" : "bg-gray-50/50 dark:bg-gray-800/20"
+        }`}
+      >
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-3">
+            {avatarUrl(author.avatar) ? (
+              <img
+                src={avatarUrl(author.avatar)!}
+                alt={author.full_name}
+                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs font-medium text-gray-500 flex-shrink-0">
+                {author.full_name.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div>
+              <div className="font-medium text-gray-900 dark:text-white">
+                {author.full_name}
+              </div>
+              {author.bio && (
+                <div className="text-xs text-gray-400 truncate max-w-[200px]">
+                  {author.bio}
+                </div>
+              )}
+            </div>
+          </div>
+        </td>
+        <td className="px-4 py-3 text-gray-500 dark:text-gray-400 font-mono text-xs">
+          {author.slug}
+        </td>
+        <td className="px-4 py-3">
+          <button
+            onClick={() => toggleActive(author)}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+              author.is_active
+                ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+            }`}
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                author.is_active ? "bg-green-500" : "bg-gray-400"
+              }`}
+            />
+            {author.is_active ? "އެކްޓިވް" : "ނުހިމެނޭ"}
+          </button>
+        </td>
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-2 text-gray-400">
+            {author.social_twitter && (
+              
+                href={`https://x.com/${author.social_twitter}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                </svg>
+              </a>
+            )}
+            {author.social_instagram && (
+              
+                href={`https://instagram.com/${author.social_instagram}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                </svg>
+              </a>
+            )}
+            {!author.social_twitter && !author.social_instagram && (
+              <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
+            )}
+          </div>
+        </td>
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-2 justify-end">
+            <button
+              onClick={() => openEdit(author)}
+              className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              އެޑިޓް
+            </button>
+            <button
+              onClick={() => setDeleteTarget(author)}
+              className="text-xs px-3 py-1.5 rounded-lg border border-red-100 dark:border-red-900/40 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+            >
+              ފޮހޭ
+            </button>
+          </div>
+        </td>
+      </tr>
+    );
+  }
+
   return (
     <div className="p-6 max-w-5xl mx-auto" dir="rtl">
       {/* Header */}
@@ -224,127 +328,12 @@ export default function AuthorsClient({ authors: initial }: Props) {
                 <th className="px-4 py-3 font-medium"></th>
               </tr>
             </thead>
-            <tbody>
-              {(() => {
-                const rows = [];
-                for (let i = 0; i < filtered.length; i++) {
-                  const author = filtered[i];
-                  rows.push(
-                    <tr
-                      key={author.id}
-                      className={`border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${
-                        i % 2 === 0 ? "" : "bg-gray-50/50 dark:bg-gray-800/20"
-                      }`}
-                    >
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          {avatarUrl(author.avatar) ? (
-                            <img
-                              src={avatarUrl(author.avatar)!}
-                              alt={author.full_name}
-                              className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs font-medium text-gray-500 flex-shrink-0">
-                              {author.full_name.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          <div>
-                            <div className="font-medium text-gray-900 dark:text-white">
-                              {author.full_name}
-                            </div>
-                            {author.bio && (
-                              <div className="text-xs text-gray-400 truncate max-w-[200px]">
-                                {author.bio}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400 font-mono text-xs">
-                        {author.slug}
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => toggleActive(author)}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                            author.is_active
-                              ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                              : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-                          }`}
-                        >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              author.is_active ? "bg-green-500" : "bg-gray-400"
-                            }`}
-                          />
-                          {author.is_active ? "އެކްޓިވް" : "ނުހިމެނޭ"}
-                        </button>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2 text-gray-400">
-                          {author.social_twitter && (
-                            
-                              href={`https://x.com/${author.social_twitter.replace("@", "")}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-                              title={author.social_twitter}
-                            >
-                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                              </svg>
-                            </a>
-                          )}
-                          {author.social_instagram && (
-                            
-                              href={`https://instagram.com/${author.social_instagram.replace("@", "")}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-                              title={author.social_instagram}
-                            >
-                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                              </svg>
-                            </a>
-                          )}
-                          {!author.social_twitter && !author.social_instagram && (
-                            <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
-                          )}
-                        </div>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2 justify-end">
-                          <button
-                            onClick={() => openEdit(author)}
-                            className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                          >
-                            އެޑިޓް
-                          </button>
-                          <button
-                            onClick={() => setDeleteTarget(author)}
-                            className="text-xs px-3 py-1.5 rounded-lg border border-red-100 dark:border-red-900/40 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                          >
-                            ފޮހޭ
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                }
-                return rows;
-              })()}
-            </tbody>
+            <tbody>{rows}</tbody>
           </table>
         )}
       </div>
 
-      {/* Author count */}
+      {/* Count */}
       <p className="mt-3 text-xs text-gray-400 text-right">
         {filtered.length} ލިޔުންތެރިން
       </p>
@@ -356,7 +345,6 @@ export default function AuthorsClient({ authors: initial }: Props) {
             className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden"
             dir="rtl"
           >
-            {/* Modal header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
               <h2 className="font-semibold text-gray-900 dark:text-white">
                 {editing ? "ލިޔުންތެރިޔާ އެޑިޓްކުރޭ" : "އާ ލިޔުންތެރިއެއް"}
@@ -369,7 +357,6 @@ export default function AuthorsClient({ authors: initial }: Props) {
               </button>
             </div>
 
-            {/* Modal body */}
             <div className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
               {/* Avatar */}
               <div className="flex items-center gap-4">
@@ -510,7 +497,6 @@ export default function AuthorsClient({ authors: initial }: Props) {
               </div>
             </div>
 
-            {/* Modal footer */}
             <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 dark:border-gray-800">
               <button
                 onClick={() => setShowModal(false)}
@@ -530,7 +516,7 @@ export default function AuthorsClient({ authors: initial }: Props) {
         </div>
       )}
 
-      {/* Delete confirm modal */}
+      {/* Delete confirm */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div
@@ -544,9 +530,9 @@ export default function AuthorsClient({ authors: initial }: Props) {
               <span className="font-medium text-gray-700 dark:text-gray-200">
                 {deleteTarget.full_name}
               </span>{" "}
-              ދާއިމީ ގޮތަށް ފޮހެވިދާނެ. މި ކަން 되돌릴 ނުހެދޭ.
+              ދާއިމީ ގޮތަށް ފޮހެވިދާނެ. މި ކަން ނުހެދޭ.
             </p>
-            <div className="flex items-center gap-3 justify-start">
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => handleDelete(deleteTarget)}
                 className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
