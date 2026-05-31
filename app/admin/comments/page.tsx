@@ -1,0 +1,21 @@
+import { createClient } from "@/lib/supabase/server";
+import CommentsClient from "./CommentsClient";
+
+export default async function CommentsPage() {
+  const supabase = await createClient();
+
+  const { data: comments } = await supabase
+    .from("comments")
+    .select(`
+      id,
+      body,
+      is_approved,
+      created_at,
+      article_id,
+      articles (id, title, slug),
+      user_profiles (full_name, avatar)
+    `)
+    .order("created_at", { ascending: false });
+
+  return <CommentsClient comments={comments ?? []} />;
+}
