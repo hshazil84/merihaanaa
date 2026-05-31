@@ -210,7 +210,7 @@ const QUOTE_STYLES: { type: QuoteType; label: string; preview: React.ReactNode }
   },
   {
     type: "interview",
-    label: "ސ / ޖ",
+    label: "ސ/ޖ އިންޓަވިއު",
     preview: (
       <div className="flex flex-col gap-1.5 justify-center h-16">
         <div className="bg-muted rounded-md px-2 py-1 text-right">
