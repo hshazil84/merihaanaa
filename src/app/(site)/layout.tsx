@@ -1,15 +1,8 @@
 // app/(site)/layout.tsx
-import type { Metadata } from "next";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import NavWrapper from "@/components/public/NavWrapper";
 import MainWrapper from "@/components/public/MainWrapper";
 import PublicFooter from "@/components/public/PublicFooter";
-
-export const metadata: Metadata = {
-  title: { default: "މެރިހާނާ", template: "%s | މެރިހާނާ" },
-  description: "People. Reviews. Stories.",
-  openGraph: { siteName: "މެރިހާނާ", locale: "dv_MV" },
-};
 
 async function getCategories() {
   const supabase = await createServerSupabaseClient();
