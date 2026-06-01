@@ -1,380 +1,585 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import { calculateReadingTime } from "@/lib/utils";
-import ArticleEditor from "@/components/admin/ArticleEditor";
-import CoverMedia, { type CoverMediaValue } from "@/components/admin/CoverMedia";
-import ArticleSidebar from "@/components/admin/ArticleSidebar";
-import { Save, Eye, Send, Loader2 } from "lucide-react";
+import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Placeholder from "@tiptap/extension-placeholder";
+import Image from "@tiptap/extension-image";
+import Link from "@tiptap/extension-link";
+import Underline from "@tiptap/extension-underline";
+import TextAlign from "@tiptap/extension-text-align";
+import CharacterCount from "@tiptap/extension-character-count";
+import Youtube from "@tiptap/extension-youtube";
+import { Node, mergeAttributes } from "@tiptap/core";
+import { useCallback, useEffect, useRef, useState } from "react";
+import InsertMediaModal from "@/components/admin/InsertMediaModal";
+import CarouselModal from "@/components/admin/CarouselModal";
+import type { MediaBlockAttrs } from "@/components/admin/InsertMediaModal";
+import {
+  Bold, Italic, Underline as UnderlineIcon,
+  Heading2, Heading3, Quote, Minus,
+  AlignRight, AlignCenter, AlignLeft,
+  Link as LinkIcon, LayoutGrid,
+  List, ListOrdered,
+  Trash2, GalleryHorizontal,
+} from "lucide-react";
 
-interface Category { id: string; name: string; }
-interface TagItem  { name: string; slug: string; }
-
-export default function EditArticlePage() {
-  const router   = useRouter();
-  const params   = useParams();
-  const id       = params.id as string;
-  const supabase = createClient();
-
-  const [title, setTitle]                       = useState("");
-  const [excerpt, setExcerpt]                   = useState("");
-  const [body, setBody]                         = useState<Record<string, unknown> | null>(null);
-  const [categoryId, setCategoryId]             = useState<string | null>(null);
-  const [categories, setCategories]             = useState<Category[]>([]);
-  const [placement, setPlacement]               = useState<string | null>(null);
-  const [homepageFeatured, setHomepageFeatured] = useState(false);
-  const [isPremium, setIsPremium]               = useState(false);
-  const [allowComments, setAllowComments]       = useState(true);
-  const [ogTitle, setOgTitle]                   = useState("");
-  const [ogDesc, setOgDesc]                     = useState("");
-  const [ogImageUrl, setOgImageUrl]             = useState("");
-  const [coverMedia, setCoverMedia]             = useState<CoverMediaValue | null>(null);
-  const [authorId, setAuthorId]                 = useState<string | null>(null);
-  const [scheduledFor, setScheduledFor]         = useState<string | null>(null);
-  const [tags, setTags]                         = useState<TagItem[]>([]);
-  const [slug, setSlug]                         = useState("");
-
-  const [loading, setLoading]     = useState(true);
-  const [saving, setSaving]       = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [error, setError]         = useState<string | null>(null);
-
-  const placementRef = useRef<string | null>(null);
-  const categoryRef  = useRef<string | null>(null);
-  const isPremiumRef = useRef(false);
-
-  useEffect(() => { placementRef.current = placement; }, [placement]);
-  useEffect(() => { categoryRef.current = categoryId; }, [categoryId]);
-  useEffect(() => { isPremiumRef.current = isPremium; }, [isPremium]);
-
-  useEffect(() => {
-    const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push("/login"); return; }
-
-      const [articleRes, catsRes] = await Promise.all([
-        supabase.from("articles").select("*").eq("id", id).single(),
-        supabase.from("categories").select("id, name").order("name"),
-      ]);
-
-      if (catsRes.data) setCategories(catsRes.data);
-
-      if (articleRes.error || !articleRes.data) {
-        setError("ލިޔުން ނުލިބުނު");
-        setLoading(false);
-        return;
-      }
-
-      const a = articleRes.data;
-      setTitle(a.title ?? "");
-      setExcerpt(a.excerpt ?? "");
-      setBody(a.body ?? null);
-      setSlug(a.slug ?? "");
-      setCategoryId(a.category_id ?? null);
-      categoryRef.current = a.category_id ?? null;
-      setPlacement(a.homepage_placement ?? null);
-      placementRef.current = a.homepage_placement ?? null;
-      setHomepageFeatured(a.homepage_featured ?? false);
-      setIsPremium(a.is_premium ?? false);
-      isPremiumRef.current = a.is_premium ?? false;
-      setAllowComments(a.allow_comments ?? true);
-      setOgTitle(a.og_title ?? "");
-      setOgDesc(a.og_description ?? "");
-      setOgImageUrl(a.og_image_url ?? "");
-      setAuthorId(a.author_id ?? null);
-      setScheduledFor(a.scheduled_for ?? null);
-      setTags(Array.isArray(a.tags) ? a.tags : []);
-
-      if (a.cover_type === "image" && (a.cover_url || a.featured_image)) {
-        setCoverMedia({ type: "image", imageUrl: a.cover_url || a.featured_image });
-      } else if (a.cover_type === "video" && a.cover_video_id) {
-        setCoverMedia({
-          type: "video",
-          videoMeta: {
-            provider: a.cover_video_provider ?? "youtube",
-            videoId: a.cover_video_id,
-            thumbnailUrl: a.cover_video_thumbnail ?? "",
-            title: "",
-            embedUrl: "",
-          },
-        });
-      }
-
-      setLoading(false);
-    };
-    load();
-  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const editorScrollRef = useRef<HTMLDivElement>(null);
-
-  const handleBodyChange = useCallback((newBody: Record<string, unknown>) => {
-    const el = editorScrollRef.current;
-    const scrollTop = el?.scrollTop ?? 0;
-    setBody(newBody);
-    requestAnimationFrame(() => { if (el) el.scrollTop = scrollTop; });
-  }, []);
-
-  const handleCoverMediaChange = (value: CoverMediaValue | null) => {
-    setCoverMedia(value);
-    if (value?.type === "video" && value.videoMeta?.thumbnailUrl && !ogImageUrl) {
-      setOgImageUrl(value.videoMeta.thumbnailUrl);
-    }
-    if (value?.type === "image") setOgImageUrl("");
-  };
-
-  const handleTagsChange = useCallback(
-    (updater: TagItem[] | ((prev: TagItem[]) => TagItem[])) => {
-      if (typeof updater === "function") {
-        setTags((prev) => updater(prev));
-      } else {
-        setTags(updater);
-      }
-    },
-    []
-  );
-
-  useEffect(() => {
-    if (!title.trim() || loading) return;
-    const interval = setInterval(() => { handleSave("draft", true); }, 60000);
-    return () => clearInterval(interval);
-  }, [title, body, excerpt, loading]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const buildPayload = (publishStatus: "draft" | "published" | "scheduled") => {
-    const coverFields =
-      coverMedia?.type === "image"
-        ? { cover_type: "image", cover_url: coverMedia.imageUrl ?? null, featured_image: coverMedia.imageUrl ?? null, cover_video_id: null, cover_video_provider: null, cover_video_thumbnail: null }
-        : coverMedia?.type === "video"
-        ? { cover_type: "video", cover_url: null, featured_image: null, cover_video_id: coverMedia.videoMeta?.videoId ?? null, cover_video_provider: coverMedia.videoMeta?.provider ?? null, cover_video_thumbnail: coverMedia.videoMeta?.thumbnailUrl ?? null }
-        : { cover_type: null, cover_url: null, featured_image: null, cover_video_id: null, cover_video_provider: null, cover_video_thumbnail: null };
-
-    const resolvedOgImage =
-      ogImageUrl ||
-      coverFields.featured_image ||
-      coverFields.cover_video_thumbnail ||
-      null;
-
+// ── Vimeo node ─────────────────────────────────────────────
+const VimeoNode = Node.create({
+  name: "vimeo",
+  group: "block",
+  atom: true,
+  addAttributes() {
     return {
-      title,
-      excerpt,
-      body,
-      category_id: categoryRef.current,
-      author_id: authorId,
-      content_type: "article",
-      ...coverFields,
-      status: publishStatus,
-      published_at: publishStatus === "published" ? new Date().toISOString() : undefined,
-      scheduled_for: publishStatus === "scheduled" ? scheduledFor : null,
-      homepage_placement: placementRef.current,
-      homepage_featured: homepageFeatured,
-      is_premium: isPremiumRef.current,
-      allow_comments: allowComments,
-      og_title: ogTitle || title,
-      og_description: ogDesc || excerpt,
-      og_image_url: resolvedOgImage,
-      tags,
-      reading_time_minutes: calculateReadingTime(body),
-      updated_at: new Date().toISOString(),
+      videoId: { default: null },
+      caption: { default: "" },
     };
-  };
+  },
+  parseHTML() { return [{ tag: "div[data-vimeo]" }]; },
+  renderHTML({ HTMLAttributes }) {
+    const { videoId, caption } = HTMLAttributes;
+    return [
+      "div", mergeAttributes({ "data-vimeo": "" }, { style: "margin:1rem 0;" }),
+      ["div", { style: "position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:12px;background:#000;" },
+        ["iframe", { src: "https://player.vimeo.com/video/" + videoId + "?autoplay=0&title=0&byline=0&portrait=0", style: "position:absolute;top:0;left:0;width:100%;height:100%;border:0;", allowfullscreen: "true", loading: "lazy" }],
+      ],
+      ...(caption ? [["p", { style: "text-align:center;font-size:11px;color:#888;margin-top:4px;" }, caption]] : []),
+    ];
+  },
+  addCommands() {
+    return {
+      insertVimeo: (attrs: { videoId: string; caption?: string }) => ({ commands }: any) =>
+        commands.insertContent([{ type: "vimeo", attrs }, { type: "paragraph" }]),
+    } as any;
+  },
+});
 
-  const handleSave = async (
-    publishStatus: "draft" | "published" | "scheduled",
-    silent = false,
-  ) => {
-    if (!title.trim()) { if (!silent) setError("ސުރުހީ ލިޔެލާ"); return; }
-    if (!silent) { setSaving(true); setError(null); }
+// ── Social node ────────────────────────────────────────────
+const SocialNode = Node.create({
+  name: "socialEmbed",
+  group: "block",
+  atom: true,
+  addAttributes() {
+    return {
+      provider: { default: null },
+      url:      { default: null },
+      author:   { default: "" },
+      text:     { default: "" },
+      thumb:    { default: null },
+    };
+  },
+  parseHTML() { return [{ tag: "div[data-social-embed]" }]; },
+  renderHTML({ HTMLAttributes }) {
+    const { provider, url, author, text, thumb } = HTMLAttributes;
+    const icon = provider === "twitter" ? "𝕏" : provider === "instagram" ? "📸" : "🎵";
+    const safeUrl = url && !url.startsWith("http") ? "https://" + url : (url ?? "");
+    return [
+      "div", mergeAttributes({ "data-social-embed": "" }, { style: "border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;margin:1rem 0;max-width:540px;direction:ltr;text-align:left;" }),
+      ...(thumb ? [["img", { src: thumb, alt: "", style: "width:100%;height:180px;object-fit:cover;" }]] : []),
+      ["div", { style: "padding:12px;" },
+        ["div", { style: "display:flex;align-items:center;gap:8px;margin-bottom:6px;direction:ltr;" },
+          ["span", { style: "font-size:16px;" }, icon],
+          ["strong", { style: "font-size:12px;" }, author ?? ""],
+        ],
+        ...(text ? [["p", { style: "font-size:12px;color:#666;margin:0 0 8px;line-height:1.5;direction:auto;text-align:left;" }, text]] : []),
+        ["a", { href: safeUrl, target: "_blank", rel: "noopener noreferrer", style: "font-size:11px;color:#999;word-break:break-all;direction:ltr;display:block;" }, safeUrl],
+      ],
+    ];
+  },
+  addCommands() {
+    return {
+      insertSocial: (attrs: { provider: string; url: string; author?: string; text?: string; thumb?: string }) =>
+        ({ commands }: any) => commands.insertContent([{ type: "socialEmbed", attrs }, { type: "paragraph" }]),
+    } as any;
+  },
+});
 
-    const { error: err } = await supabase
-      .from("articles").update(buildPayload(publishStatus)).eq("id", id);
+// ── Pull Quote node ────────────────────────────────────────
+const PullQuoteNode = Node.create({
+  name: "pullQuote",
+  group: "block",
+  atom: true,
+  addAttributes() {
+    return {
+      text:   { default: "" },
+      author: { default: "" },
+    };
+  },
+  parseHTML() { return [{ tag: "div[data-pull-quote]" }]; },
+  renderHTML({ HTMLAttributes }) {
+    const { text, author } = HTMLAttributes;
+    return [
+      "div", mergeAttributes({ "data-pull-quote": "" }, {
+        style: "margin:2rem auto;padding:0 2rem;text-align:center;max-width:600px;",
+      }),
+      ["p", { style: "font-family:'MVTypewriter','Noto Sans Thaana',sans-serif;font-size:1.35rem;font-weight:700;color:rgb(26,26,26);line-height:1.8;margin:0 0 0.5rem;" }, '"' + text + '"'],
+      ...(author ? [["p", { style: "font-family:'MVTypewriter',sans-serif;font-size:11px;color:rgb(160,158,152);line-height:2;margin:0;" }, "— " + author]] : []),
+    ];
+  },
+  addCommands() {
+    return {
+      insertPullQuote: (attrs: { text: string; author?: string }) => ({ commands }: any) =>
+        commands.insertContent([{ type: "pullQuote", attrs }, { type: "paragraph" }]),
+    } as any;
+  },
+});
 
-    if (!silent) setSaving(false);
-    if (err) { if (!silent) setError("ލިޔުން ސޭވް ނުވި: " + err.message); return; }
+// ── Interview Q&A node ─────────────────────────────────────
+const InterviewNode = Node.create({
+  name: "interview",
+  group: "block",
+  atom: true,
+  addAttributes() {
+    return {
+      question: { default: "" },
+      answer:   { default: "" },
+    };
+  },
+  parseHTML() { return [{ tag: "div[data-interview]" }]; },
+  renderHTML({ HTMLAttributes }) {
+    const { question, answer } = HTMLAttributes;
+    return [
+      "div", mergeAttributes({ "data-interview": "" }, { style: "margin:1.5rem 0;" }),
+      ["div", { style: "background:rgb(240,239,233);border:1px solid rgb(224,221,214);border-radius:8px;padding:14px 18px;margin-bottom:8px;direction:rtl;" },
+        ["p", { style: "font-family:'MVTypewriter',sans-serif;font-size:10px;font-weight:700;color:rgb(100,98,92);letter-spacing:0.05em;margin:0 0 4px;opacity:0.7;" }, "ސ"],
+        ["p", { style: "font-family:'MVTypewriter','Noto Sans Thaana',sans-serif;font-size:14px;color:rgb(26,26,26);line-height:1.9;margin:0;" }, question],
+      ],
+      ["div", { style: "background:rgb(249,248,245);border:1px solid rgb(224,221,214);border-radius:8px;padding:14px 18px;direction:rtl;" },
+        ["p", { style: "font-family:'MVTypewriter',sans-serif;font-size:10px;font-weight:700;color:rgb(100,98,92);letter-spacing:0.05em;margin:0 0 4px;opacity:0.7;" }, "ޖ"],
+        ["p", { style: "font-family:'MVTypewriter','Noto Sans Thaana',sans-serif;font-size:14px;color:rgb(26,26,26);line-height:1.9;margin:0;" }, answer],
+      ],
+    ];
+  },
+  addCommands() {
+    return {
+      insertInterview: (attrs: { question: string; answer: string }) => ({ commands }: any) =>
+        commands.insertContent([{ type: "interview", attrs }, { type: "paragraph" }]),
+    } as any;
+  },
+});
 
-    setLastSaved(new Date());
+// ── Styled Blockquote node ─────────────────────────────────
+const StyledBlockquoteNode = Node.create({
+  name: "styledBlockquote",
+  group: "block",
+  atom: true,
+  addAttributes() {
+    return {
+      text:   { default: "" },
+      author: { default: "" },
+    };
+  },
+  parseHTML() { return [{ tag: "div[data-styled-blockquote]" }]; },
+  renderHTML({ HTMLAttributes }) {
+    const { text, author } = HTMLAttributes;
+    return [
+      "div", mergeAttributes({ "data-styled-blockquote": "" }, {
+        style: "margin:1.5rem 0;padding:4px 0 4px 0;border-right:2px solid rgba(0,0,0,0.5);padding-right:20px;direction:rtl;",
+      }),
+      ["p", { style: "font-family:'MVTypewriter','Noto Sans Thaana',sans-serif;font-size:16px;color:rgb(60,58,52);line-height:2;margin:0 0 4px;" }, text],
+      ...(author ? [["p", { style: "font-family:'MVTypewriter',sans-serif;font-size:11px;color:rgb(160,158,152);line-height:2;margin:0;" }, "— " + author]] : []),
+    ];
+  },
+  addCommands() {
+    return {
+      insertStyledBlockquote: (attrs: { text: string; author?: string }) => ({ commands }: any) =>
+        commands.insertContent([{ type: "styledBlockquote", attrs }, { type: "paragraph" }]),
+    } as any;
+  },
+});
 
-    if (!silent && publishStatus === "published") {
-      router.push("/admin/articles");
-    }
-  };
+// ── Carousel node ──────────────────────────────────────────
+const CarouselNode = Node.create({
+  name: "carousel",
+  group: "block",
+  atom: true,
+  addAttributes() {
+    return {
+      images: { default: "[]" },
+      ratio:  { default: "4:5" },
+    };
+  },
+  parseHTML() { return [{ tag: "div[data-carousel]" }]; },
+  renderHTML({ HTMLAttributes }) {
+    const { images, ratio } = HTMLAttributes;
+    const imagesStr = typeof images === "string" ? images : JSON.stringify(images);
+    return [
+      "div", mergeAttributes({ "data-carousel": "" }, {
+        "data-images": imagesStr,
+        "data-ratio": ratio,
+        style: "margin:1.5rem 0;background:rgb(240,239,233);border-radius:12px;padding:16px;text-align:center;font-family:'MVTypewriter',sans-serif;font-size:12px;color:rgb(160,158,152);",
+      }),
+      ["span", {}, "🖼 ކެރޯސަލް (" + ratio + ")"],
+    ];
+  },
+  addCommands() {
+    return {
+      insertCarousel: (attrs: { images: string[]; ratio: string }) => ({ commands }: any) =>
+        commands.insertContent([{ type: "carousel", attrs: { images: JSON.stringify(attrs.images), ratio: attrs.ratio } }, { type: "paragraph" }]),
+    } as any;
+  },
+});
 
-  const handlePreview = () => {
-    window.open(`/preview/${slug}`, "_blank");
-  };
+// ── Quote modal ────────────────────────────────────────────
+type QuoteType = "pullQuote" | "interview" | "styledBlockquote";
 
-  if (loading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <p className="font-body text-sm text-muted-foreground">ލޯޑްވަނީ...</p>
+const QUOTE_STYLES: { type: QuoteType; label: string; preview: React.ReactNode }[] = [
+  {
+    type: "pullQuote",
+    label: "ޕުލް ކޯޓް",
+    preview: (
+      <div className="flex items-center justify-center h-16">
+        <span className="text-4xl font-bold text-foreground/20 leading-none">"</span>
       </div>
-    );
+    ),
+  },
+  {
+    type: "styledBlockquote",
+    label: "ބްލޮކްކޯޓް",
+    preview: (
+      <div className="flex items-center justify-end h-16 pr-3">
+        <div className="border-r-2 border-foreground/30 pr-3 h-8" />
+      </div>
+    ),
+  },
+  {
+    type: "interview",
+    label: "ސ/ޖ އިންޓަވިއު",
+    preview: (
+      <div className="flex flex-col gap-1.5 justify-center h-16">
+        <div className="bg-muted rounded-md px-2 py-1 text-right">
+          <span className="font-body text-[10px] font-bold text-muted-foreground">ސ</span>
+        </div>
+        <div className="border border-border rounded-md px-2 py-1 text-right">
+          <span className="font-body text-[10px] font-bold text-muted-foreground">ޖ</span>
+        </div>
+      </div>
+    ),
+  },
+];
+
+function QuoteModal({
+  onInsert,
+  onClose,
+}: {
+  onInsert: (type: QuoteType, data: any) => void;
+  onClose: () => void;
+}) {
+  const [selected, setSelected] = useState<QuoteType | null>(null);
+  const [text, setText]         = useState("");
+  const [author, setAuthor]     = useState("");
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer]     = useState("");
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selected) return;
+    if (selected === "interview") {
+      if (!question.trim() || !answer.trim()) return;
+      onInsert(selected, { question, answer });
+    } else {
+      if (!text.trim()) return;
+      onInsert(selected, { text, author });
+    }
+    onClose();
   }
 
   return (
-    <div className="flex h-full">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-background rounded-2xl border border-border shadow-xl w-full max-w-lg mx-4 p-5" onClick={(e) => e.stopPropagation()}>
+        <h3 className="font-body text-sm font-semibold text-foreground mb-4 text-right">ކޯޓް ސްޓައިލް</h3>
 
-      <ArticleSidebar
-        title={title}
-        excerpt={excerpt}
-        body={body}
-        categories={categories}
-        categoryId={categoryId}
-        placement={placement}
-        homepageFeatured={homepageFeatured}
-        isPremium={isPremium}
-        allowComments={allowComments}
-        ogTitle={ogTitle}
-        ogDesc={ogDesc}
-        ogImageUrl={ogImageUrl}
-        coverMedia={coverMedia}
-        authorId={authorId}
-        scheduledAt={scheduledFor}
-        tags={tags}
-        onCategoryChange={(catId) => { setCategoryId(catId); categoryRef.current = catId; }}
-        onPlacementChange={setPlacement}
-        onHomepageFeaturedChange={setHomepageFeatured}
-        onIsPremiumChange={setIsPremium}
-        onAllowCommentsChange={setAllowComments}
-        onOgTitleChange={setOgTitle}
-        onOgDescChange={setOgDesc}
-        onOgImageUrlChange={setOgImageUrl}
-        onAuthorIdChange={setAuthorId}
-        onScheduledAtChange={setScheduledFor}
-        onTagsChange={handleTagsChange}
-        onSaveDraft={() => handleSave("draft")}
-        onPublish={() => handleSave("published")}
-        onSchedule={() => handleSave("scheduled")}
-        onPreview={handlePreview}
-        saving={saving}
-        lastSaved={lastSaved}
-        error={error}
-        slug={slug}
-      />
-
-      <div ref={editorScrollRef} className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-3xl mx-auto space-y-4">
-
-          {/* Category chips */}
-          <div className="flex gap-2 flex-wrap" dir="rtl">
-            {categories.map((cat) => (
+        {!selected && (
+          <div className="grid grid-cols-3 gap-3">
+            {QUOTE_STYLES.map((s) => (
               <button
-                key={cat.id}
+                key={s.type}
                 type="button"
-                onClick={() => { setCategoryId(cat.id); categoryRef.current = cat.id; }}
-                className={`font-body text-xs px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5 ${
-                  categoryId === cat.id
-                    ? "bg-foreground text-background border-foreground"
-                    : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
-                }`}
+                onClick={() => setSelected(s.type)}
+                className="border border-border rounded-xl p-3 hover:border-foreground hover:bg-muted/40 transition-all text-right"
               >
-                {categoryId === cat.id && (
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                    <path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-                {cat.name}
+                <div className="mb-2">{s.preview}</div>
+                <p className="font-body text-[11px] text-muted-foreground text-right" dir="rtl">{s.label}</p>
               </button>
             ))}
           </div>
+        )}
 
-          {/* Title */}
-          <textarea
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="ލިޔުމުގެ ސުރުހީ..."
-            rows={2}
-            dir="rtl"
-            className="w-full font-display text-3xl font-bold bg-transparent border-none outline-none resize-none text-foreground placeholder:text-muted-foreground/40 leading-tight"
-          />
+        {selected && (
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setSelected(null)}
+              className="font-body text-xs text-muted-foreground hover:text-foreground transition-colors mb-1"
+            >
+              ← ބަދަލުކުރޭ
+            </button>
 
-          {/* Excerpt */}
-          <textarea
-            value={excerpt}
-            onChange={(e) => setExcerpt(e.target.value)}
-            placeholder="ކުރު ތަޢާރަފެއް — ކިޔުންތެރިން ފުރަތަމަ ފެންނާ ބައި..."
-            rows={2}
-            dir="rtl"
-            className="w-full font-body text-base text-muted-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 leading-relaxed"
-          />
+            {selected === "interview" ? (
+              <>
+                <div>
+                  <label className="font-body text-xs text-muted-foreground block mb-1 text-right">ސުވާލު</label>
+                  <textarea value={question} onChange={(e) => setQuestion(e.target.value)} rows={2} dir="rtl" autoFocus
+                    className="w-full font-body text-sm p-2.5 rounded-xl border border-border bg-muted/40 outline-none focus:border-foreground resize-none transition-colors"
+                    placeholder="ސުވާލު ލިޔެލާ..." />
+                </div>
+                <div>
+                  <label className="font-body text-xs text-muted-foreground block mb-1 text-right">ޖަވާބު</label>
+                  <textarea value={answer} onChange={(e) => setAnswer(e.target.value)} rows={3} dir="rtl"
+                    className="w-full font-body text-sm p-2.5 rounded-xl border border-border bg-muted/40 outline-none focus:border-foreground resize-none transition-colors"
+                    placeholder="ޖަވާބު ލިޔެލާ..." />
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label className="font-body text-xs text-muted-foreground block mb-1 text-right">ޖުމްލަ</label>
+                  <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} dir="rtl" autoFocus
+                    className="w-full font-body text-sm p-2.5 rounded-xl border border-border bg-muted/40 outline-none focus:border-foreground resize-none transition-colors"
+                    placeholder="ޖުމްލަ ލިޔެލާ..." />
+                </div>
+                <div>
+                  <label className="font-body text-xs text-muted-foreground block mb-1 text-right">ލިޔުންތެރިޔާ / މަސްދަރު (އިހްތިޔާރީ)</label>
+                  <input value={author} onChange={(e) => setAuthor(e.target.value)} dir="rtl"
+                    className="w-full font-body text-sm p-2.5 rounded-xl border border-border bg-muted/40 outline-none focus:border-foreground transition-colors"
+                    placeholder="ނަން ނުވަތަ މަސްދަރު..." />
+                </div>
+              </>
+            )}
 
-          {/* Cover */}
-          <CoverMedia value={coverMedia} onChange={handleCoverMediaChange} />
-
-          {/* Editor */}
-          <ArticleEditor
-            key={id}
-            content={body ?? undefined}
-            onChange={handleBodyChange}
-            placeholder="ލިޔުން ފަށާ..."
-          />
-
-          {/* ── Floating action bar ── */}
-          <div
-            className="sticky bottom-4 z-20"
-            dir="rtl"
-          >
-            <div className="flex items-center gap-2 p-2 rounded-2xl border border-border shadow-lg w-fit bg-card">
-
-              {/* Autosave indicator */}
-              {lastSaved && (
-                <span className="flex items-center gap-1.5 px-2">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
-                  </span>
-                  <span className="font-body text-xs text-muted-foreground">
-                    {lastSaved.toLocaleTimeString("en", { hour: "2-digit", minute: "2-digit", hour12: false })}
-                  </span>
-                </span>
-              )}
-
-              {/* Save Draft */}
-              <button
-                type="button"
-                onClick={() => handleSave("draft")}
-                disabled={saving}
-                title="ސޭވް ޑްރާފްޓް"
-                className="flex items-center gap-2 px-3 py-2 rounded-xl font-body text-xs text-muted-foreground border border-border hover:bg-muted hover:text-foreground transition-colors disabled:opacity-40"
-              >
-                {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                ސޭވް
+            <div className="flex gap-2 pt-1">
+              <button type="submit"
+                className="flex-1 py-2.5 rounded-xl bg-foreground text-background font-body text-xs font-semibold hover:opacity-80 transition-opacity">
+                އިންސާޓް
               </button>
-
-              {/* Preview */}
-              <button
-                type="button"
-                onClick={handlePreview}
-                title="ޕްރިވިއު"
-                className="flex items-center gap-2 px-3 py-2 rounded-xl font-body text-xs text-muted-foreground border border-border hover:bg-muted hover:text-foreground transition-colors"
-              >
-                <Eye size={14} />
-                ޕްރިވިއު
-              </button>
-
-              {/* Publish */}
-              <button
-                type="button"
-                onClick={() => handleSave("published")}
-                disabled={saving}
-                title="ޝާއިއު"
-                className="flex items-center gap-2 px-3 py-2 rounded-xl font-body text-xs bg-foreground text-background hover:opacity-80 transition-opacity disabled:opacity-40"
-              >
-                {saving ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                ޝާއިއު
+              <button type="button" onClick={onClose}
+                className="px-4 py-2.5 rounded-xl border border-border font-body text-xs text-muted-foreground hover:bg-muted transition-colors">
+                ނޫން
               </button>
             </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Editor component ───────────────────────────────────────
+
+interface ArticleEditorProps {
+  content?: Record<string, unknown>;
+  onChange?: (content: Record<string, unknown>) => void;
+  placeholder?: string;
+}
+
+const DEBOUNCE_MS = 600;
+
+export default function ArticleEditor({ content, onChange, placeholder = "ލިޔުން ފަށާ..." }: ArticleEditorProps) {
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onChangeRef = useRef(onChange);
+  useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
+
+  const [mediaModalOpen, setMediaModalOpen]     = useState(false);
+  const [quoteModalOpen, setQuoteModalOpen]     = useState(false);
+  const [carouselModalOpen, setCarouselModalOpen] = useState(false);
+
+  const handleUpdate = useCallback(({ editor }: any) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      onChangeRef.current?.(editor.getJSON() as Record<string, unknown>);
+    }, DEBOUNCE_MS);
+  }, []);
+
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions: [
+      StarterKit,
+      Placeholder.configure({ placeholder }),
+      Image.configure({ allowBase64: false, inline: false }),
+      Link.configure({ openOnClick: false }),
+      Underline,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      CharacterCount,
+      Youtube.configure({ controls: true, nocookie: true, width: 640, height: 360 }),
+      VimeoNode,
+      SocialNode,
+      PullQuoteNode,
+      InterviewNode,
+      StyledBlockquoteNode,
+      CarouselNode,
+    ],
+    content: content || "",
+    editorProps: {
+      attributes: { class: "tiptap-editor-content focus:outline-none", dir: "rtl" },
+      scrollThreshold: 0,
+      scrollMargin: 0,
+    },
+    onUpdate: handleUpdate,
+  });
+
+  useEffect(() => {
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, []);
+
+  const handleInsertMedia = useCallback((attrs: MediaBlockAttrs) => {
+    if (!editor) return;
+    if (attrs.type === "image" && attrs.src) {
+      editor.commands.focus();
+      editor.commands.setImage({ src: attrs.src, alt: attrs.alt ?? "" });
+      editor.commands.createParagraphNear();
+      return;
+    }
+    if (attrs.type === "video" && attrs.videoId) {
+      if (attrs.videoProvider === "youtube") {
+        editor.commands.focus();
+        editor.commands.setYoutubeVideo({ src: "https://www.youtube.com/watch?v=" + attrs.videoId, width: 640, height: 360 });
+      } else {
+        (editor.chain().focus() as any).insertVimeo({ videoId: attrs.videoId, caption: attrs.caption ?? "" }).focus().run();
+      }
+      return;
+    }
+    if (attrs.type === "social" && attrs.socialUrl) {
+      const cleanUrl = attrs.socialUrl.startsWith("http") ? attrs.socialUrl : "https://" + attrs.socialUrl;
+      (editor.chain().focus() as any).insertSocial({ provider: attrs.socialProvider, url: cleanUrl, author: attrs.socialAuthor ?? "", text: attrs.socialText ?? "", thumb: attrs.socialThumb ?? null }).focus().run();
+      return;
+    }
+  }, [editor]);
+
+  const handleQuoteInsert = (type: QuoteType, data: any) => {
+    if (!editor) return;
+    if (type === "pullQuote") (editor.chain().focus() as any).insertPullQuote(data).focus().run();
+    if (type === "interview") (editor.chain().focus() as any).insertInterview(data).focus().run();
+    if (type === "styledBlockquote") (editor.chain().focus() as any).insertStyledBlockquote(data).focus().run();
+  };
+
+  const handleCarouselInsert = (images: string[], ratio: string) => {
+    if (!editor) return;
+    (editor.chain().focus() as any).insertCarousel({ images, ratio }).focus().run();
+  };
+
+  const addLink = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const url = window.prompt("ލިންކް URL:");
+    if (url) editor?.chain().focus().setLink({ href: url }).run();
+  };
+
+  if (!editor) return null;
+
+  return (
+    <>
+      <div className="border border-border rounded-xl bg-background">
+
+        <BubbleMenu
+          editor={editor}
+          tippyOptions={{ duration: 150, placement: "top" }}
+          shouldShow={({ editor }) => editor.isActive("image")}
+        >
+          <div className="flex items-center gap-0.5 px-1.5 py-1 rounded-lg bg-background border border-border shadow-lg">
+            <BubbleBtn title="ފޮހެލާ" danger onClick={() => editor.chain().focus().deleteSelection().run()}>
+              <Trash2 size={13} />
+            </BubbleBtn>
           </div>
+        </BubbleMenu>
 
-          {error && (
-            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-              <p className="font-body text-sm text-destructive">{error}</p>
-            </div>
-          )}
+        {/* Sticky Toolbar */}
+        <div
+        className="flex flex-wrap items-center gap-0.5 p-2 border-b border-border sticky top-0 z-10 rounded-t-xl"
+        style={{ backgroundColor: "hsl(var(--background))", isolation: "isolate" }}
+        >
+          <ToolbarGroup>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleBold().run(); }}      active={editor.isActive("bold")}      title="ބޯލްޑް"><Bold size={14} /></ToolbarBtn>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleItalic().run(); }}    active={editor.isActive("italic")}    title="އިޓަލިކް"><Italic size={14} /></ToolbarBtn>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleUnderline().run(); }} active={editor.isActive("underline")} title="އަންޑަލައިން"><UnderlineIcon size={14} /></ToolbarBtn>
+          </ToolbarGroup>
+          <Divider />
+          <ToolbarGroup>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 2 }).run(); }} active={editor.isActive("heading", { level: 2 })} title="ސުރުހީ ٢"><Heading2 size={14} /></ToolbarBtn>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 3 }).run(); }} active={editor.isActive("heading", { level: 3 })} title="ސުރުހީ ٣"><Heading3 size={14} /></ToolbarBtn>
+          </ToolbarGroup>
+          <Divider />
+          <ToolbarGroup>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleBulletList().run(); }}  active={editor.isActive("bulletList")}  title="ލިސްޓް"><List size={14} /></ToolbarBtn>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleOrderedList().run(); }} active={editor.isActive("orderedList")} title="ނަންބަރު ލިސްޓް"><ListOrdered size={14} /></ToolbarBtn>
+          </ToolbarGroup>
+          <Divider />
+          <ToolbarGroup>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); setQuoteModalOpen(true); }} title="ކޯޓް"><Quote size={14} /></ToolbarBtn>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().setHorizontalRule().run(); }} title="ތިރި"><Minus size={14} /></ToolbarBtn>
+          </ToolbarGroup>
+          <Divider />
+          <ToolbarGroup>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().setTextAlign("right").run(); }}  active={editor.isActive({ textAlign: "right" })}  title="ކަނާތް"><AlignRight size={14} /></ToolbarBtn>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().setTextAlign("center").run(); }} active={editor.isActive({ textAlign: "center" })} title="މެދު"><AlignCenter size={14} /></ToolbarBtn>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().setTextAlign("left").run(); }}   active={editor.isActive({ textAlign: "left" })}   title="ވައަތް"><AlignLeft size={14} /></ToolbarBtn>
+          </ToolbarGroup>
+          <Divider />
+          <ToolbarGroup>
+            <ToolbarBtn onClick={addLink} title="ލިންކް"><LinkIcon size={14} /></ToolbarBtn>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); setMediaModalOpen(true); }} active={mediaModalOpen} title="މީޑިއާ">
+              <LayoutGrid size={14} />
+            </ToolbarBtn>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); setCarouselModalOpen(true); }} active={carouselModalOpen} title="ކެރޯސަލް">
+              <GalleryHorizontal size={14} />
+            </ToolbarBtn>
+          </ToolbarGroup>
+          <div className="mr-auto font-body text-xs text-muted-foreground px-2">
+            {editor.storage.characterCount.words()} ބަސް
+          </div>
+        </div>
 
+        <div className="p-6 min-h-96">
+          <EditorContent editor={editor} className="article-body" />
         </div>
       </div>
 
-    </div>
+      <InsertMediaModal
+        open={mediaModalOpen}
+        onClose={() => setMediaModalOpen(false)}
+        onInsert={handleInsertMedia}
+      />
+
+      {quoteModalOpen && (
+        <QuoteModal
+          onInsert={handleQuoteInsert}
+          onClose={() => setQuoteModalOpen(false)}
+        />
+      )}
+
+      {carouselModalOpen && (
+        <CarouselModal
+          onInsert={handleCarouselInsert}
+          onClose={() => setCarouselModalOpen(false)}
+        />
+      )}
+    </>
   );
+}
+
+function BubbleBtn({ children, onClick, title, danger }: {
+  children: React.ReactNode; onClick: () => void; title?: string; danger?: boolean;
+}) {
+  return (
+    <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={onClick} title={title}
+      className={"w-6 h-6 rounded-md flex items-center justify-center transition-colors " + (danger ? "text-destructive hover:bg-destructive/10" : "text-muted-foreground hover:bg-muted hover:text-foreground")}>
+      {children}
+    </button>
+  );
+}
+
+function ToolbarGroup({ children }: { children: React.ReactNode }) {
+  return <div className="flex items-center gap-0.5">{children}</div>;
+}
+
+function ToolbarBtn({ children, onClick, active, title }: {
+  children: React.ReactNode; onClick: (e: React.MouseEvent) => void; active?: boolean; title?: string;
+}) {
+  return (
+    <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={onClick} title={title}
+      className={"p-1.5 rounded-md transition-colors " + (active ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted hover:text-foreground")}>
+      {children}
+    </button>
+  );
+}
+
+function Divider() {
+  return <div className="w-px h-5 bg-border mx-1" />;
 }
