@@ -9,35 +9,40 @@ type Props = {
   onClose: () => void;
 };
 
-type MediaItem = {
-  id: string;
-  url: string;
-  filename: string;
-};
-
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const BUCKET = "article-images";
+const FOLDER = "body";
 
-function mediaUrl(path: string): string {
-  if (path.startsWith("http")) return path;
-  return SUPABASE_URL + "/storage/v1/object/public/media/" + path;
+function toPublicUrl(path: string): string {
+  return SUPABASE_URL + "/storage/v1/object/public/" + BUCKET + "/" + path;
 }
 
 export default function CarouselModal({ onInsert, onClose }: Props) {
   const supabase = createClient();
   const [ratio, setRatio] = useState<"4:5" | "1:1">("4:5");
-  const [media, setMedia] = useState<MediaItem[]>([]);
+  const [images, setImages] = useState<{ name: string; url: string }[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase
-        .from("media")
-        .select("id, url, filename")
-        .eq("type", "image")
-        .order("created_at", { ascending: false })
-        .limit(50);
-      if (data) setMedia(data as MediaItem[]);
+      const { data, error } = await supabase.storage
+        .from(BUCKET)
+        .list(FOLDER, { limit: 100, sortBy: { column: "created_at", order: "desc" } });
+
+      if (data) {
+        const items: { name: string; url: string }[] = [];
+        for (let i = 0; i < data.length; i++) {
+          const file = data[i];
+          if (file.name && file.name !== ".emptyFolderPlaceholder") {
+            items.push({
+              name: file.name,
+              url: toPublicUrl(FOLDER + "/" + file.name),
+            });
+          }
+        }
+        setImages(items);
+      }
       setLoading(false);
     }
     load();
@@ -45,8 +50,7 @@ export default function CarouselModal({ onInsert, onClose }: Props) {
 
   function toggleImage(url: string) {
     setSelected((prev) => {
-      const exists = prev.includes(url);
-      if (exists) return prev.filter((u) => u !== url);
+      if (prev.includes(url)) return prev.filter((u) => u !== url);
       if (prev.length >= 5) return prev;
       return [...prev, url];
     });
@@ -73,7 +77,7 @@ export default function CarouselModal({ onInsert, onClose }: Props) {
         </div>
 
         {/* Ratio picker */}
-        <div className="px-5 py-3 border-b border-border flex items-center gap-3">
+        <div className="px-5 py-3 border-b border-border flex items-center gap-3" dir="rtl">
           <span className="font-body text-xs text-muted-foreground">ސައިޒް:</span>
           <div className="flex gap-2">
             <button
@@ -100,25 +104,24 @@ export default function CarouselModal({ onInsert, onClose }: Props) {
         <div className="p-4 overflow-y-auto max-h-[50vh]">
           {loading ? (
             <div className="text-center py-12 font-body text-xs text-muted-foreground">ލޯޑުވަނީ...</div>
-          ) : media.length === 0 ? (
-            <div className="text-center py-12 font-body text-xs text-muted-foreground">ފޮޓޯއެއް ނެތް</div>
+          ) : images.length === 0 ? (
+            <div className="text-center py-12 font-body text-xs text-muted-foreground">ފޮޓޯ ނެތް</div>
           ) : (
             <div className="grid grid-cols-4 gap-2">
-              {media.map((item) => {
-                const url = mediaUrl(item.url);
-                const isSelected = selected.includes(url);
-                const order = selected.indexOf(url);
+              {images.map((item) => {
+                const isSelected = selected.includes(item.url);
+                const order = selected.indexOf(item.url);
                 return (
                   <button
-                    key={item.id}
+                    key={item.name}
                     type="button"
-                    onClick={() => toggleImage(url)}
-                    className={"relative overflow-hidden rounded-lg border-2 transition-all " + aspectClass + " " + (isSelected ? "border-foreground" : "border-transparent hover:border-border")}
+                    onClick={() => toggleImage(item.url)}
+                    className={"relative overflow-hidden rounded-lg border-2 transition-all w-full " + aspectClass + " " + (isSelected ? "border-foreground" : "border-transparent hover:border-border")}
                   >
-                    <img src={url} alt={item.filename} className="w-full h-full object-cover" />
+                    <img src={item.url} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
                     {isSelected && (
                       <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                        <div className="w-6 h-6 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-bold">
+                        <div className="w-6 h-6 rounded-full bg-white text-gray-900 flex items-center justify-center text-xs font-bold">
                           {order + 1}
                         </div>
                       </div>
