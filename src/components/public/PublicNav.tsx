@@ -26,17 +26,22 @@ const COMPACT_HEIGHT  = 48;
 export default function PublicNav({ categories, static: isStatic = false }: Props) {
   const router = useRouter();
 
+  // ── Home page DOM refs (phase 1: rising cat bar) ──
   const catBarRef  = useRef<HTMLDivElement>(null);
   const logoBarRef = useRef<HTMLElement>(null);
 
-  const [homeMerged, setHomeMerged]   = useState(false);
+  // ── Home page state ──
+  // phase: "rising" = cat bar animating up, "merged" = locked like article pages
+  const [phase, setPhase]             = useState<"rising" | "merged">("rising");
   const [homeCompact, setHomeCompact] = useState(false);
-  const homeMergedRef                 = useRef(false);
+  const phaseRef                      = useRef<"rising" | "merged">("rising");
   const lastScrollY                   = useRef(0);
 
-  const [compact, setCompact]         = useState(false);
-  const lastScrollYStatic             = useRef(0);
+  // ── Static page compact nav state ──
+  const [compact, setCompact]   = useState(false);
+  const lastScrollYStatic       = useRef(0);
 
+  // ── Shared UI state ──
   const [searchOpen, setSearchOpen]         = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery]       = useState("");
@@ -46,11 +51,10 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   const searchTimer = useRef<NodeJS.Timeout | null>(null);
 
   // ── Home page scroll handler ──
-  
   useEffect(() => {
     if (isStatic) return;
 
-    // Make cat bar visible now that JS is running
+    // Reveal cat bar once JS has control
     if (catBarRef.current) {
       catBarRef.current.style.visibility = "visible";
     }
@@ -62,38 +66,65 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
       const clampedY   = Math.max(LOGO_BAR_HEIGHT, naturalY);
       const merged     = naturalY <= LOGO_BAR_HEIGHT;
 
-      if (catBarRef.current) {
-        catBarRef.current.style.transform = `translateY(${clampedY}px)`;
+      if (phaseRef.current === "rising") {
+        // Phase 1: DOM ref controls cat bar position
+        if (catBarRef.current) {
+          catBarRef.current.style.transform = `translateY(${clampedY}px)`;
+        }
+
+        // Logo bar transparent until merged
+        if (logoBarRef.current) {
+          logoBarRef.current.style.backgroundColor = merged
+            ? "rgb(249, 248, 245)"
+            : "transparent";
+          const icons = logoBarRef.current.querySelectorAll<HTMLElement>(".nav-icon");
+          icons.forEach((el) => {
+            el.style.color = merged ? "rgb(26,26,26)" : "rgb(255,255,255)";
+          });
+        }
+
+        // Transition to merged phase
+        if (merged) {
+          phaseRef.current = "merged";
+          setPhase("merged");
+          // Hide the rising cat bar — compact bar takes over
+          if (catBarRef.current) {
+            catBarRef.current.style.visibility = "hidden";
+          }
+        }
       }
 
-      if (logoBarRef.current) {
-        logoBarRef.current.style.backgroundColor = merged
-          ? "rgb(249, 248, 245)"
-          : "transparent";
-        const icons = logoBarRef.current.querySelectorAll<HTMLElement>(".nav-icon");
-        icons.forEach((el) => {
-          el.style.color = merged ? "rgb(26,26,26)" : "rgb(255,255,255)";
-        });
-      }
-
-      if (merged !== homeMergedRef.current) {
-        homeMergedRef.current = merged;
-        setHomeMerged(merged);
-        if (!merged) setHomeCompact(false);
-      }
-
-      if (merged) {
+      if (phaseRef.current === "merged") {
+        // Phase 2: React state controls hide/show like article pages
         if (scrollY > lastScrollY.current) {
           setHomeCompact(true);
         } else {
           setHomeCompact(false);
+        }
+
+        // Unmerge if scrolled back to top
+        if (naturalY > LOGO_BAR_HEIGHT) {
+          phaseRef.current = "rising";
+          setPhase("rising");
+          setHomeCompact(false);
+          // Restore logo bar transparency
+          if (logoBarRef.current) {
+            logoBarRef.current.style.backgroundColor = "transparent";
+            const icons = logoBarRef.current.querySelectorAll<HTMLElement>(".nav-icon");
+            icons.forEach((el) => { el.style.color = "rgb(255,255,255)"; });
+          }
+          // Restore rising cat bar
+          if (catBarRef.current) {
+            catBarRef.current.style.visibility = "visible";
+            catBarRef.current.style.transform = `translateY(${clampedY}px)`;
+          }
         }
       }
 
       lastScrollY.current = scrollY;
     };
 
-    update();
+    setTimeout(update, 50);
     window.addEventListener("scroll", update, { passive: true });
     window.addEventListener("resize", update, { passive: true });
     return () => {
@@ -308,10 +339,12 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
 
   // ─────────────────────────────────────────────────────────
   // HOME PAGE
+  // Phase "rising": transparent logo bar, cat bar rises from hero bottom (DOM refs)
+  // Phase "merged": behaves like article pages (React state, hide/compact on scroll)
   // ─────────────────────────────────────────────────────────
   return (
     <>
-      {/* Logo bar */}
+      {/* ── Logo bar ── */}
       <header
         ref={logoBarRef}
         className="fixed top-0 right-0 left-0 z-50"
@@ -319,7 +352,8 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           height: `${LOGO_BAR_HEIGHT}px`,
           backgroundColor: "transparent",
           transition: "background-color 0.25s ease, transform 0.3s ease",
-          transform: homeMerged && homeCompact
+          // Phase merged: slide up with compact bar behavior
+          transform: phase === "merged" && homeCompact
             ? `translateY(-${LOGO_BAR_HEIGHT}px)`
             : "translateY(0)",
         }}
@@ -357,7 +391,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         </div>
       </header>
 
-      {/* Category bar — hidden until JS positions it, then rises from hero bottom */}
+      {/* ── Rising cat bar (phase: rising only, desktop only) ── */}
       <div
         ref={catBarRef}
         className="fixed left-0 right-0 z-40 hidden md:block will-change-transform"
@@ -366,7 +400,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           height: `${CAT_BAR_HEIGHT}px`,
           backgroundColor: "rgb(249, 248, 245)",
           borderBottom: "1px solid rgb(224, 221, 214)",
-          transform: "translateY(110svh)",
+          transform: "translateY(110vh)",
           visibility: "hidden",
         }}
       >
@@ -383,14 +417,41 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         </div>
       </div>
 
-      {/* Desktop compact bar — only after merge + scroll down */}
+      {/* ── Merged phase: full nav slides up (desktop) ── */}
+      {phase === "merged" && (
+        <div
+          className="fixed top-0 right-0 left-0 z-49 transition-transform duration-300 ease-in-out hidden md:block"
+          style={{
+            transform: homeCompact
+              ? `translateY(-${CAT_BAR_HEIGHT}px)`
+              : "translateY(0)",
+            marginTop: `${LOGO_BAR_HEIGHT}px`,
+          }}
+        >
+          <div style={{ height: `${CAT_BAR_HEIGHT}px`, backgroundColor: "rgb(249, 248, 245)", borderBottom: "1px solid rgb(224, 221, 214)" }}>
+            <div className="max-w-7xl mx-auto px-6 h-full">
+              <div className="flex items-center justify-center gap-1 h-full">
+                {categories.map((cat) => (
+                  <Link key={cat.id} href={`/${cat.slug}`}
+                    className="whitespace-nowrap px-4 py-2 transition-colors hover:text-[rgb(26,26,26)]"
+                    style={{ fontFamily: "'MVTypewriter', 'MV Boli', sans-serif", fontSize: "13px", color: "rgb(153,153,153)" }}>
+                    {cat.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Desktop compact bar (merged phase, scroll down) ── */}
       <div
         className="fixed top-0 right-0 left-0 z-50 transition-transform duration-300 ease-in-out hidden md:block"
         style={{
           height: `${COMPACT_HEIGHT}px`,
           backgroundColor: "rgb(249, 248, 245)",
           borderBottom: "1px solid rgb(224, 221, 214)",
-          transform: homeMerged && homeCompact ? "translateY(0)" : `translateY(-${COMPACT_HEIGHT}px)`,
+          transform: phase === "merged" && homeCompact ? "translateY(0)" : `translateY(-${COMPACT_HEIGHT}px)`,
         }}
       >
         <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between" dir="rtl">
@@ -419,14 +480,14 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         </div>
       </div>
 
-      {/* Mobile compact bar — only after merge + scroll down */}
+      {/* ── Mobile compact bar (merged phase, scroll down) ── */}
       <div
         className="fixed top-0 right-0 left-0 z-50 transition-transform duration-300 ease-in-out md:hidden"
         style={{
           height: `${COMPACT_HEIGHT}px`,
           backgroundColor: "rgb(249, 248, 245)",
           borderBottom: "1px solid rgb(224, 221, 214)",
-          transform: homeMerged && homeCompact ? "translateY(0)" : `translateY(-${COMPACT_HEIGHT}px)`,
+          transform: phase === "merged" && homeCompact ? "translateY(0)" : `translateY(-${COMPACT_HEIGHT}px)`,
         }}
       >
         <div className="px-5 h-full flex items-center justify-between" dir="rtl">
@@ -457,7 +518,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           onInput={handleSearchInput}
           onKeyDown={handleKeyDown}
           onClose={closeSearch}
-          topOffset={homeMerged && homeCompact ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT}
+          topOffset={phase === "merged" && homeCompact ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT}
         />
       )}
       {searchOpen && <div className="fixed inset-0 z-[55]" onClick={closeSearch} />}
@@ -466,7 +527,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         categories={categories}
         open={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
-        topOffset={homeMerged && homeCompact ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT}
+        topOffset={phase === "merged" && homeCompact ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT}
       />
     </>
   );
