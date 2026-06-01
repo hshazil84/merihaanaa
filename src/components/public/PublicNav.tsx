@@ -26,20 +26,21 @@ const COMPACT_HEIGHT  = 48;
 export default function PublicNav({ categories, static: isStatic = false }: Props) {
   const router = useRouter();
 
-  // ── Home page DOM refs (phase 1: rising cat bar) ──
-  const catBarRef  = useRef<HTMLDivElement>(null);
-  const logoBarRef = useRef<HTMLElement>(null);
+  // ── Home page refs ──
+  // navWrapperRef wraps BOTH logo bar and cat bar so they slide up together
+  const navWrapperRef = useRef<HTMLDivElement>(null);
+  const logoBarRef    = useRef<HTMLDivElement>(null);
+  const catBarRef     = useRef<HTMLDivElement>(null);
 
   // ── Home page state ──
-  // phase: "rising" = cat bar animating up, "merged" = locked like article pages
   const [phase, setPhase]             = useState<"rising" | "merged">("rising");
   const [homeCompact, setHomeCompact] = useState(false);
   const phaseRef                      = useRef<"rising" | "merged">("rising");
   const lastScrollY                   = useRef(0);
 
   // ── Static page compact nav state ──
-  const [compact, setCompact]   = useState(false);
-  const lastScrollYStatic       = useRef(0);
+  const [compact, setCompact]  = useState(false);
+  const lastScrollYStatic      = useRef(0);
 
   // ── Shared UI state ──
   const [searchOpen, setSearchOpen]         = useState(false);
@@ -67,7 +68,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
       const merged     = naturalY <= LOGO_BAR_HEIGHT;
 
       if (phaseRef.current === "rising") {
-        // Phase 1: DOM ref controls cat bar position
+        // Move cat bar up from hero bottom — direct DOM, no re-render
         if (catBarRef.current) {
           catBarRef.current.style.transform = `translateY(${clampedY}px)`;
         }
@@ -83,39 +84,35 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           });
         }
 
-        // Transition to merged phase
         if (merged) {
           phaseRef.current = "merged";
           setPhase("merged");
-          // Hide the rising cat bar — compact bar takes over
+          // Lock cat bar at LOGO_BAR_HEIGHT — wrapper handles slide-up from here
           if (catBarRef.current) {
-            catBarRef.current.style.visibility = "hidden";
+            catBarRef.current.style.transform = `translateY(${LOGO_BAR_HEIGHT}px)`;
           }
         }
       }
 
       if (phaseRef.current === "merged") {
-        // Phase 2: React state controls hide/show like article pages
+        // Slide up/down via React state — wrapper div handles both bars together
         if (scrollY > lastScrollY.current) {
           setHomeCompact(true);
         } else {
           setHomeCompact(false);
         }
 
-        // Unmerge if scrolled back to top
+        // Unmerge if user scrolls back to top
         if (naturalY > LOGO_BAR_HEIGHT) {
           phaseRef.current = "rising";
           setPhase("rising");
           setHomeCompact(false);
-          // Restore logo bar transparency
           if (logoBarRef.current) {
             logoBarRef.current.style.backgroundColor = "transparent";
             const icons = logoBarRef.current.querySelectorAll<HTMLElement>(".nav-icon");
             icons.forEach((el) => { el.style.color = "rgb(255,255,255)"; });
           }
-          // Restore rising cat bar
           if (catBarRef.current) {
-            catBarRef.current.style.visibility = "visible";
             catBarRef.current.style.transform = `translateY(${clampedY}px)`;
           }
         }
@@ -326,125 +323,104 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           />
         )}
         {searchOpen && <div className="fixed inset-0 z-[55]" onClick={closeSearch} />}
-
-        <MobileMenu
-          categories={categories}
-          open={mobileMenuOpen}
-          onClose={() => setMobileMenuOpen(false)}
-          topOffset={compact ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT}
-        />
+        <MobileMenu categories={categories} open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} topOffset={compact ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT} />
       </>
     );
   }
 
   // ─────────────────────────────────────────────────────────
   // HOME PAGE
-  // Phase "rising": transparent logo bar, cat bar rises from hero bottom (DOM refs)
-  // Phase "merged": behaves like article pages (React state, hide/compact on scroll)
+  // Single wrapper div contains BOTH logo bar and cat bar.
+  // Phase rising: cat bar moves via transform inside wrapper (DOM ref).
+  // Phase merged: wrapper slides up/down via React state (homeCompact).
   // ─────────────────────────────────────────────────────────
   return (
     <>
-      {/* ── Logo bar ── */}
-      <header
-        ref={logoBarRef}
+      {/* ── Nav wrapper: slides up as one unit when merged+compact ── */}
+      <div
+        ref={navWrapperRef}
         className="fixed top-0 right-0 left-0 z-50"
         style={{
-          height: `${LOGO_BAR_HEIGHT}px`,
-          backgroundColor: "transparent",
-          transition: "background-color 0.25s ease, transform 0.3s ease",
-          // Phase merged: slide up with compact bar behavior
+          transition: phase === "merged" ? "transform 0.3s ease" : "none",
           transform: phase === "merged" && homeCompact
-            ? `translateY(-${LOGO_BAR_HEIGHT}px)`
+            ? `translateY(-${LOGO_BAR_HEIGHT + CAT_BAR_HEIGHT}px)`
             : "translateY(0)",
         }}
       >
-        <div className="max-w-7xl mx-auto px-5 md:px-6 h-full flex items-center justify-center relative">
-          <Link href="/" className="flex items-center">
-            <Image src="/logo.svg" alt="މެރިހާنaa" width={60} height={60} priority className="object-contain" />
-          </Link>
-          <div className="absolute right-5 md:hidden">
-            <button type="button" onClick={() => setMobileMenuOpen(true)}
-              className="nav-icon p-2 rounded-full hover:bg-white/10 transition-colors"
-              style={{ color: "rgb(255,255,255)" }}>
-              <Menu className="w-5 h-5" />
-            </button>
-          </div>
-          <div className="absolute left-5 md:hidden">
-            <button type="button" aria-label="ހޯދާ" onClick={openSearch}
-              className="nav-icon p-2 rounded-full hover:bg-white/10 transition-colors"
-              style={{ color: "rgb(255,255,255)" }}>
-              <Search className="w-[18px] h-[18px]" />
-            </button>
-          </div>
-          <div className="absolute left-5 md:left-6 hidden md:flex items-center gap-3">
-            <button type="button" aria-label="ހޯދާ" onClick={openSearch}
-              className="nav-icon p-2 rounded-full hover:bg-black/5 transition-colors"
-              style={{ color: "rgb(255,255,255)" }}>
-              <Search className="w-[18px] h-[18px]" />
-            </button>
-            <Link href="/login"
-              className="nav-icon p-2 rounded-full hover:bg-black/5 transition-colors"
-              style={{ color: "rgb(255,255,255)" }}>
-              <User className="w-[18px] h-[18px]" />
+        {/* Logo bar */}
+        <div
+          ref={logoBarRef}
+          style={{
+            height: `${LOGO_BAR_HEIGHT}px`,
+            backgroundColor: "transparent",
+            transition: "background-color 0.25s ease",
+          }}
+        >
+          <div className="max-w-7xl mx-auto px-5 md:px-6 h-full flex items-center justify-center relative">
+            <Link href="/" className="flex items-center">
+              <Image src="/logo.svg" alt="މެރިހާنaa" width={60} height={60} priority className="object-contain" />
             </Link>
+            <div className="absolute right-5 md:hidden">
+              <button type="button" onClick={() => setMobileMenuOpen(true)}
+                className="nav-icon p-2 rounded-full hover:bg-white/10 transition-colors"
+                style={{ color: "rgb(255,255,255)" }}>
+                <Menu className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="absolute left-5 md:hidden">
+              <button type="button" aria-label="ހޯދާ" onClick={openSearch}
+                className="nav-icon p-2 rounded-full hover:bg-white/10 transition-colors"
+                style={{ color: "rgb(255,255,255)" }}>
+                <Search className="w-[18px] h-[18px]" />
+              </button>
+            </div>
+            <div className="absolute left-5 md:left-6 hidden md:flex items-center gap-3">
+              <button type="button" aria-label="ހޯދާ" onClick={openSearch}
+                className="nav-icon p-2 rounded-full hover:bg-black/5 transition-colors"
+                style={{ color: "rgb(255,255,255)" }}>
+                <Search className="w-[18px] h-[18px]" />
+              </button>
+              <Link href="/login"
+                className="nav-icon p-2 rounded-full hover:bg-black/5 transition-colors"
+                style={{ color: "rgb(255,255,255)" }}>
+                <User className="w-[18px] h-[18px]" />
+              </Link>
+            </div>
           </div>
         </div>
-      </header>
 
-      {/* ── Rising cat bar (phase: rising only, desktop only) ── */}
-      <div
-        ref={catBarRef}
-        className="fixed left-0 right-0 z-40 hidden md:block will-change-transform"
-        style={{
-          top: 0,
-          height: `${CAT_BAR_HEIGHT}px`,
-          backgroundColor: "rgb(249, 248, 245)",
-          borderBottom: "1px solid rgb(224, 221, 214)",
-          transform: "translateY(110vh)",
-          visibility: "hidden",
-        }}
-      >
-        <div className="max-w-7xl mx-auto px-6 h-full">
-          <div className="flex items-center justify-center gap-1 h-full">
-            {categories.map((cat) => (
-              <Link key={cat.id} href={`/${cat.slug}`}
-                className="whitespace-nowrap px-4 py-2 transition-colors hover:text-[rgb(26,26,26)]"
-                style={{ fontFamily: "'MVTypewriter', 'MV Boli', sans-serif", fontSize: "13px", color: "rgb(153,153,153)" }}>
-                {cat.name}
-              </Link>
-            ))}
+        {/* Cat bar — desktop only, starts hidden off-screen, rises via transform */}
+        <div
+          ref={catBarRef}
+          className="hidden md:block will-change-transform"
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: `${CAT_BAR_HEIGHT}px`,
+            backgroundColor: "rgb(249, 248, 245)",
+            borderBottom: "1px solid rgb(224, 221, 214)",
+            transform: "translateY(110vh)",
+            visibility: "hidden",
+          }}
+        >
+          <div className="max-w-7xl mx-auto px-6 h-full">
+            <div className="flex items-center justify-center gap-1 h-full">
+              {categories.map((cat) => (
+                <Link key={cat.id} href={`/${cat.slug}`}
+                  className="whitespace-nowrap px-4 py-2 transition-colors hover:text-[rgb(26,26,26)]"
+                  style={{ fontFamily: "'MVTypewriter', 'MV Boli', sans-serif", fontSize: "13px", color: "rgb(153,153,153)" }}>
+                  {cat.name}
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── Merged phase: full nav slides up (desktop) ── */}
-      {phase === "merged" && (
-        <div
-          className="fixed top-0 right-0 left-0 z-49 transition-transform duration-300 ease-in-out hidden md:block"
-          style={{
-            transform: homeCompact
-              ? `translateY(-${CAT_BAR_HEIGHT}px)`
-              : "translateY(0)",
-            marginTop: `${LOGO_BAR_HEIGHT}px`,
-          }}
-        >
-          <div style={{ height: `${CAT_BAR_HEIGHT}px`, backgroundColor: "rgb(249, 248, 245)", borderBottom: "1px solid rgb(224, 221, 214)" }}>
-            <div className="max-w-7xl mx-auto px-6 h-full">
-              <div className="flex items-center justify-center gap-1 h-full">
-                {categories.map((cat) => (
-                  <Link key={cat.id} href={`/${cat.slug}`}
-                    className="whitespace-nowrap px-4 py-2 transition-colors hover:text-[rgb(26,26,26)]"
-                    style={{ fontFamily: "'MVTypewriter', 'MV Boli', sans-serif", fontSize: "13px", color: "rgb(153,153,153)" }}>
-                    {cat.name}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Desktop compact bar (merged phase, scroll down) ── */}
+      {/* ── Compact bar — slides in from top when merged+compact ── */}
+      {/* Desktop */}
       <div
         className="fixed top-0 right-0 left-0 z-50 transition-transform duration-300 ease-in-out hidden md:block"
         style={{
@@ -480,7 +456,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         </div>
       </div>
 
-      {/* ── Mobile compact bar (merged phase, scroll down) ── */}
+      {/* Mobile */}
       <div
         className="fixed top-0 right-0 left-0 z-50 transition-transform duration-300 ease-in-out md:hidden"
         style={{
@@ -522,13 +498,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         />
       )}
       {searchOpen && <div className="fixed inset-0 z-[55]" onClick={closeSearch} />}
-
-      <MobileMenu
-        categories={categories}
-        open={mobileMenuOpen}
-        onClose={() => setMobileMenuOpen(false)}
-        topOffset={phase === "merged" && homeCompact ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT}
-      />
+      <MobileMenu categories={categories} open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} topOffset={phase === "merged" && homeCompact ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT} />
     </>
   );
 }
@@ -674,7 +644,6 @@ function MobileMenu({ categories, open, onClose, topOffset }: {
             </div>
           ))}
         </nav>
-
         <div
           className="pt-6 mt-6 border-t border-[#e0ddd6]/60"
           style={{
@@ -683,9 +652,7 @@ function MobileMenu({ categories, open, onClose, topOffset }: {
             transition: `opacity 0.3s ease ${categories.length * 0.04 + 0.1}s, transform 0.3s ease ${categories.length * 0.04 + 0.1}s`,
           }}
         >
-          <Link
-            href="/login"
-            onClick={onClose}
+          <Link href="/login" onClick={onClose}
             className="flex items-center gap-3 py-3 transition-colors text-[#999] hover:text-[#333]"
             style={{ fontFamily: "'MVTypewriter', 'MV Boli', sans-serif", fontSize: "1rem" }}
           >
