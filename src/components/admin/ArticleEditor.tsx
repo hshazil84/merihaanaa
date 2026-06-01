@@ -12,6 +12,7 @@ import Youtube from "@tiptap/extension-youtube";
 import { Node, mergeAttributes } from "@tiptap/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import InsertMediaModal from "@/components/admin/InsertMediaModal";
+import CarouselModal from "@/components/admin/CarouselModal";
 import type { MediaBlockAttrs } from "@/components/admin/InsertMediaModal";
 import {
   Bold, Italic, Underline as UnderlineIcon,
@@ -19,7 +20,7 @@ import {
   AlignRight, AlignCenter, AlignLeft,
   Link as LinkIcon, LayoutGrid,
   List, ListOrdered,
-  Trash2,
+  Trash2, GalleryHorizontal,
 } from "lucide-react";
 
 // ── Vimeo node ─────────────────────────────────────────────
@@ -186,6 +187,38 @@ const StyledBlockquoteNode = Node.create({
   },
 });
 
+// ── Carousel node ──────────────────────────────────────────
+const CarouselNode = Node.create({
+  name: "carousel",
+  group: "block",
+  atom: true,
+  addAttributes() {
+    return {
+      images: { default: "[]" },
+      ratio:  { default: "4:5" },
+    };
+  },
+  parseHTML() { return [{ tag: "div[data-carousel]" }]; },
+  renderHTML({ HTMLAttributes }) {
+    const { images, ratio } = HTMLAttributes;
+    const imagesStr = typeof images === "string" ? images : JSON.stringify(images);
+    return [
+      "div", mergeAttributes({ "data-carousel": "" }, {
+        "data-images": imagesStr,
+        "data-ratio": ratio,
+        style: "margin:1.5rem 0;background:rgb(240,239,233);border-radius:12px;padding:16px;text-align:center;font-family:'MVTypewriter',sans-serif;font-size:12px;color:rgb(160,158,152);",
+      }),
+      ["span", {}, "🖼 ކެރޯސަލް (" + ratio + ")"],
+    ];
+  },
+  addCommands() {
+    return {
+      insertCarousel: (attrs: { images: string[]; ratio: string }) => ({ commands }: any) =>
+        commands.insertContent([{ type: "carousel", attrs: { images: JSON.stringify(attrs.images), ratio: attrs.ratio } }, { type: "paragraph" }]),
+    } as any;
+  },
+});
+
 // ── Quote modal ────────────────────────────────────────────
 type QuoteType = "pullQuote" | "interview" | "styledBlockquote";
 
@@ -345,8 +378,9 @@ export default function ArticleEditor({ content, onChange, placeholder = "ލިޔ
   const onChangeRef = useRef(onChange);
   useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
 
-  const [mediaModalOpen, setMediaModalOpen] = useState(false);
-  const [quoteModalOpen, setQuoteModalOpen] = useState(false);
+  const [mediaModalOpen, setMediaModalOpen]     = useState(false);
+  const [quoteModalOpen, setQuoteModalOpen]     = useState(false);
+  const [carouselModalOpen, setCarouselModalOpen] = useState(false);
 
   const handleUpdate = useCallback(({ editor }: any) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -371,6 +405,7 @@ export default function ArticleEditor({ content, onChange, placeholder = "ލިޔ
       PullQuoteNode,
       InterviewNode,
       StyledBlockquoteNode,
+      CarouselNode,
     ],
     content: content || "",
     editorProps: {
@@ -416,6 +451,11 @@ export default function ArticleEditor({ content, onChange, placeholder = "ލިޔ
     if (type === "styledBlockquote") (editor.chain().focus() as any).insertStyledBlockquote(data).focus().run();
   };
 
+  const handleCarouselInsert = (images: string[], ratio: string) => {
+    if (!editor) return;
+    (editor.chain().focus() as any).insertCarousel({ images, ratio }).focus().run();
+  };
+
   const addLink = (e: React.MouseEvent) => {
     e.preventDefault();
     const url = window.prompt("ލިންކް URL:");
@@ -426,7 +466,7 @@ export default function ArticleEditor({ content, onChange, placeholder = "ލިޔ
 
   return (
     <>
-      <div className="border border-border rounded-xl bg-background flex flex-col">
+      <div className="border border-border rounded-xl bg-background">
 
         <BubbleMenu
           editor={editor}
@@ -441,7 +481,10 @@ export default function ArticleEditor({ content, onChange, placeholder = "ލިޔ
         </BubbleMenu>
 
         {/* Sticky Toolbar */}
-        <div className="flex flex-wrap items-center gap-0.5 p-2 border-b border-border sticky top-0 z-10 rounded-t-xl" style={{ backgroundColor: "#f9fafb", backdropFilter: "none", isolation: "isolate" }}>
+        <div
+          className="flex flex-wrap items-center gap-0.5 p-2 border-b border-border sticky top-0 z-10 rounded-t-xl"
+          style={{ backgroundColor: "var(--background)", isolation: "isolate" }}
+        >
           <ToolbarGroup>
             <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleBold().run(); }}      active={editor.isActive("bold")}      title="ބޯލްޑް"><Bold size={14} /></ToolbarBtn>
             <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().toggleItalic().run(); }}    active={editor.isActive("italic")}    title="އިޓަލިކް"><Italic size={14} /></ToolbarBtn>
@@ -474,13 +517,16 @@ export default function ArticleEditor({ content, onChange, placeholder = "ލިޔ
             <ToolbarBtn onClick={(e) => { e.preventDefault(); setMediaModalOpen(true); }} active={mediaModalOpen} title="މީޑިއާ">
               <LayoutGrid size={14} />
             </ToolbarBtn>
+            <ToolbarBtn onClick={(e) => { e.preventDefault(); setCarouselModalOpen(true); }} active={carouselModalOpen} title="ކެރޯސަލް">
+              <GalleryHorizontal size={14} />
+            </ToolbarBtn>
           </ToolbarGroup>
           <div className="mr-auto font-body text-xs text-muted-foreground px-2">
             {editor.storage.characterCount.words()} ބަސް
           </div>
         </div>
 
-        <div className="p-6 min-h-96 overflow-y-auto">
+        <div className="p-6 min-h-96">
           <EditorContent editor={editor} className="article-body" />
         </div>
       </div>
@@ -495,6 +541,13 @@ export default function ArticleEditor({ content, onChange, placeholder = "ލިޔ
         <QuoteModal
           onInsert={handleQuoteInsert}
           onClose={() => setQuoteModalOpen(false)}
+        />
+      )}
+
+      {carouselModalOpen && (
+        <CarouselModal
+          onInsert={handleCarouselInsert}
+          onClose={() => setCarouselModalOpen(false)}
         />
       )}
     </>
