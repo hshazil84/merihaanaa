@@ -13,7 +13,11 @@ export const metadata: Metadata = {
 
 async function getCategories() {
   const supabase = await createServerSupabaseClient();
-  const { data } = await supabase.from("categories").select("id, name, slug").order("name");
+  const { data } = await supabase
+    .from("categories")
+    .select("id, name, slug")
+    .eq("is_visible", true)
+    .order("sort_order");
   return data ?? [];
 }
 
