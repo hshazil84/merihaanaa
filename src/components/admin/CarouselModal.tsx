@@ -2,51 +2,44 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Check, X } from "lucide-react";
+import { Check, X, Search } from "lucide-react";
 
 type Props = {
   onInsert: (images: string[], ratio: string) => void;
   onClose: () => void;
 };
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const BUCKET = "article-images";
-const FOLDER = "body";
-
-function toPublicUrl(path: string): string {
-  return SUPABASE_URL + "/storage/v1/object/public/" + BUCKET + "/" + path;
-}
+type MediaItem = {
+  id: string;
+  url: string;
+  filename: string | null;
+};
 
 export default function CarouselModal({ onInsert, onClose }: Props) {
   const supabase = createClient();
-  const [ratio, setRatio] = useState<"4:5" | "1:1">("4:5");
-  const [images, setImages] = useState<{ name: string; url: string }[]>([]);
+  const [ratio, setRatio]       = useState<"4:5" | "1:1">("4:5");
+  const [items, setItems]       = useState<MediaItem[]>([]);
+  const [search, setSearch]     = useState("");
   const [selected, setSelected] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]   = useState(true);
 
   useEffect(() => {
     async function load() {
-      const { data, error } = await supabase.storage
-        .from(BUCKET)
-        .list(FOLDER, { limit: 100, sortBy: { column: "created_at", order: "desc" } });
-
-      if (data) {
-        const items: { name: string; url: string }[] = [];
-        for (let i = 0; i < data.length; i++) {
-          const file = data[i];
-          if (file.name && file.name !== ".emptyFolderPlaceholder") {
-            items.push({
-              name: file.name,
-              url: toPublicUrl(FOLDER + "/" + file.name),
-            });
-          }
-        }
-        setImages(items);
+      setLoading(true);
+      let query = supabase
+        .from("media")
+        .select("id, url, filename")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (search.trim()) {
+        query = query.ilike("filename", "%" + search.trim() + "%");
       }
+      const { data } = await query;
+      setItems(data ?? []);
       setLoading(false);
     }
     load();
-  }, []);
+  }, [search]);
 
   function toggleImage(url: string) {
     setSelected((prev) => {
@@ -69,14 +62,14 @@ export default function CarouselModal({ onInsert, onClose }: Props) {
       <div className="bg-background rounded-2xl border border-border shadow-xl w-full max-w-2xl mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border" dir="rtl">
           <h3 className="font-body text-sm font-semibold text-foreground">ކެރޯސަލް</h3>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
             <X size={16} />
           </button>
         </div>
 
-        {/* Ratio picker */}
+        {/* Ratio + search */}
         <div className="px-5 py-3 border-b border-border flex items-center gap-3" dir="rtl">
           <span className="font-body text-xs text-muted-foreground">ސައިޒް:</span>
           <div className="flex gap-2">
@@ -95,30 +88,41 @@ export default function CarouselModal({ onInsert, onClose }: Props) {
               1:1
             </button>
           </div>
-          <span className="font-body text-xs text-muted-foreground mr-auto">
-            {selected.length} / 5 ފޮޓޯ ހޮވިފައި
+          <span className="font-body text-xs text-muted-foreground">
+            {selected.length} / 5 ހޮވިފައި
           </span>
+          <div className="relative mr-auto">
+            <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="ހޯދާ..."
+              dir="rtl"
+              className="font-body text-xs pr-7 pl-3 py-1.5 rounded-lg border border-border bg-muted/40 outline-none focus:border-foreground transition-colors w-40"
+            />
+          </div>
         </div>
 
-        {/* Image grid */}
+        {/* Grid */}
         <div className="p-4 overflow-y-auto max-h-[50vh]">
           {loading ? (
             <div className="text-center py-12 font-body text-xs text-muted-foreground">ލޯޑުވަނީ...</div>
-          ) : images.length === 0 ? (
+          ) : items.length === 0 ? (
             <div className="text-center py-12 font-body text-xs text-muted-foreground">ފޮޓޯ ނެތް</div>
           ) : (
             <div className="grid grid-cols-4 gap-2">
-              {images.map((item) => {
+              {items.map((item) => {
                 const isSelected = selected.includes(item.url);
                 const order = selected.indexOf(item.url);
                 return (
                   <button
-                    key={item.name}
+                    key={item.id}
                     type="button"
                     onClick={() => toggleImage(item.url)}
                     className={"relative overflow-hidden rounded-lg border-2 transition-all w-full " + aspectClass + " " + (isSelected ? "border-foreground" : "border-transparent hover:border-border")}
                   >
-                    <img src={item.url} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
+                    <img src={item.url} alt={item.filename ?? ""} className="w-full h-full object-cover" loading="lazy" />
                     {isSelected && (
                       <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
                         <div className="w-6 h-6 rounded-full bg-white text-gray-900 flex items-center justify-center text-xs font-bold">
