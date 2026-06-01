@@ -46,6 +46,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   const searchTimer = useRef<NodeJS.Timeout | null>(null);
 
   // ── Home page scroll handler ──
+  
   useEffect(() => {
     if (isStatic) return;
 
@@ -365,7 +366,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           height: `${CAT_BAR_HEIGHT}px`,
           backgroundColor: "rgb(249, 248, 245)",
           borderBottom: "1px solid rgb(224, 221, 214)",
-          transform: "translateY(110vh)",
+          transform: "translateY(110svh)",
           visibility: "hidden",
         }}
       >
