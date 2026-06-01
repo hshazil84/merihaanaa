@@ -7,6 +7,7 @@ import ArticleEditor from "@/components/admin/ArticleEditor";
 import CoverMedia, { type CoverMediaValue } from "@/components/admin/CoverMedia";
 import ArticleSidebar from "@/components/admin/ArticleSidebar";
 import { generateArticleSlug, calculateReadingTime } from "@/lib/utils";
+import { Save, Eye, Send, Loader2 } from "lucide-react";
 
 interface Category { id: string; name: string; }
 
@@ -175,7 +176,6 @@ export default function NewArticlePage() {
   return (
     <div className="flex h-full">
 
-      {/* ── Article sidebar — first in DOM = visual right in RTL ── */}
       <ArticleSidebar
         title={title}
         excerpt={excerpt}
@@ -214,10 +214,10 @@ export default function NewArticlePage() {
         slug={slug}
       />
 
-      {/* ── Editor — last in DOM = visual left in RTL ── */}
       <div ref={editorScrollRef} className="flex-1 overflow-y-auto p-6">
         <div className="max-w-3xl mx-auto space-y-4">
 
+          {/* Category chips */}
           <div className="flex gap-2 flex-wrap" dir="rtl">
             {categories.map((cat) => (
               <button
@@ -240,6 +240,7 @@ export default function NewArticlePage() {
             ))}
           </div>
 
+          {/* Title */}
           <textarea
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -249,6 +250,7 @@ export default function NewArticlePage() {
             className="w-full font-display text-3xl font-bold bg-transparent border-none outline-none resize-none text-foreground placeholder:text-muted-foreground/40 leading-tight"
           />
 
+          {/* Excerpt */}
           <textarea
             value={excerpt}
             onChange={(e) => setExcerpt(e.target.value)}
@@ -258,19 +260,66 @@ export default function NewArticlePage() {
             className="w-full font-body text-base text-muted-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 leading-relaxed"
           />
 
+          {/* Cover */}
           <CoverMedia value={coverMedia} onChange={handleCoverMediaChange} />
 
+          {/* Editor */}
           <ArticleEditor
             content={body ?? undefined}
             onChange={handleBodyChange}
             placeholder="ލިޔުން ފަށާ..."
           />
 
+          {/* ── Floating action bar ── */}
+          <div className="sticky bottom-4 z-20" dir="rtl">
+            <div className="flex items-center gap-2 p-2 rounded-2xl border border-border bg-background/95 backdrop-blur-sm shadow-lg w-fit">
+
+              {lastSaved && (
+                <span className="font-body text-xs text-muted-foreground px-2">
+                  {lastSaved.toLocaleTimeString("en", { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              )}
+
+              <button
+                type="button"
+                onClick={() => handleSave("draft")}
+                disabled={saving}
+                title="ސޭވް ޑްރާފްޓް"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl font-body text-xs text-muted-foreground border border-border hover:bg-muted hover:text-foreground transition-colors disabled:opacity-40"
+              >
+                {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                ސޭވް
+              </button>
+
+              <button
+                type="button"
+                onClick={handlePreview}
+                title="ޕްރިވިއު"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl font-body text-xs text-muted-foreground border border-border hover:bg-muted hover:text-foreground transition-colors"
+              >
+                <Eye size={14} />
+                ޕްރިވިއު
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSave("published")}
+                disabled={saving}
+                title="ޝާއިއު"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl font-body text-xs bg-foreground text-background hover:opacity-80 transition-opacity disabled:opacity-40"
+              >
+                {saving ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                ޝާއިއު
+              </button>
+            </div>
+          </div>
+
           {error && (
             <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
               <p className="font-body text-sm text-destructive">{error}</p>
             </div>
           )}
+
         </div>
       </div>
 
