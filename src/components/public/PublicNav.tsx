@@ -27,21 +27,20 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   const router = useRouter();
 
   // ── Home page state ──
-  const [catBarTop, setCatBarTop]             = useState(LOGO_BAR_HEIGHT);
-  const [locked, setLocked]                   = useState(false);
+  const [catBarTop, setCatBarTop]           = useState(LOGO_BAR_HEIGHT);
   const [logoTransparent, setLogoTransparent] = useState(false);
 
   // ── Static page (non-home) compact nav state ──
-  const [compact, setCompact]       = useState(false);
-  const lastScrollY                 = useRef(0);
+  const [compact, setCompact] = useState(false);
+  const lastScrollY           = useRef(0);
 
-  const [mounted, setMounted]                 = useState(false);
-  const [searchOpen, setSearchOpen]           = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen]   = useState(false);
-  const [searchQuery, setSearchQuery]         = useState("");
-  const [searchResults, setSearchResults]     = useState<SearchResult[]>([]);
-  const [searchLoading, setSearchLoading]     = useState(false);
-  const searchRef  = useRef<HTMLInputElement>(null);
+  const [mounted, setMounted]               = useState(false);
+  const [searchOpen, setSearchOpen]         = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery]       = useState("");
+  const [searchResults, setSearchResults]   = useState<SearchResult[]>([]);
+  const [searchLoading, setSearchLoading]   = useState(false);
+  const searchRef   = useRef<HTMLInputElement>(null);
   const searchTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -58,7 +57,6 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
       const naturalTop = heroHeight - CAT_BAR_HEIGHT - scrollY;
       const clampedTop = Math.max(LOGO_BAR_HEIGHT, naturalTop);
       setCatBarTop(clampedTop);
-      setLocked(naturalTop <= LOGO_BAR_HEIGHT);
       setLogoTransparent(scrollY < 20);
     };
     update();
@@ -70,7 +68,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
     };
   }, [isStatic]);
 
-  // ── Static page scroll handler (collapse on scroll down) ──
+  // ── Static page scroll handler ──
   useEffect(() => {
     if (!isStatic) return;
     const update = () => {
@@ -131,7 +129,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   if (isStatic) {
     return (
       <>
-        {/* ── Full nav (logo bar + category bar) ── */}
+        {/* ── Full nav (slides up on scroll down) ── */}
         <div
           className="fixed top-0 right-0 left-0 z-50 transition-transform duration-300 ease-in-out"
           style={{
@@ -139,16 +137,12 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           }}
         >
           {/* Logo bar */}
-          <header
-            style={{
-              height: `${LOGO_BAR_HEIGHT}px`,
-              backgroundColor: "rgb(249, 248, 245)",
-            }}
-          >
+          <header style={{ height: `${LOGO_BAR_HEIGHT}px`, backgroundColor: "rgb(249, 248, 245)" }}>
             <div className="max-w-7xl mx-auto px-5 md:px-6 h-full flex items-center justify-center relative">
               <Link href="/" className="flex items-center md:relative absolute right-5 md:right-auto">
-                <Image src="/logo.svg" alt="މެރިހާنaa" width={60} height={60} priority className="object-contain" />
+                <Image src="/logo.svg" alt="މެރިހާނާ" width={60} height={60} priority className="object-contain" />
               </Link>
+              {/* Mobile hamburger */}
               <div className="absolute left-5 md:hidden">
                 <button type="button" onClick={() => setMobileMenuOpen(true)}
                   className="p-2 rounded-full hover:bg-black/5 transition-colors"
@@ -156,6 +150,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
                   <Menu className="w-5 h-5" />
                 </button>
               </div>
+              {/* Desktop icons */}
               <div className="absolute left-5 md:left-6 hidden md:flex items-center gap-3">
                 <button type="button" aria-label="ހޯދާ" onClick={openSearch}
                   className="p-2 rounded-full hover:bg-black/5 transition-colors"
@@ -171,12 +166,12 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
 
           {/* Category bar */}
           <div
+            className="hidden md:block"
             style={{
               height: `${CAT_BAR_HEIGHT}px`,
               backgroundColor: "rgb(249, 248, 245)",
               borderBottom: "1px solid rgb(224, 221, 214)",
             }}
-            className="hidden md:block"
           >
             <div className="max-w-7xl mx-auto px-6 h-full">
               <div className="flex items-center justify-center gap-1 h-full">
@@ -204,15 +199,13 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         >
           <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
 
-            {/* Left — search */}
-            <button type="button" aria-label="ހޯދާ" onClick={openSearch}
-              className="p-2 rounded-full hover:bg-black/5 transition-colors flex-shrink-0"
-              style={{ color: "rgb(26,26,26)" }}>
-              <Search className="w-[16px] h-[16px]" />
-            </button>
+            {/* Visually right (RTL first) — logo */}
+            <Link href="/" className="flex items-center flex-shrink-0">
+              <Image src="/logo.svg" alt="މެރިހާنaa" width={32} height={32} className="object-contain" />
+            </Link>
 
-            {/* Center — categories */}
-            <div className="flex items-center gap-0 overflow-x-auto no-scrollbar">
+            {/* Center — categories with dots */}
+            <div className="flex items-center overflow-x-auto no-scrollbar">
               {categories.map((cat, i) => (
                 <span key={cat.id} className="flex items-center">
                   <Link href={`/${cat.slug}`}
@@ -221,31 +214,35 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
                     {cat.name}
                   </Link>
                   {i < categories.length - 1 && (
-                    <span style={{ color: "rgb(210,207,200)", fontSize: "10px" }}>·</span>
+                    <span style={{ color: "rgb(210,207,200)", fontSize: "10px", userSelect: "none" }}>·</span>
                   )}
                 </span>
               ))}
             </div>
 
-            {/* Right — logo */}
-            <Link href="/" className="flex items-center flex-shrink-0">
-              <Image src="/logo.svg" alt="މެރިހާنaa" width={36} height={36} className="object-contain" />
-            </Link>
+            {/* Visually left (RTL last) — search */}
+            <button type="button" aria-label="ހޯދާ" onClick={openSearch}
+              className="p-2 rounded-full hover:bg-black/5 transition-colors flex-shrink-0"
+              style={{ color: "rgb(26,26,26)" }}>
+              <Search className="w-[16px] h-[16px]" />
+            </button>
 
           </div>
         </div>
 
         {/* Search dropdown */}
-        {searchOpen && <SearchDropdown
-          searchRef={searchRef}
-          searchQuery={searchQuery}
-          searchResults={searchResults}
-          searchLoading={searchLoading}
-          onInput={handleSearchInput}
-          onKeyDown={handleKeyDown}
-          onClose={closeSearch}
-          topOffset={compact ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT + CAT_BAR_HEIGHT}
-        />}
+        {searchOpen && (
+          <SearchDropdown
+            searchRef={searchRef}
+            searchQuery={searchQuery}
+            searchResults={searchResults}
+            searchLoading={searchLoading}
+            onInput={handleSearchInput}
+            onKeyDown={handleKeyDown}
+            onClose={closeSearch}
+            topOffset={compact ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT + CAT_BAR_HEIGHT}
+          />
+        )}
         {searchOpen && <div className="fixed inset-0 z-[55]" onClick={closeSearch} />}
 
         {/* Mobile menu */}
@@ -260,7 +257,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   }
 
   // ─────────────────────────────────────────────────────────
-  // HOME PAGE — original scroll-over-hero behavior
+  // HOME PAGE — original scroll-over-hero behavior unchanged
   // ─────────────────────────────────────────────────────────
   return (
     <>
@@ -320,16 +317,18 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
       </div>
 
       {/* Search dropdown */}
-      {searchOpen && <SearchDropdown
-        searchRef={searchRef}
-        searchQuery={searchQuery}
-        searchResults={searchResults}
-        searchLoading={searchLoading}
-        onInput={handleSearchInput}
-        onKeyDown={handleKeyDown}
-        onClose={closeSearch}
-        topOffset={LOGO_BAR_HEIGHT}
-      />}
+      {searchOpen && (
+        <SearchDropdown
+          searchRef={searchRef}
+          searchQuery={searchQuery}
+          searchResults={searchResults}
+          searchLoading={searchLoading}
+          onInput={handleSearchInput}
+          onKeyDown={handleKeyDown}
+          onClose={closeSearch}
+          topOffset={LOGO_BAR_HEIGHT}
+        />
+      )}
       {searchOpen && <div className="fixed inset-0 z-[55]" onClick={closeSearch} />}
 
       {/* Mobile menu */}
@@ -343,7 +342,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   );
 }
 
-// ── Extracted: Search dropdown ─────────────────────────────
+// ── Search dropdown ────────────────────────────────────────
 
 function SearchDropdown({
   searchRef, searchQuery, searchResults, searchLoading,
@@ -446,7 +445,7 @@ function SearchDropdown({
   );
 }
 
-// ── Extracted: Mobile menu ─────────────────────────────────
+// ── Mobile menu ────────────────────────────────────────────
 
 function MobileMenu({ categories, open, onClose, topOffset }: {
   categories: Category[];
