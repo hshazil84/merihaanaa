@@ -3,7 +3,7 @@ import "../styles/globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "މެރިހާނާ",
+    default: "މެރިހާނާ - ތިޔަ ހޯއްދަވާ ތަފާތު މެގަޒިން",
     template: "%s — މެރިހާނާ",
   },
   description: "ދިވެހި ކަލްޗަރ، ފިލްމް، މިއުޒިކް، ލައިފްސްޓައިލް",
