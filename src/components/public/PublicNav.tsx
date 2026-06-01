@@ -21,19 +21,27 @@ interface SearchResult {
 
 const LOGO_BAR_HEIGHT = 72;
 const CAT_BAR_HEIGHT  = 56;
+const COMPACT_HEIGHT  = 48;
 
 export default function PublicNav({ categories, static: isStatic = false }: Props) {
   const router = useRouter();
+
+  // ── Home page state ──
   const [catBarTop, setCatBarTop]             = useState(LOGO_BAR_HEIGHT);
   const [locked, setLocked]                   = useState(false);
   const [logoTransparent, setLogoTransparent] = useState(false);
+
+  // ── Static page (non-home) compact nav state ──
+  const [compact, setCompact]       = useState(false);
+  const lastScrollY                 = useRef(0);
+
   const [mounted, setMounted]                 = useState(false);
   const [searchOpen, setSearchOpen]           = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen]   = useState(false);
   const [searchQuery, setSearchQuery]         = useState("");
   const [searchResults, setSearchResults]     = useState<SearchResult[]>([]);
   const [searchLoading, setSearchLoading]     = useState(false);
-  const searchRef = useRef<HTMLInputElement>(null);
+  const searchRef  = useRef<HTMLInputElement>(null);
   const searchTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -41,13 +49,9 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
     if (!isStatic) setLogoTransparent(window.scrollY < 20);
   }, [isStatic]);
 
+  // ── Home page scroll handler ──
   useEffect(() => {
-    if (isStatic) {
-      setCatBarTop(LOGO_BAR_HEIGHT);
-      setLocked(true);
-      setLogoTransparent(false);
-      return;
-    }
+    if (isStatic) return;
     const update = () => {
       const scrollY    = window.scrollY;
       const heroHeight = window.innerHeight;
@@ -66,7 +70,23 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
     };
   }, [isStatic]);
 
-  // Live search with debounce
+  // ── Static page scroll handler (collapse on scroll down) ──
+  useEffect(() => {
+    if (!isStatic) return;
+    const update = () => {
+      const scrollY = window.scrollY;
+      if (scrollY > 80 && scrollY > lastScrollY.current) {
+        setCompact(true);
+      } else if (scrollY < lastScrollY.current) {
+        setCompact(false);
+      }
+      lastScrollY.current = scrollY;
+    };
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, [isStatic]);
+
+  // ── Search ──
   const handleSearchInput = useCallback((val: string) => {
     setSearchQuery(val);
     if (searchTimer.current) clearTimeout(searchTimer.current);
@@ -105,9 +125,146 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
 
   const iconColor = (mounted && logoTransparent) ? "rgb(255,255,255)" : "rgb(26,26,26)";
 
+  // ─────────────────────────────────────────────────────────
+  // NON-HOME PAGES — compact collapsible nav
+  // ─────────────────────────────────────────────────────────
+  if (isStatic) {
+    return (
+      <>
+        {/* ── Full nav (logo bar + category bar) ── */}
+        <div
+          className="fixed top-0 right-0 left-0 z-50 transition-transform duration-300 ease-in-out"
+          style={{
+            transform: compact ? `translateY(-${LOGO_BAR_HEIGHT + CAT_BAR_HEIGHT}px)` : "translateY(0)",
+          }}
+        >
+          {/* Logo bar */}
+          <header
+            style={{
+              height: `${LOGO_BAR_HEIGHT}px`,
+              backgroundColor: "rgb(249, 248, 245)",
+            }}
+          >
+            <div className="max-w-7xl mx-auto px-5 md:px-6 h-full flex items-center justify-center relative">
+              <Link href="/" className="flex items-center md:relative absolute right-5 md:right-auto">
+                <Image src="/logo.svg" alt="މެރިހާنaa" width={60} height={60} priority className="object-contain" />
+              </Link>
+              <div className="absolute left-5 md:hidden">
+                <button type="button" onClick={() => setMobileMenuOpen(true)}
+                  className="p-2 rounded-full hover:bg-black/5 transition-colors"
+                  style={{ color: "rgb(26,26,26)" }}>
+                  <Menu className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="absolute left-5 md:left-6 hidden md:flex items-center gap-3">
+                <button type="button" aria-label="ހޯދާ" onClick={openSearch}
+                  className="p-2 rounded-full hover:bg-black/5 transition-colors"
+                  style={{ color: "rgb(26,26,26)" }}>
+                  <Search className="w-[18px] h-[18px]" />
+                </button>
+                <Link href="/login" className="p-2 rounded-full hover:bg-black/5 transition-colors" style={{ color: "rgb(26,26,26)" }}>
+                  <User className="w-[18px] h-[18px]" />
+                </Link>
+              </div>
+            </div>
+          </header>
+
+          {/* Category bar */}
+          <div
+            style={{
+              height: `${CAT_BAR_HEIGHT}px`,
+              backgroundColor: "rgb(249, 248, 245)",
+              borderBottom: "1px solid rgb(224, 221, 214)",
+            }}
+            className="hidden md:block"
+          >
+            <div className="max-w-7xl mx-auto px-6 h-full">
+              <div className="flex items-center justify-center gap-1 h-full">
+                {categories.map((cat) => (
+                  <Link key={cat.id} href={`/${cat.slug}`}
+                    className="whitespace-nowrap px-4 py-2 transition-colors hover:text-[rgb(26,26,26)]"
+                    style={{ fontFamily: "'MVTypewriter', 'MV Boli', sans-serif", fontSize: "13px", color: "rgb(153,153,153)" }}>
+                    {cat.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Compact bar (slides in from top when scrolling down) ── */}
+        <div
+          className="fixed top-0 right-0 left-0 z-50 transition-transform duration-300 ease-in-out hidden md:block"
+          style={{
+            height: `${COMPACT_HEIGHT}px`,
+            backgroundColor: "rgb(249, 248, 245)",
+            borderBottom: "1px solid rgb(224, 221, 214)",
+            transform: compact ? "translateY(0)" : `translateY(-${COMPACT_HEIGHT}px)`,
+          }}
+        >
+          <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
+
+            {/* Left — search */}
+            <button type="button" aria-label="ހޯދާ" onClick={openSearch}
+              className="p-2 rounded-full hover:bg-black/5 transition-colors flex-shrink-0"
+              style={{ color: "rgb(26,26,26)" }}>
+              <Search className="w-[16px] h-[16px]" />
+            </button>
+
+            {/* Center — categories */}
+            <div className="flex items-center gap-0 overflow-x-auto no-scrollbar">
+              {categories.map((cat, i) => (
+                <span key={cat.id} className="flex items-center">
+                  <Link href={`/${cat.slug}`}
+                    className="whitespace-nowrap px-3 py-1 transition-colors hover:text-[rgb(26,26,26)]"
+                    style={{ fontFamily: "'MVTypewriter', 'MV Boli', sans-serif", fontSize: "12px", color: "rgb(153,153,153)" }}>
+                    {cat.name}
+                  </Link>
+                  {i < categories.length - 1 && (
+                    <span style={{ color: "rgb(210,207,200)", fontSize: "10px" }}>·</span>
+                  )}
+                </span>
+              ))}
+            </div>
+
+            {/* Right — logo */}
+            <Link href="/" className="flex items-center flex-shrink-0">
+              <Image src="/logo.svg" alt="މެރިހާنaa" width={36} height={36} className="object-contain" />
+            </Link>
+
+          </div>
+        </div>
+
+        {/* Search dropdown */}
+        {searchOpen && <SearchDropdown
+          searchRef={searchRef}
+          searchQuery={searchQuery}
+          searchResults={searchResults}
+          searchLoading={searchLoading}
+          onInput={handleSearchInput}
+          onKeyDown={handleKeyDown}
+          onClose={closeSearch}
+          topOffset={compact ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT + CAT_BAR_HEIGHT}
+        />}
+        {searchOpen && <div className="fixed inset-0 z-[55]" onClick={closeSearch} />}
+
+        {/* Mobile menu */}
+        <MobileMenu
+          categories={categories}
+          open={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
+          topOffset={LOGO_BAR_HEIGHT}
+        />
+      </>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // HOME PAGE — original scroll-over-hero behavior
+  // ─────────────────────────────────────────────────────────
   return (
     <>
-      {/* ── Logo bar ── */}
+      {/* Logo bar */}
       <header
         className="fixed top-0 right-0 left-0 z-50 transition-colors duration-200"
         style={{
@@ -117,7 +274,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
       >
         <div className="max-w-7xl mx-auto px-5 md:px-6 h-full flex items-center justify-center relative">
           <Link href="/" className="flex items-center md:relative absolute right-5 md:right-auto">
-            <Image src="/logo.svg" alt="މެރިހާނާ" width={60} height={60} priority className="object-contain" />
+            <Image src="/logo.svg" alt="މެރިހާنaa" width={60} height={60} priority className="object-contain" />
           </Link>
           <div className="absolute left-5 md:hidden">
             <button type="button" onClick={() => setMobileMenuOpen(true)}
@@ -126,7 +283,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
               <Menu className="w-5 h-5" />
             </button>
           </div>
-          <div className="absolute right-5 md:right-6 hidden md:flex items-center gap-3">
+          <div className="absolute left-5 md:left-6 hidden md:flex items-center gap-3">
             <button type="button" aria-label="ހޯދާ" onClick={openSearch}
               className="p-2 rounded-full hover:bg-black/5 transition-colors"
               style={{ color: iconColor }}>
@@ -139,7 +296,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         </div>
       </header>
 
-      {/* ── Category bar ── */}
+      {/* Category bar */}
       <div
         className="fixed z-40 w-full hidden md:block"
         style={{
@@ -162,136 +319,172 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         </div>
       </div>
 
-      {/* ── Search dropdown — New Yorker style ── */}
-      {searchOpen && (
-        <div
-          className="fixed left-0 right-0 z-[60] bg-[#F5F3EF] border-b border-black/10 shadow-sm"
-          style={{ top: `${LOGO_BAR_HEIGHT}px` }}
-        >
-          <div className="max-w-2xl mx-auto px-6 py-4">
-            {/* Input row */}
-            <div className="flex items-center gap-3 border border-black/15 rounded-full px-4 py-2.5 bg-white">
-              <Search className="w-4 h-4 text-black/30 flex-shrink-0" />
-              <input
-                ref={searchRef}
-                type="text"
-                value={searchQuery}
-                onChange={(e) => handleSearchInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="ހޯދާ..."
-                dir="rtl"
-                className="flex-1 bg-transparent outline-none text-[15px]"
-                style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', color: "rgb(26,26,26)" }}
-              />
-              <button type="button" onClick={closeSearch}
-                className="text-[12px] text-black/40 hover:text-black/70 transition-colors flex-shrink-0"
-                style={{ fontFamily: '"MVTypewriter", sans-serif' }}>
-                ކެންސަލް
-              </button>
-            </div>
+      {/* Search dropdown */}
+      {searchOpen && <SearchDropdown
+        searchRef={searchRef}
+        searchQuery={searchQuery}
+        searchResults={searchResults}
+        searchLoading={searchLoading}
+        onInput={handleSearchInput}
+        onKeyDown={handleKeyDown}
+        onClose={closeSearch}
+        topOffset={LOGO_BAR_HEIGHT}
+      />}
+      {searchOpen && <div className="fixed inset-0 z-[55]" onClick={closeSearch} />}
 
-            {/* Results */}
-            {searchQuery.trim().length >= 2 && (
-              <div className="mt-3 pb-2">
-                {searchLoading && (
-                  <p className="text-center py-4" style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "12px", color: "rgb(160,158,152)" }}>
-                    ހޯދަނީ...
-                  </p>
-                )}
+      {/* Mobile menu */}
+      <MobileMenu
+        categories={categories}
+        open={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        topOffset={LOGO_BAR_HEIGHT}
+      />
+    </>
+  );
+}
 
-                {!searchLoading && searchResults.length > 0 && (
-                  <>
-                    <p className="mb-2" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "11px", color: "rgb(160,158,152)", lineHeight: 2 }}>
-                      ނަތީޖާ
-                    </p>
-                    <div className="space-y-0">
-                      {searchResults.slice(0, 5).map((result) => (
-                        <Link
-                          key={result.id}
-                          href={`/${result.category?.slug ?? "article"}/${result.slug}`}
-                          onClick={closeSearch}
-                          className="flex items-center justify-between py-3 border-b border-black/6 hover:opacity-60 transition-opacity group"
-                        >
-                          <h3 style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "14px", fontWeight: 700, color: "rgb(26,26,26)", lineHeight: 1.6 }}>
-                            {result.title}
-                          </h3>
-                          {result.category && (
-                            <span className="flex-shrink-0 mr-4 text-[10px] px-2.5 py-1 rounded-full border" style={{
-                              fontFamily: "'MVTypewriter', sans-serif",
-                              color: "rgb(100,100,100)",
-                              borderColor: "rgb(210,207,200)",
-                              backgroundColor: "rgb(240,239,233)",
-                              lineHeight: 2,
-                            }}>
-                              {result.category.name}
-                            </span>
-                          )}
-                        </Link>
-                      ))}
-                    </div>
+// ── Extracted: Search dropdown ─────────────────────────────
 
-                    {/* View all */}
-                    <div className="mt-4 text-center">
-                      <Link
-                        href={`/search?q=${encodeURIComponent(searchQuery.trim())}`}
-                        onClick={closeSearch}
-                        className="inline-flex items-center justify-center px-6 py-2.5 rounded-full transition-colors hover:opacity-80"
-                        style={{ backgroundColor: "rgb(26,26,26)", color: "rgb(249,248,245)", fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "12px", fontWeight: 700 }}
-                      >
-                        އިތުރު އާޓިކަލް ބެލުމަށް
-                      </Link>
-                    </div>
-                  </>
-                )}
+function SearchDropdown({
+  searchRef, searchQuery, searchResults, searchLoading,
+  onInput, onKeyDown, onClose, topOffset,
+}: {
+  searchRef: React.RefObject<HTMLInputElement>;
+  searchQuery: string;
+  searchResults: SearchResult[];
+  searchLoading: boolean;
+  onInput: (val: string) => void;
+  onKeyDown: (e: React.KeyboardEvent) => void;
+  onClose: () => void;
+  topOffset: number;
+}) {
+  const router = useRouter();
+  return (
+    <div
+      className="fixed left-0 right-0 z-[60] bg-[#F5F3EF] border-b border-black/10 shadow-sm"
+      style={{ top: `${topOffset}px` }}
+    >
+      <div className="max-w-2xl mx-auto px-6 py-4">
+        <div className="flex items-center gap-3 border border-black/15 rounded-full px-4 py-2.5 bg-white">
+          <Search className="w-4 h-4 text-black/30 flex-shrink-0" />
+          <input
+            ref={searchRef}
+            type="text"
+            value={searchQuery}
+            onChange={(e) => onInput(e.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder="ހޯދާ..."
+            dir="rtl"
+            className="flex-1 bg-transparent outline-none text-[15px]"
+            style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', color: "rgb(26,26,26)" }}
+          />
+          <button type="button" onClick={onClose}
+            className="text-[12px] text-black/40 hover:text-black/70 transition-colors flex-shrink-0"
+            style={{ fontFamily: '"MVTypewriter", sans-serif' }}>
+            ކެންސަލް
+          </button>
+        </div>
 
-                {!searchLoading && searchResults.length === 0 && (
-                  <p className="text-center py-4" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "13px", color: "rgb(160,158,152)", lineHeight: 2 }}>
-                    ނަތީޖާ ނެތް
-                  </p>
-                )}
-              </div>
+        {searchQuery.trim().length >= 2 && (
+          <div className="mt-3 pb-2">
+            {searchLoading && (
+              <p className="text-center py-4" style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "12px", color: "rgb(160,158,152)" }}>
+                ހޯދަނީ...
+              </p>
+            )}
+            {!searchLoading && searchResults.length > 0 && (
+              <>
+                <p className="mb-2" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "11px", color: "rgb(160,158,152)", lineHeight: 2 }}>
+                  ނަތީޖާ
+                </p>
+                <div className="space-y-0">
+                  {searchResults.slice(0, 5).map((result) => (
+                    <Link
+                      key={result.id}
+                      href={`/${result.category?.slug ?? "article"}/${result.slug}`}
+                      onClick={onClose}
+                      className="flex items-center justify-between py-3 border-b border-black/6 hover:opacity-60 transition-opacity"
+                    >
+                      <h3 style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "14px", fontWeight: 700, color: "rgb(26,26,26)", lineHeight: 1.6 }}>
+                        {result.title}
+                      </h3>
+                      {result.category && (
+                        <span className="flex-shrink-0 mr-4 text-[10px] px-2.5 py-1 rounded-full border" style={{
+                          fontFamily: "'MVTypewriter', sans-serif",
+                          color: "rgb(100,100,100)",
+                          borderColor: "rgb(210,207,200)",
+                          backgroundColor: "rgb(240,239,233)",
+                          lineHeight: 2,
+                        }}>
+                          {result.category.name}
+                        </span>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+                <div className="mt-4 text-center">
+                  <Link
+                    href={`/search?q=${encodeURIComponent(searchQuery.trim())}`}
+                    onClick={onClose}
+                    className="inline-flex items-center justify-center px-6 py-2.5 rounded-full transition-colors hover:opacity-80"
+                    style={{ backgroundColor: "rgb(26,26,26)", color: "rgb(249,248,245)", fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "12px", fontWeight: 700 }}
+                  >
+                    އިތުރު އާޓިކަލް ބެލުމަށް
+                  </Link>
+                </div>
+              </>
+            )}
+            {!searchLoading && searchResults.length === 0 && (
+              <p className="text-center py-4" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "13px", color: "rgb(160,158,152)", lineHeight: 2 }}>
+                ނަތީޖާ ނެތް
+              </p>
             )}
           </div>
-        </div>
-      )}
-
-      {/* Backdrop */}
-      {searchOpen && (
-        <div className="fixed inset-0 z-[55]" onClick={closeSearch} />
-      )}
-
-      {/* ── Mobile menu ── */}
-      <div
-        className="fixed inset-0 z-[55] transition-opacity duration-300"
-        style={{
-          backgroundColor: "rgb(249, 248, 245)",
-          top: `${LOGO_BAR_HEIGHT}px`,
-          opacity: mobileMenuOpen ? 1 : 0,
-          pointerEvents: mobileMenuOpen ? "auto" : "none",
-        }}
-      >
-        <button type="button" onClick={() => setMobileMenuOpen(false)}
-          className="absolute top-4 left-5 p-2 hover:bg-black/5 rounded-full text-[rgb(26,26,26)]">
-          <X className="w-5 h-5" />
-        </button>
-        <div className="h-full overflow-y-auto px-8 py-12 max-w-md mx-auto" dir="rtl">
-          <nav>
-            {categories.map((cat, i) => (
-              <div key={cat.id} style={{
-                opacity: mobileMenuOpen ? 1 : 0,
-                transform: mobileMenuOpen ? "translateX(0)" : "translateX(20px)",
-                transition: `opacity 0.3s ease ${i * 0.04}s, transform 0.3s ease ${i * 0.04}s`,
-              }}>
-                <Link href={`/${cat.slug}`} onClick={() => setMobileMenuOpen(false)}
-                  className="block py-3 border-b border-[#e0ddd6]/60 transition-colors text-[#999] hover:text-[#333]"
-                  style={{ fontFamily: "'MVTypewriter', 'MV Boli', sans-serif", fontSize: "1.2rem" }}>
-                  {cat.name}
-                </Link>
-              </div>
-            ))}
-          </nav>
-        </div>
+        )}
       </div>
-    </>
+    </div>
+  );
+}
+
+// ── Extracted: Mobile menu ─────────────────────────────────
+
+function MobileMenu({ categories, open, onClose, topOffset }: {
+  categories: Category[];
+  open: boolean;
+  onClose: () => void;
+  topOffset: number;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[55] transition-opacity duration-300"
+      style={{
+        backgroundColor: "rgb(249, 248, 245)",
+        top: `${topOffset}px`,
+        opacity: open ? 1 : 0,
+        pointerEvents: open ? "auto" : "none",
+      }}
+    >
+      <button type="button" onClick={onClose}
+        className="absolute top-4 left-5 p-2 hover:bg-black/5 rounded-full text-[rgb(26,26,26)]">
+        <X className="w-5 h-5" />
+      </button>
+      <div className="h-full overflow-y-auto px-8 py-12 max-w-md mx-auto" dir="rtl">
+        <nav>
+          {categories.map((cat, i) => (
+            <div key={cat.id} style={{
+              opacity: open ? 1 : 0,
+              transform: open ? "translateX(0)" : "translateX(20px)",
+              transition: `opacity 0.3s ease ${i * 0.04}s, transform 0.3s ease ${i * 0.04}s`,
+            }}>
+              <Link href={`/${cat.slug}`} onClick={onClose}
+                className="block py-3 border-b border-[#e0ddd6]/60 transition-colors text-[#999] hover:text-[#333]"
+                style={{ fontFamily: "'MVTypewriter', 'MV Boli', sans-serif", fontSize: "1.2rem" }}>
+                {cat.name}
+              </Link>
+            </div>
+          ))}
+        </nav>
+      </div>
+    </div>
   );
 }
