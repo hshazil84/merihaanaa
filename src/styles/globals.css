@@ -27,21 +27,21 @@
   }
 
   .dark {
-    --background: 0 0% 4%;
-    --foreground: 0 0% 98%;
-    --muted: 0 0% 10%;
-    --muted-foreground: 0 0% 55%;
-    --border: 0 0% 15%;
-    --input: 0 0% 15%;
-    --ring: 0 0% 98%;
-    --card: 0 0% 6%;
-    --card-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 4%;
-    --secondary: 0 0% 10%;
-    --secondary-foreground: 0 0% 98%;
-    --accent: 0 0% 10%;
-    --accent-foreground: 0 0% 98%;
+    --background: 222 47% 11%;
+    --foreground: 210 40% 96%;
+    --muted: 222 47% 16%;
+    --muted-foreground: 215 20% 58%;
+    --border: 222 47% 20%;
+    --input: 222 47% 20%;
+    --ring: 210 40% 96%;
+    --card: 222 47% 13%;
+    --card-foreground: 210 40% 96%;
+    --primary: 210 40% 96%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 222 47% 16%;
+    --secondary-foreground: 210 40% 96%;
+    --accent: 222 47% 18%;
+    --accent-foreground: 210 40% 96%;
     --destructive: 0 62% 30%;
     --destructive-foreground: 0 0% 98%;
   }
@@ -69,7 +69,6 @@
     font-family: "SanguSuruhee", "Noto Sans Thaana", sans-serif;
   }
 
-  /* All buttons — always centered both axes */
   button {
     display: inline-flex;
     align-items: center;
@@ -113,7 +112,6 @@
 /* ── UTILITIES ────────────────────────────────────────── */
 
 @layer utilities {
-  /* Sangu Suruhee — display headings */
   .font-display {
     font-family: "SanguSuruhee", "Noto Sans Thaana", sans-serif;
     font-weight: 400;
@@ -121,17 +119,14 @@
     zoom: 1.2;
   }
 
-  /* MVTypewriter — Thaana body text */
   .font-body {
     font-family: "MVTypewriter", "Noto Sans Thaana", sans-serif;
   }
 
-  /* Plus Jakarta Sans — English UI text */
   .font-sans {
     font-family: "Plus Jakarta Sans", sans-serif;
   }
 
-  /* Drop cap for articles */
   .drop-cap::first-letter {
     font-family: "SanguSuruhee", "Noto Sans Thaana", sans-serif;
     font-size: 4.5rem;
@@ -154,14 +149,8 @@
 }
 
 @keyframes authFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ── TIPTAP EDITOR ────────────────────────────────────── */
@@ -236,87 +225,6 @@
   font-size: 1.0625rem;
   line-height: 1.9;
   color: hsl(var(--foreground));
-  margin-bottom: 1.5rem;
-}
-
-.article-body h2 {
-  font-family: "SanguSuruhee", "Noto Sans Thaana", sans-serif;
-  font-weight: 400;
-  font-size: 1.625rem;
-  letter-spacing: 0;
-  zoom: 1.2;
-  margin: 2.5rem 0 1rem;
-}
-
-.article-body h3 {
-  font-family: "MVTypewriter", "Noto Sans Thaana", sans-serif;
-  font-weight: 700;
-  font-size: 1.25rem;
-  margin: 2rem 0 0.875rem;
-}
-
-.article-body blockquote {
-  border-right: 3px solid hsl(var(--foreground));
-  padding-right: 1.5rem;
-  margin: 2.5rem 0;
-  font-family: "SanguSuruhee", "Noto Sans Thaana", sans-serif;
-  font-weight: 400;
-  font-size: 1.375rem;
-  letter-spacing: 0;
-  zoom: 1.2;
-  line-height: 1.6;
-}
-
-.article-body img {
-  width: 100%;
-  border-radius: 0.25rem;
-  margin: 2rem 0;
-}
-
-.article-body figcaption {
-  font-size: 0.8125rem;
-  color: hsl(var(--muted-foreground));
-  margin-top: -1.25rem;
-  margin-bottom: 2rem;
-  text-align: right;
-}
-
-.article-body hr {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  margin: 3rem 0;
-}
-
-.article-body hr::after {
-  content: "✦";
-  color: hsl(var(--muted-foreground));
-  font-size: 1rem;
-}
-
-.tiptap-editor-content iframe {
-  width: 100%;
-  aspect-ratio: 16/9;
-  border-radius: 12px;
-  display: block;
-  margin: 1rem 0;
-}
-
-.tiptap-editor-content div[data-youtube-video] {
-  width: 100%;
-  margin: 1rem 0;
-}
-
-.tiptap-editor-content div[data-youtube-video] iframe {
-  width: 100%;
-  aspect-ratio: 16/9;
-  border-radius: 12px;
-  border: none;
-}
-/* Article body styles — add to globals.css */
-
-.article-body p {
   margin-bottom: 1.4em;
 }
 
@@ -376,9 +284,17 @@
 }
 
 .article-body hr {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
-  border-top: 1px solid rgb(210, 207, 200);
-  margin: 2.4em 0;
+  margin: 3rem 0;
+}
+
+.article-body hr::after {
+  content: "✦";
+  color: hsl(var(--muted-foreground));
+  font-size: 1rem;
 }
 
 .article-body iframe {
@@ -387,7 +303,14 @@
   margin: 1.6em 0;
 }
 
-/* YouTube embed wrapper */
+.article-body figcaption {
+  font-size: 0.8125rem;
+  color: hsl(var(--muted-foreground));
+  margin-top: -1.25rem;
+  margin-bottom: 2rem;
+  text-align: right;
+}
+
 .article-body [data-youtube-video] {
   position: relative;
   padding-bottom: 56.25%;
@@ -405,4 +328,138 @@
   height: 100%;
   margin: 0;
   border-radius: 0;
+}
+
+.tiptap-editor-content iframe {
+  width: 100%;
+  aspect-ratio: 16/9;
+  border-radius: 12px;
+  display: block;
+  margin: 1rem 0;
+}
+
+.tiptap-editor-content div[data-youtube-video] {
+  width: 100%;
+  margin: 1rem 0;
+}
+
+.tiptap-editor-content div[data-youtube-video] iframe {
+  width: 100%;
+  aspect-ratio: 16/9;
+  border-radius: 12px;
+  border: none;
+}
+
+/* ── QUOTE NODES ──────────────────────────────────────── */
+
+div[data-pull-quote] {
+  margin: 2.5rem auto;
+  padding: 0 2rem;
+  text-align: center;
+  max-width: 600px;
+}
+
+div[data-pull-quote] p:first-child {
+  font-family: 'MVTypewriter', 'Noto Sans Thaana', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: rgb(26, 26, 26);
+  line-height: 1.8;
+  margin: 0 0 0.5rem;
+}
+
+div[data-pull-quote] p:last-child {
+  font-family: 'MVTypewriter', sans-serif;
+  font-size: 11px;
+  color: rgb(160, 158, 152);
+  line-height: 2;
+  margin: 0;
+}
+
+div[data-styled-blockquote] {
+  margin: 1.5rem 0;
+  padding: 4px 20px 4px 0;
+  border-right: 2px solid rgba(0, 0, 0, 0.5);
+  direction: rtl;
+}
+
+div[data-styled-blockquote] p:first-child {
+  font-family: 'MVTypewriter', 'Noto Sans Thaana', sans-serif;
+  font-size: 16px;
+  color: rgb(60, 58, 52);
+  line-height: 2;
+  margin: 0 0 4px;
+}
+
+div[data-styled-blockquote] p:last-child {
+  font-family: 'MVTypewriter', sans-serif;
+  font-size: 11px;
+  color: rgb(160, 158, 152);
+  line-height: 2;
+  margin: 0;
+}
+
+div[data-interview] {
+  margin: 1.5rem 0;
+}
+
+div[data-interview] > div:first-child {
+  background: rgb(240, 239, 233);
+  border: 1px solid rgb(224, 221, 214);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-bottom: 8px;
+  direction: rtl;
+}
+
+div[data-interview] > div:last-child {
+  background: rgb(249, 248, 245);
+  border: 1px solid rgb(224, 221, 214);
+  border-radius: 8px;
+  padding: 14px 18px;
+  direction: rtl;
+}
+
+div[data-interview] p {
+  font-family: 'MVTypewriter', 'Noto Sans Thaana', sans-serif;
+  font-size: 15px;
+  color: rgb(26, 26, 26);
+  line-height: 2;
+  margin: 0;
+}
+
+div[data-interview] p:first-child {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgb(100, 98, 92);
+  letter-spacing: 0.05em;
+  margin: 0 0 4px;
+  opacity: 0.7;
+}
+
+/* Dark mode quote adjustments */
+.dark div[data-pull-quote] p:first-child {
+  color: hsl(210 40% 92%);
+}
+
+.dark div[data-styled-blockquote] {
+  border-right-color: rgba(255, 255, 255, 0.3);
+}
+
+.dark div[data-styled-blockquote] p:first-child {
+  color: hsl(210 40% 88%);
+}
+
+.dark div[data-interview] > div:first-child {
+  background: hsl(222 47% 18%);
+  border-color: hsl(222 47% 25%);
+}
+
+.dark div[data-interview] > div:last-child {
+  background: hsl(222 47% 15%);
+  border-color: hsl(222 47% 25%);
+}
+
+.dark div[data-interview] p {
+  color: hsl(210 40% 90%);
 }
