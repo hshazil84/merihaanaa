@@ -1,5 +1,4 @@
 "use client";
-// components/public/ArticleBody.tsx
 
 import { generateHTML } from "@tiptap/html";
 import StarterKit from "@tiptap/starter-kit";
@@ -9,33 +8,24 @@ import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import Youtube from "@tiptap/extension-youtube";
 import { Node, mergeAttributes } from "@tiptap/core";
-import { useMemo } from "react";
+import { useMemo, useEffect, useRef, useState } from "react";
 
 interface Props {
   body: Record<string, unknown> | null;
 }
 
-// ── Quote nodes (must match editor definitions exactly) ───
-
 const PullQuoteNode = Node.create({
   name: "pullQuote",
   group: "block",
   atom: true,
-  addAttributes() {
-    return {
-      text:   { default: "" },
-      author: { default: "" },
-    };
-  },
+  addAttributes() { return { text: { default: "" }, author: { default: "" } }; },
   parseHTML() { return [{ tag: "div[data-pull-quote]" }]; },
   renderHTML({ HTMLAttributes }) {
     const { text, author } = HTMLAttributes;
     return [
-      "div", mergeAttributes({ "data-pull-quote": "" }, {
-        style: "margin:2.5rem auto;padding:0 2rem;text-align:center;max-width:600px;",
-      }),
-      ["p", { style: "font-family:'MVTypewriter','Noto Sans Thaana',sans-serif;font-size:1.35rem;font-weight:700;color:rgb(26,26,26);line-height:1.8;margin:0 0 0.5rem;" }, `"${text}"`],
-      ...(author ? [["p", { style: "font-family:'MVTypewriter',sans-serif;font-size:11px;color:rgb(160,158,152);line-height:2;margin:0;" }, `— ${author}`]] : []),
+      "div", mergeAttributes({ "data-pull-quote": "" }, { style: "margin:2.5rem auto;padding:0 2rem;text-align:center;max-width:600px;" }),
+      ["p", { style: "font-family:'MVTypewriter','Noto Sans Thaana',sans-serif;font-size:1.35rem;font-weight:700;color:rgb(26,26,26);line-height:1.8;margin:0 0 0.5rem;" }, '"' + text + '"'],
+      ...(author ? [["p", { style: "font-family:'MVTypewriter',sans-serif;font-size:11px;color:rgb(160,158,152);line-height:2;margin:0;" }, "— " + author]] : []),
     ];
   },
 });
@@ -44,12 +34,7 @@ const InterviewNode = Node.create({
   name: "interview",
   group: "block",
   atom: true,
-  addAttributes() {
-    return {
-      question: { default: "" },
-      answer:   { default: "" },
-    };
-  },
+  addAttributes() { return { question: { default: "" }, answer: { default: "" } }; },
   parseHTML() { return [{ tag: "div[data-interview]" }]; },
   renderHTML({ HTMLAttributes }) {
     const { question, answer } = HTMLAttributes;
@@ -71,26 +56,17 @@ const StyledBlockquoteNode = Node.create({
   name: "styledBlockquote",
   group: "block",
   atom: true,
-  addAttributes() {
-    return {
-      text:   { default: "" },
-      author: { default: "" },
-    };
-  },
+  addAttributes() { return { text: { default: "" }, author: { default: "" } }; },
   parseHTML() { return [{ tag: "div[data-styled-blockquote]" }]; },
   renderHTML({ HTMLAttributes }) {
     const { text, author } = HTMLAttributes;
     return [
-      "div", mergeAttributes({ "data-styled-blockquote": "" }, {
-        style: "margin:1.5rem 0;padding:4px 20px 4px 0;border-right:2px solid rgba(0,0,0,0.5);direction:rtl;",
-      }),
+      "div", mergeAttributes({ "data-styled-blockquote": "" }, { style: "margin:1.5rem 0;padding:4px 20px 4px 0;border-right:2px solid rgba(0,0,0,0.5);direction:rtl;" }),
       ["p", { style: "font-family:'MVTypewriter','Noto Sans Thaana',sans-serif;font-size:16px;color:rgb(60,58,52);line-height:2;margin:0 0 4px;" }, text],
-      ...(author ? [["p", { style: "font-family:'MVTypewriter',sans-serif;font-size:11px;color:rgb(160,158,152);line-height:2;margin:0;" }, `— ${author}`]] : []),
+      ...(author ? [["p", { style: "font-family:'MVTypewriter',sans-serif;font-size:11px;color:rgb(160,158,152);line-height:2;margin:0;" }, "— " + author]] : []),
     ];
   },
 });
-
-// ── Vimeo + Social (needed for generateHTML to not throw) ─
 
 const VimeoNode = Node.create({
   name: "vimeo",
@@ -103,7 +79,7 @@ const VimeoNode = Node.create({
     return [
       "div", { "data-vimeo": "", style: "margin:1rem 0;" },
       ["div", { style: "position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:12px;background:#000;" },
-        ["iframe", { src: `https://player.vimeo.com/video/${videoId}`, style: "position:absolute;top:0;left:0;width:100%;height:100%;border:0;", allowfullscreen: "true" }],
+        ["iframe", { src: "https://player.vimeo.com/video/" + videoId, style: "position:absolute;top:0;left:0;width:100%;height:100%;border:0;", allowfullscreen: "true" }],
       ],
       ...(caption ? [["p", { style: "text-align:center;font-size:11px;color:#888;margin-top:4px;" }, caption]] : []),
     ];
@@ -130,6 +106,145 @@ const SocialNode = Node.create({
   },
 });
 
+const CarouselNode = Node.create({
+  name: "carousel",
+  group: "block",
+  atom: true,
+  addAttributes() { return { images: { default: "[]" }, ratio: { default: "4:5" } }; },
+  parseHTML() { return [{ tag: "div[data-carousel]" }]; },
+  renderHTML({ HTMLAttributes }) {
+    const { images, ratio } = HTMLAttributes;
+    const imagesStr = typeof images === "string" ? images : JSON.stringify(images);
+    return [
+      "div", mergeAttributes({ "data-carousel": "" }, {
+        "data-images": imagesStr,
+        "data-ratio": ratio,
+        style: "margin:1.5rem 0;",
+      }),
+    ];
+  },
+});
+
+// ── Public Carousel ───────────────────────────────────────
+
+function PublicCarousel({ images, ratio }: { images: string[]; ratio: string }) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [current, setCurrent] = useState(0);
+  const total = images.length;
+
+  const cardWidth = ratio === "1:1" ? "72vw" : "60vw";
+  const cardMaxWidth = ratio === "1:1" ? "340px" : "280px";
+  const aspectRatio = ratio === "1:1" ? "1/1" : "4/5";
+
+  function scrollTo(index: number) {
+    const track = trackRef.current;
+    if (!track) return;
+    const card = track.children[index] as HTMLElement;
+    if (card) card.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    setCurrent(index);
+  }
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    function onScroll() {
+      if (!track) return;
+      const cards = Array.from(track.children) as HTMLElement[];
+      const center = track.scrollLeft + track.offsetWidth / 2;
+      let closest = 0;
+      let minDist = Infinity;
+      for (let i = 0; i < cards.length; i++) {
+        const cardCenter = cards[i].offsetLeft + cards[i].offsetWidth / 2;
+        const dist = Math.abs(center - cardCenter);
+        if (dist < minDist) { minDist = dist; closest = i; }
+      }
+      setCurrent(closest);
+    }
+    track.addEventListener("scroll", onScroll, { passive: true });
+    return () => track.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const items: React.ReactNode[] = [];
+  for (let i = 0; i < images.length; i++) {
+    items.push(
+      <div
+        key={i}
+        className="flex-shrink-0 snap-center overflow-hidden rounded-xl"
+        style={{ aspectRatio, width: cardWidth, maxWidth: cardMaxWidth }}
+      >
+        <img src={images[i]} alt="" className="w-full h-full object-cover" loading="lazy" />
+      </div>
+    );
+  }
+
+  const dots: React.ReactNode[] = [];
+  for (let i = 0; i < total; i++) {
+    const idx = i;
+    dots.push(
+      <button
+        key={i}
+        onClick={() => scrollTo(idx)}
+        className={"rounded-full transition-all " + (i === current ? "w-4 h-1.5 bg-gray-800" : "w-1.5 h-1.5 bg-gray-300")}
+      />
+    );
+  }
+
+  return (
+    <div className="my-6 select-none" dir="ltr">
+      <div
+        ref={trackRef}
+        className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2"
+        style={{ scrollbarWidth: "none" } as React.CSSProperties}
+      >
+        {items}
+      </div>
+      {total > 1 && (
+        <div className="flex justify-center gap-1.5 mt-3">{dots}</div>
+      )}
+    </div>
+  );
+}
+
+// ── Segment types ─────────────────────────────────────────
+
+type Segment =
+  | { type: "html"; html: string }
+  | { type: "carousel"; images: string[]; ratio: string };
+
+function splitIntoSegments(html: string): Segment[] {
+  const SPLIT = "CAROUSEL_PLACEHOLDER_";
+  const carouselData: { images: string[]; ratio: string }[] = [];
+
+  const replaced = html.replace(/<div data-carousel=""([^>]*)><\/div>/g, (_, attrs) => {
+    const imagesMatch = attrs.match(/data-images="([^"]*)"/);
+    const ratioMatch  = attrs.match(/data-ratio="([^"]*)"/);
+    let images: string[] = [];
+    try { images = JSON.parse((imagesMatch?.[1] ?? "[]").replace(/&quot;/g, '"')); } catch {}
+    const ratio = ratioMatch?.[1] ?? "4:5";
+    const idx = carouselData.length;
+    carouselData.push({ images, ratio });
+    return SPLIT + idx + "_END";
+  });
+
+  const parts = replaced.split(new RegExp("(" + SPLIT + "\\d+_END)"));
+  const segments: Segment[] = [];
+
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    const match = part.match(new RegExp(SPLIT + "(\\d+)_END"));
+    if (match) {
+      const idx = parseInt(match[1]);
+      segments.push({ type: "carousel", ...carouselData[idx] });
+    } else if (part.trim()) {
+      segments.push({ type: "html", html: part });
+    }
+  }
+
+  return segments;
+}
+
+// ── Main component ────────────────────────────────────────
+
 export default function ArticleBody({ body }: Props) {
   const html = useMemo(() => {
     if (!body) return "";
@@ -146,25 +261,54 @@ export default function ArticleBody({ body }: Props) {
         PullQuoteNode,
         InterviewNode,
         StyledBlockquoteNode,
+        CarouselNode,
       ]);
     } catch {
       return "";
     }
   }, [body]);
 
+  const segments = useMemo(() => splitIntoSegments(html), [html]);
+
   if (!html) return null;
 
-  return (
-    <div
-      className="article-body"
-      dir="rtl"
-      dangerouslySetInnerHTML={{ __html: html }}
-      style={{
-        fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
-        fontSize: "17px",
-        lineHeight: 2.2,
-        color: "rgb(26,26,26)",
-      }}
-    />
-  );
+  const bodyStyle: React.CSSProperties = {
+    fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
+    fontSize: "17px",
+    lineHeight: 2.2,
+    color: "rgb(26,26,26)",
+  };
+
+  if (segments.length === 1 && segments[0].type === "html") {
+    return (
+      <div
+        className="article-body"
+        dir="rtl"
+        dangerouslySetInnerHTML={{ __html: (segments[0] as any).html }}
+        style={bodyStyle}
+      />
+    );
+  }
+
+  const rendered: React.ReactNode[] = [];
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    if (seg.type === "html") {
+      rendered.push(
+        <div
+          key={i}
+          className="article-body"
+          dir="rtl"
+          dangerouslySetInnerHTML={{ __html: seg.html }}
+          style={bodyStyle}
+        />
+      );
+    } else {
+      rendered.push(
+        <PublicCarousel key={i} images={seg.images} ratio={seg.ratio} />
+      );
+    }
+  }
+
+  return <div>{rendered}</div>;
 }
