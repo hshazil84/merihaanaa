@@ -314,7 +314,7 @@ export default function EditArticlePage() {
             className="sticky bottom-4 z-20"
             dir="rtl"
           >
-            <div className="flex items-center gap-2 p-2 rounded-2xl border border-border shadow-lg w-fit" style={{ backgroundColor: "#f9fafb" }}>
+            <div className="flex items-center gap-2 p-2 rounded-2xl border border-border shadow-lg w-fit bg-background">
 
               {/* Last saved indicator */}
               {lastSaved && (
