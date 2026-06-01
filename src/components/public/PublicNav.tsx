@@ -27,10 +27,10 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   const router = useRouter();
 
   // ── Home page state ──
-  const [catBarTop, setCatBarTop]           = useState(LOGO_BAR_HEIGHT);
+  const [catBarTop, setCatBarTop]             = useState(LOGO_BAR_HEIGHT);
   const [logoTransparent, setLogoTransparent] = useState(false);
 
-  // ── Static page (non-home) compact nav state ──
+  // ── Static page compact nav state ──
   const [compact, setCompact] = useState(false);
   const lastScrollY           = useRef(0);
 
@@ -68,7 +68,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
     };
   }, [isStatic]);
 
-  // ── Static page scroll handler ──
+  // ── Static page scroll handler (hide on down, show on up) ──
   useEffect(() => {
     if (!isStatic) return;
     const update = () => {
@@ -129,20 +129,23 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   if (isStatic) {
     return (
       <>
-        {/* ── Full nav (slides up on scroll down) ── */}
+        {/* ── Full nav: slides up on scroll down (all screen sizes) ── */}
         <div
           className="fixed top-0 right-0 left-0 z-50 transition-transform duration-300 ease-in-out"
           style={{
-            transform: compact ? `translateY(-${LOGO_BAR_HEIGHT + CAT_BAR_HEIGHT}px)` : "translateY(0)",
+            transform: compact
+              ? `translateY(-${LOGO_BAR_HEIGHT + CAT_BAR_HEIGHT}px)`
+              : "translateY(0)",
           }}
         >
           {/* Logo bar */}
           <header style={{ height: `${LOGO_BAR_HEIGHT}px`, backgroundColor: "rgb(249, 248, 245)" }}>
             <div className="max-w-7xl mx-auto px-5 md:px-6 h-full flex items-center justify-center relative">
-              <Link href="/" className="flex items-center md:relative absolute right-5 md:right-auto">
-                <Image src="/logo.svg" alt="މެރިހާނާ" width={60} height={60} priority className="object-contain" />
+              {/* Logo — centered on all sizes */}
+              <Link href="/" className="flex items-center">
+                <Image src="/logo.svg" alt="މެރިހާنaa" width={60} height={60} priority className="object-contain" />
               </Link>
-              {/* Mobile hamburger */}
+              {/* Mobile: hamburger on left */}
               <div className="absolute left-5 md:hidden">
                 <button type="button" onClick={() => setMobileMenuOpen(true)}
                   className="p-2 rounded-full hover:bg-black/5 transition-colors"
@@ -150,7 +153,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
                   <Menu className="w-5 h-5" />
                 </button>
               </div>
-              {/* Desktop icons */}
+              {/* Desktop: search + user on left */}
               <div className="absolute left-5 md:left-6 hidden md:flex items-center gap-3">
                 <button type="button" aria-label="ހޯދާ" onClick={openSearch}
                   className="p-2 rounded-full hover:bg-black/5 transition-colors"
@@ -164,7 +167,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
             </div>
           </header>
 
-          {/* Category bar */}
+          {/* Category bar — desktop only */}
           <div
             className="hidden md:block"
             style={{
@@ -187,7 +190,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           </div>
         </div>
 
-        {/* ── Compact bar (slides in from top when scrolling down) ── */}
+        {/* ── Compact bar — desktop only (slides in from top) ── */}
         <div
           className="fixed top-0 right-0 left-0 z-50 transition-transform duration-300 ease-in-out hidden md:block"
           style={{
@@ -197,13 +200,11 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
             transform: compact ? "translateY(0)" : `translateY(-${COMPACT_HEIGHT}px)`,
           }}
         >
-          <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
-
-            {/* Visually right (RTL first) — logo */}
+          <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between" dir="rtl">
+            {/* Visually right in RTL — logo */}
             <Link href="/" className="flex items-center flex-shrink-0">
               <Image src="/logo.svg" alt="މެރިހާنaa" width={32} height={32} className="object-contain" />
             </Link>
-
             {/* Center — categories with dots */}
             <div className="flex items-center overflow-x-auto no-scrollbar">
               {categories.map((cat, i) => (
@@ -219,14 +220,43 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
                 </span>
               ))}
             </div>
-
-            {/* Visually left (RTL last) — search */}
+            {/* Visually left in RTL — search */}
             <button type="button" aria-label="ހޯދާ" onClick={openSearch}
               className="p-2 rounded-full hover:bg-black/5 transition-colors flex-shrink-0"
               style={{ color: "rgb(26,26,26)" }}>
               <Search className="w-[16px] h-[16px]" />
             </button>
+          </div>
+        </div>
 
+        {/* ── Mobile compact bar (slides in from top) ── */}
+        <div
+          className="fixed top-0 right-0 left-0 z-50 transition-transform duration-300 ease-in-out md:hidden"
+          style={{
+            height: `${COMPACT_HEIGHT}px`,
+            backgroundColor: "rgb(249, 248, 245)",
+            borderBottom: "1px solid rgb(224, 221, 214)",
+            transform: compact ? "translateY(0)" : `translateY(-${COMPACT_HEIGHT}px)`,
+          }}
+        >
+          <div className="px-5 h-full flex items-center justify-between" dir="rtl">
+            {/* Visually right — logo */}
+            <Link href="/" className="flex items-center flex-shrink-0">
+              <Image src="/logo.svg" alt="މެރިހާنaa" width={32} height={32} className="object-contain" />
+            </Link>
+            {/* Visually left — hamburger + search */}
+            <div className="flex items-center gap-1">
+              <button type="button" aria-label="ހޯދާ" onClick={openSearch}
+                className="p-2 rounded-full hover:bg-black/5 transition-colors"
+                style={{ color: "rgb(26,26,26)" }}>
+                <Search className="w-[16px] h-[16px]" />
+              </button>
+              <button type="button" onClick={() => setMobileMenuOpen(true)}
+                className="p-2 rounded-full hover:bg-black/5 transition-colors"
+                style={{ color: "rgb(26,26,26)" }}>
+                <Menu className="w-[18px] h-[18px]" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -250,7 +280,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           categories={categories}
           open={mobileMenuOpen}
           onClose={() => setMobileMenuOpen(false)}
-          topOffset={LOGO_BAR_HEIGHT}
+          topOffset={compact ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT}
         />
       </>
     );
