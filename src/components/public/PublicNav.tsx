@@ -26,22 +26,17 @@ const COMPACT_HEIGHT  = 48;
 export default function PublicNav({ categories, static: isStatic = false }: Props) {
   const router = useRouter();
 
-  // ── Home page DOM refs (no setState on scroll) ──
   const catBarRef  = useRef<HTMLDivElement>(null);
   const logoBarRef = useRef<HTMLElement>(null);
 
-  // ── Home page merged state (only 2 state transitions, not per-frame) ──
   const [homeMerged, setHomeMerged]   = useState(false);
   const [homeCompact, setHomeCompact] = useState(false);
   const homeMergedRef                 = useRef(false);
   const lastScrollY                   = useRef(0);
 
-  // ── Static page compact nav state ──
-  const [compact, setCompact] = useState(false);
-  const lastScrollYStatic     = useRef(0);
+  const [compact, setCompact]         = useState(false);
+  const lastScrollYStatic             = useRef(0);
 
-  // ── Shared UI state ──
-  const [mounted, setMounted]               = useState(false);
   const [searchOpen, setSearchOpen]         = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery]       = useState("");
@@ -50,11 +45,14 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   const searchRef   = useRef<HTMLInputElement>(null);
   const searchTimer = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => { setMounted(true); }, []);
-
   // ── Home page scroll handler ──
   useEffect(() => {
     if (isStatic) return;
+
+    // Make cat bar visible now that JS is running
+    if (catBarRef.current) {
+      catBarRef.current.style.visibility = "visible";
+    }
 
     const update = () => {
       const scrollY    = window.scrollY;
@@ -63,12 +61,10 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
       const clampedY   = Math.max(LOGO_BAR_HEIGHT, naturalY);
       const merged     = naturalY <= LOGO_BAR_HEIGHT;
 
-      // Direct DOM mutation for cat bar position — zero re-renders
       if (catBarRef.current) {
         catBarRef.current.style.transform = `translateY(${clampedY}px)`;
       }
 
-      // Logo bar: transparent until merged
       if (logoBarRef.current) {
         logoBarRef.current.style.backgroundColor = merged
           ? "rgb(249, 248, 245)"
@@ -79,14 +75,12 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         });
       }
 
-      // Only trigger React state when merge status changes
       if (merged !== homeMergedRef.current) {
         homeMergedRef.current = merged;
         setHomeMerged(merged);
         if (!merged) setHomeCompact(false);
       }
 
-      // Once merged, hide/show compact bar on scroll direction
       if (merged) {
         if (scrollY > lastScrollY.current) {
           setHomeCompact(true);
@@ -180,7 +174,6 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
               <Link href="/" className="flex items-center">
                 <Image src="/logo.svg" alt="މެރިހާنaa" width={60} height={60} priority className="object-contain" />
               </Link>
-              {/* Mobile: hamburger right, search left */}
               <div className="absolute right-5 md:hidden">
                 <button type="button" onClick={() => setMobileMenuOpen(true)}
                   className="p-2 rounded-full hover:bg-black/5 transition-colors"
@@ -195,7 +188,6 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
                   <Search className="w-[18px] h-[18px]" />
                 </button>
               </div>
-              {/* Desktop: search + user on left */}
               <div className="absolute left-5 md:left-6 hidden md:flex items-center gap-3">
                 <button type="button" aria-label="ހޯދާ" onClick={openSearch}
                   className="p-2 rounded-full hover:bg-black/5 transition-colors"
@@ -209,7 +201,6 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
             </div>
           </header>
 
-          {/* Category bar — desktop only */}
           <div className="hidden md:block" style={{ height: `${CAT_BAR_HEIGHT}px`, backgroundColor: "rgb(249, 248, 245)", borderBottom: "1px solid rgb(224, 221, 214)" }}>
             <div className="max-w-7xl mx-auto px-6 h-full">
               <div className="flex items-center justify-center gap-1 h-full">
@@ -316,12 +307,10 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
 
   // ─────────────────────────────────────────────────────────
   // HOME PAGE
-  // Phase 1: transparent logo bar + cat bar rising from hero bottom
-  // Phase 2: once merged, behaves like article pages (hide/compact on scroll)
   // ─────────────────────────────────────────────────────────
   return (
     <>
-      {/* ── Logo bar ── */}
+      {/* Logo bar */}
       <header
         ref={logoBarRef}
         className="fixed top-0 right-0 left-0 z-50"
@@ -338,7 +327,6 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           <Link href="/" className="flex items-center">
             <Image src="/logo.svg" alt="މެރިހާنaa" width={60} height={60} priority className="object-contain" />
           </Link>
-          {/* Mobile: hamburger on right, search on left */}
           <div className="absolute right-5 md:hidden">
             <button type="button" onClick={() => setMobileMenuOpen(true)}
               className="nav-icon p-2 rounded-full hover:bg-white/10 transition-colors"
@@ -353,7 +341,6 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
               <Search className="w-[18px] h-[18px]" />
             </button>
           </div>
-          {/* Desktop: search + user on left */}
           <div className="absolute left-5 md:left-6 hidden md:flex items-center gap-3">
             <button type="button" aria-label="ހޯދާ" onClick={openSearch}
               className="nav-icon p-2 rounded-full hover:bg-black/5 transition-colors"
@@ -369,7 +356,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         </div>
       </header>
 
-      {/* ── Category bar — rises from bottom of hero (desktop only) ── */}
+      {/* Category bar — hidden until JS positions it, then rises from hero bottom */}
       <div
         ref={catBarRef}
         className="fixed left-0 right-0 z-40 hidden md:block will-change-transform"
@@ -378,8 +365,8 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           height: `${CAT_BAR_HEIGHT}px`,
           backgroundColor: "rgb(249, 248, 245)",
           borderBottom: "1px solid rgb(224, 221, 214)",
-          transform: `translateY(${typeof window !== "undefined" ? window.innerHeight - CAT_BAR_HEIGHT : 600}px)`,
-          transition: homeMerged && homeCompact ? "transform 0.3s ease" : undefined,
+          transform: "translateY(110vh)",
+          visibility: "hidden",
         }}
       >
         <div className="max-w-7xl mx-auto px-6 h-full">
@@ -395,7 +382,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         </div>
       </div>
 
-      {/* ── Desktop compact bar — only appears after merge, on scroll down ── */}
+      {/* Desktop compact bar — only after merge + scroll down */}
       <div
         className="fixed top-0 right-0 left-0 z-50 transition-transform duration-300 ease-in-out hidden md:block"
         style={{
@@ -431,7 +418,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         </div>
       </div>
 
-      {/* ── Mobile compact bar — only appears after merge, on scroll down ── */}
+      {/* Mobile compact bar — only after merge + scroll down */}
       <div
         className="fixed top-0 right-0 left-0 z-50 transition-transform duration-300 ease-in-out md:hidden"
         style={{
@@ -626,7 +613,6 @@ function MobileMenu({ categories, open, onClose, topOffset }: {
           ))}
         </nav>
 
-        {/* Login link at bottom */}
         <div
           className="pt-6 mt-6 border-t border-[#e0ddd6]/60"
           style={{
