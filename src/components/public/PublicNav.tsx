@@ -26,20 +26,22 @@ const COMPACT_HEIGHT  = 48;
 export default function PublicNav({ categories, static: isStatic = false }: Props) {
   const router = useRouter();
 
-  // ── Home page state ──
-  const [catBarTop, setCatBarTop]             = useState(LOGO_BAR_HEIGHT);
-  const [logoTransparent, setLogoTransparent] = useState(false);
+  // ── Home page: DOM refs for jank-free scroll animation ──
+  const catBarRef  = useRef<HTMLDivElement>(null);
+  const logoBarRef = useRef<HTMLElement>(null);
 
   // ── Static page compact nav state ──
   const [compact, setCompact] = useState(false);
   const lastScrollY           = useRef(0);
 
-  const [mounted, setMounted]               = useState(false);
-  const [searchOpen, setSearchOpen]         = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery]       = useState("");
-  const [searchResults, setSearchResults]   = useState<SearchResult[]>([]);
-  const [searchLoading, setSearchLoading]   = useState(false);
+  // ── Shared UI state ──
+  const [logoTransparent, setLogoTransparent] = useState(false);
+  const [mounted, setMounted]                 = useState(false);
+  const [searchOpen, setSearchOpen]           = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen]   = useState(false);
+  const [searchQuery, setSearchQuery]         = useState("");
+  const [searchResults, setSearchResults]     = useState<SearchResult[]>([]);
+  const [searchLoading, setSearchLoading]     = useState(false);
   const searchRef   = useRef<HTMLInputElement>(null);
   const searchTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -48,18 +50,42 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
     if (!isStatic) setLogoTransparent(window.scrollY < 20);
   }, [isStatic]);
 
-  // ── Home page scroll handler ──
+  // ── Home page: direct DOM mutation scroll handler (no setState) ──
   useEffect(() => {
     if (isStatic) return;
+
     const update = () => {
       const scrollY    = window.scrollY;
       const heroHeight = window.innerHeight;
-      const naturalTop = heroHeight - CAT_BAR_HEIGHT - scrollY;
-      const clampedTop = Math.max(LOGO_BAR_HEIGHT, naturalTop);
-      setCatBarTop(clampedTop);
-      setLogoTransparent(scrollY < 20);
+
+      // How far the cat bar has scrolled up from the bottom of the hero.
+      // Starts at heroHeight - CAT_BAR_HEIGHT (bottom of viewport),
+      // ends at LOGO_BAR_HEIGHT (just below logo bar).
+      const naturalY   = heroHeight - CAT_BAR_HEIGHT - scrollY;
+      const clampedY   = Math.max(LOGO_BAR_HEIGHT, naturalY);
+
+      // Directly set transform on the cat bar DOM node — no React re-render
+      if (catBarRef.current) {
+        catBarRef.current.style.transform = `translateY(${clampedY}px)`;
+      }
+
+      // Logo bar: transparent until cat bar reaches it
+      const locked = naturalY <= LOGO_BAR_HEIGHT;
+      if (logoBarRef.current) {
+        logoBarRef.current.style.backgroundColor = locked
+          ? "rgb(249, 248, 245)"
+          : "transparent";
+        // Icon color
+        const icons = logoBarRef.current.querySelectorAll<HTMLElement>(".nav-icon");
+        icons.forEach((el) => {
+          el.style.color = locked ? "rgb(26,26,26)" : "rgb(255,255,255)";
+        });
+      }
     };
+
+    // Run once immediately to set initial positions
     update();
+
     window.addEventListener("scroll", update, { passive: true });
     window.addEventListener("resize", update, { passive: true });
     return () => {
@@ -68,7 +94,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
     };
   }, [isStatic]);
 
-  // ── Static page scroll handler (hide on down, show on up) ──
+  // ── Static page scroll handler ──
   useEffect(() => {
     if (!isStatic) return;
     const update = () => {
@@ -121,15 +147,13 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
     }
   };
 
-  const iconColor = (mounted && logoTransparent) ? "rgb(255,255,255)" : "rgb(26,26,26)";
-
   // ─────────────────────────────────────────────────────────
   // NON-HOME PAGES — compact collapsible nav
   // ─────────────────────────────────────────────────────────
   if (isStatic) {
     return (
       <>
-        {/* ── Full nav: slides up on scroll down (all screen sizes) ── */}
+        {/* ── Full nav: slides up on scroll down ── */}
         <div
           className="fixed top-0 right-0 left-0 z-50 transition-transform duration-300 ease-in-out"
           style={{
@@ -141,11 +165,9 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           {/* Logo bar */}
           <header style={{ height: `${LOGO_BAR_HEIGHT}px`, backgroundColor: "rgb(249, 248, 245)" }}>
             <div className="max-w-7xl mx-auto px-5 md:px-6 h-full flex items-center justify-center relative">
-              {/* Logo — centered on all sizes */}
               <Link href="/" className="flex items-center">
-                <Image src="/logo.svg" alt="މެރިހާنaa" width={60} height={60} priority className="object-contain" />
+                <Image src="/logo.svg" alt="މެރިހާނާ" width={60} height={60} priority className="object-contain" />
               </Link>
-              {/* Mobile: hamburger on left */}
               <div className="absolute left-5 md:hidden">
                 <button type="button" onClick={() => setMobileMenuOpen(true)}
                   className="p-2 rounded-full hover:bg-black/5 transition-colors"
@@ -153,7 +175,6 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
                   <Menu className="w-5 h-5" />
                 </button>
               </div>
-              {/* Desktop: search + user on left */}
               <div className="absolute left-5 md:left-6 hidden md:flex items-center gap-3">
                 <button type="button" aria-label="ހޯދާ" onClick={openSearch}
                   className="p-2 rounded-full hover:bg-black/5 transition-colors"
@@ -190,7 +211,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           </div>
         </div>
 
-        {/* ── Compact bar — desktop only (slides in from top) ── */}
+        {/* ── Desktop compact bar ── */}
         <div
           className="fixed top-0 right-0 left-0 z-50 transition-transform duration-300 ease-in-out hidden md:block"
           style={{
@@ -201,11 +222,9 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           }}
         >
           <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between" dir="rtl">
-            {/* Visually right in RTL — logo */}
             <Link href="/" className="flex items-center flex-shrink-0">
               <Image src="/logo.svg" alt="މެރިހާنaa" width={32} height={32} className="object-contain" />
             </Link>
-            {/* Center — categories with dots */}
             <div className="flex items-center overflow-x-auto no-scrollbar">
               {categories.map((cat, i) => (
                 <span key={cat.id} className="flex items-center">
@@ -220,7 +239,6 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
                 </span>
               ))}
             </div>
-            {/* Visually left in RTL — search */}
             <button type="button" aria-label="ހޯދާ" onClick={openSearch}
               className="p-2 rounded-full hover:bg-black/5 transition-colors flex-shrink-0"
               style={{ color: "rgb(26,26,26)" }}>
@@ -229,7 +247,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           </div>
         </div>
 
-        {/* ── Mobile compact bar (slides in from top) ── */}
+        {/* ── Mobile compact bar ── */}
         <div
           className="fixed top-0 right-0 left-0 z-50 transition-transform duration-300 ease-in-out md:hidden"
           style={{
@@ -240,11 +258,9 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           }}
         >
           <div className="px-5 h-full flex items-center justify-between" dir="rtl">
-            {/* Visually right — logo */}
             <Link href="/" className="flex items-center flex-shrink-0">
               <Image src="/logo.svg" alt="މެރިހާنaa" width={32} height={32} className="object-contain" />
             </Link>
-            {/* Visually left — hamburger + search */}
             <div className="flex items-center gap-1">
               <button type="button" aria-label="ހޯދާ" onClick={openSearch}
                 className="p-2 rounded-full hover:bg-black/5 transition-colors"
@@ -260,7 +276,6 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           </div>
         </div>
 
-        {/* Search dropdown */}
         {searchOpen && (
           <SearchDropdown
             searchRef={searchRef}
@@ -275,7 +290,6 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         )}
         {searchOpen && <div className="fixed inset-0 z-[55]" onClick={closeSearch} />}
 
-        {/* Mobile menu */}
         <MobileMenu
           categories={categories}
           open={mobileMenuOpen}
@@ -287,16 +301,18 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   }
 
   // ─────────────────────────────────────────────────────────
-  // HOME PAGE — original scroll-over-hero behavior unchanged
+  // HOME PAGE — jank-free DOM-ref scroll animation
   // ─────────────────────────────────────────────────────────
   return (
     <>
-      {/* Logo bar */}
+      {/* Logo bar — ref-controlled background + icon colors */}
       <header
-        className="fixed top-0 right-0 left-0 z-50 transition-colors duration-200"
+        ref={logoBarRef}
+        className="fixed top-0 right-0 left-0 z-50"
         style={{
           height: `${LOGO_BAR_HEIGHT}px`,
-          backgroundColor: (mounted && logoTransparent) ? "transparent" : "rgb(249, 248, 245)",
+          backgroundColor: "transparent",
+          transition: "background-color 0.25s ease",
         }}
       >
         <div className="max-w-7xl mx-auto px-5 md:px-6 h-full flex items-center justify-center relative">
@@ -305,32 +321,38 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           </Link>
           <div className="absolute left-5 md:hidden">
             <button type="button" onClick={() => setMobileMenuOpen(true)}
-              className="p-2 rounded-full hover:bg-black/5 transition-colors"
-              style={{ color: iconColor }}>
+              className="nav-icon p-2 rounded-full hover:bg-black/5 transition-colors"
+              style={{ color: "rgb(255,255,255)" }}>
               <Menu className="w-5 h-5" />
             </button>
           </div>
           <div className="absolute left-5 md:left-6 hidden md:flex items-center gap-3">
             <button type="button" aria-label="ހޯދާ" onClick={openSearch}
-              className="p-2 rounded-full hover:bg-black/5 transition-colors"
-              style={{ color: iconColor }}>
+              className="nav-icon p-2 rounded-full hover:bg-black/5 transition-colors"
+              style={{ color: "rgb(255,255,255)" }}>
               <Search className="w-[18px] h-[18px]" />
             </button>
-            <Link href="/login" className="p-2 rounded-full hover:bg-black/5 transition-colors" style={{ color: iconColor }}>
+            <Link href="/login"
+              className="nav-icon p-2 rounded-full hover:bg-black/5 transition-colors"
+              style={{ color: "rgb(255,255,255)" }}>
               <User className="w-[18px] h-[18px]" />
             </Link>
           </div>
         </div>
       </header>
 
-      {/* Category bar */}
+      {/* Category bar — starts at bottom of hero, scrolls up to lock under logo */}
+      {/* Position: fixed, top:0, moved into place via transform */}
       <div
-        className="fixed z-40 w-full hidden md:block"
+        ref={catBarRef}
+        className="fixed left-0 right-0 z-40 hidden md:block will-change-transform"
         style={{
-          top: `${catBarTop}px`,
+          top: 0,
           height: `${CAT_BAR_HEIGHT}px`,
           backgroundColor: "rgb(249, 248, 245)",
           borderBottom: "1px solid rgb(224, 221, 214)",
+          // Initial position: bottom of viewport. JS will update this immediately.
+          transform: `translateY(${typeof window !== "undefined" ? window.innerHeight - CAT_BAR_HEIGHT : 600}px)`,
         }}
       >
         <div className="max-w-7xl mx-auto px-6 h-full">
@@ -346,7 +368,6 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         </div>
       </div>
 
-      {/* Search dropdown */}
       {searchOpen && (
         <SearchDropdown
           searchRef={searchRef}
@@ -361,7 +382,6 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
       )}
       {searchOpen && <div className="fixed inset-0 z-[55]" onClick={closeSearch} />}
 
-      {/* Mobile menu */}
       <MobileMenu
         categories={categories}
         open={mobileMenuOpen}
