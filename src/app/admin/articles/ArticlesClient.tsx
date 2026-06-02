@@ -177,7 +177,7 @@ export default function ArticlesClient({
             <SelectTrigger className="w-40 text-right" dir="rtl">
               <SelectValue placeholder="ހާލަތު" />
             </SelectTrigger>
-            <SelectContent dir="rtl">
+            <SelectContent dir="rtl" className="bg-background">
               {STATUS_FILTER_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value} className="text-right">
                   {opt.label}
