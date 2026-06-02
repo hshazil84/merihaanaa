@@ -35,6 +35,7 @@ export default function EditArticlePage() {
   const [scheduledFor, setScheduledFor]         = useState<string | null>(null);
   const [tags, setTags]                         = useState<TagItem[]>([]);
   const [slug, setSlug]                         = useState("");
+  const [status, setStatus]                     = useState<string>("draft");
 
   const [loading, setLoading]     = useState(true);
   const [saving, setSaving]       = useState(false);
@@ -86,6 +87,7 @@ export default function EditArticlePage() {
       setAuthorId(a.author_id ?? null);
       setScheduledFor(a.scheduled_for ?? null);
       setTags(Array.isArray(a.tags) ? a.tags : []);
+      setStatus(a.status ?? "draft");
 
       if (a.cover_type === "image" && (a.cover_url || a.featured_image)) {
         setCoverMedia({ type: "image", imageUrl: a.cover_url || a.featured_image });
@@ -193,6 +195,7 @@ export default function EditArticlePage() {
     if (err) { if (!silent) setError("ލިޔުން ސޭވް ނުވި: " + err.message); return; }
 
     setLastSaved(new Date());
+    setStatus(publishStatus);
 
     if (!silent && publishStatus === "published") {
       router.push("/admin/articles");
@@ -231,6 +234,7 @@ export default function EditArticlePage() {
         authorId={authorId}
         scheduledAt={scheduledFor}
         tags={tags}
+        status={status}
         onCategoryChange={(catId) => { setCategoryId(catId); categoryRef.current = catId; }}
         onPlacementChange={setPlacement}
         onHomepageFeaturedChange={setHomepageFeatured}
@@ -310,10 +314,7 @@ export default function EditArticlePage() {
           />
 
           {/* ── Floating action bar ── */}
-          <div
-            className="sticky bottom-4 z-20"
-            dir="rtl"
-          >
+          <div className="sticky bottom-4 z-20" dir="rtl">
             <div className="flex items-center gap-2 p-2 rounded-2xl border border-border shadow-lg w-fit bg-card">
 
               {/* Autosave indicator */}
@@ -361,7 +362,7 @@ export default function EditArticlePage() {
                 className="flex items-center gap-2 px-3 py-2 rounded-xl font-body text-xs bg-foreground text-background hover:opacity-80 transition-opacity disabled:opacity-40"
               >
                 {saving ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                ޝާއިއު
+                {status === "published" ? "އަޕްޑޭޓް" : "ޝާއިއު"}
               </button>
             </div>
           </div>
