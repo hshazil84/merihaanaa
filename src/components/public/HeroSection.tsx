@@ -56,13 +56,15 @@ export default function HeroSection({ article }: { article: HeroArticle }) {
         )}
 
         <Link href={`/${article.category?.slug ?? "article"}/${article.slug}`} className="block">
-          <h1 className="font-display text-2xl text-white leading-snug text-center">
+          <h1 className="font-display text-white leading-snug text-center"
+            style={{ fontSize: "1.8rem" }}>
             {article.title}
           </h1>
         </Link>
 
         {article.excerpt && (
-          <p className="font-body text-sm text-white/70 leading-relaxed line-clamp-2 mt-3 text-center max-w-sm">
+          <p className="font-body text-white/70 leading-relaxed line-clamp-2 mt-3 text-center max-w-sm"
+            style={{ fontSize: "0.96rem" }}>
             {article.excerpt}
           </p>
         )}
@@ -89,13 +91,15 @@ export default function HeroSection({ article }: { article: HeroArticle }) {
         )}
 
         <Link href={`/${article.category?.slug ?? "article"}/${article.slug}`} className="block">
-          <h1 className="font-display text-4xl text-white leading-snug hover:opacity-80 transition-opacity text-center max-w-lg">
+          <h1 className="font-display text-white leading-snug hover:opacity-80 transition-opacity text-center max-w-lg"
+            style={{ fontSize: "2.475rem" }}>
             {article.title}
           </h1>
         </Link>
 
         {article.excerpt && (
-          <p className="font-body text-sm text-white/60 leading-relaxed line-clamp-2 mt-4 text-center max-w-md">
+          <p className="font-body text-white/60 leading-relaxed line-clamp-2 mt-4 text-center max-w-md"
+            style={{ fontSize: "0.935rem" }}>
             {article.excerpt}
           </p>
         )}
