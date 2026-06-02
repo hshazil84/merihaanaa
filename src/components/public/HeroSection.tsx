@@ -91,14 +91,14 @@ export default function HeroSection({ article }: { article: HeroArticle }) {
         )}
 
         <Link href={`/${article.category?.slug ?? "article"}/${article.slug}`} className="block">
-          <h1 className="font-display text-white leading-tight hover:opacity-80 transition-opacity text-center max-w-lg"
-            style={{ fontSize: "3.475rem" }}>
+          <h1 className="font-display text-white leading-none hover:opacity-80 transition-opacity text-center max-w-lg"
+            style={{ fontSize: "2.675rem" }}>
             {article.title}
           </h1>
         </Link>
 
         {article.excerpt && (
-          <p className="font-body text-white/60 leading-normal line-clamp-2 mt-4 text-center max-w-md"
+          <p className="font-body text-white/60 leading-none line-clamp-2 mt-4 text-center max-w-md"
             style={{ fontSize: "0.935rem" }}>
             {article.excerpt}
           </p>
