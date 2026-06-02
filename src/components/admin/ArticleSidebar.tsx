@@ -33,6 +33,7 @@ interface SidebarProps {
   authorId: string | null;
   scheduledAt: string | null;
   tags?: TagItem[];
+  status?: string;
   onCategoryChange: (id: string) => void;
   onPlacementChange: (v: string | null) => void;
   onHomepageFeaturedChange: (v: boolean) => void;
@@ -69,7 +70,6 @@ function slugify(text: string) {
   return latin || `tag-${Date.now()}`;
 }
 
-// Thin divider — replaces the heavy border-b on every section
 function Divider() {
   return <div className="h-px bg-border mx-4" />;
 }
@@ -139,7 +139,7 @@ function Collapsible({
 export default function ArticleSidebar({
   title, excerpt, body, categories, categoryId, placement, homepageFeatured,
   isPremium, allowComments, ogTitle, ogDesc, ogImageUrl, coverMedia,
-  authorId, scheduledAt, tags = [],
+  authorId, scheduledAt, tags = [], status,
   onCategoryChange, onPlacementChange, onHomepageFeaturedChange,
   onIsPremiumChange, onAllowCommentsChange, onOgTitleChange, onOgDescChange,
   onOgImageUrlChange, onAuthorIdChange, onScheduledAtChange, onTagsChange,
@@ -157,6 +157,7 @@ export default function ArticleSidebar({
 
   const readingTime    = calculateReadingTime(body);
   const isVideoCover   = coverMedia?.type === "video";
+  const isPublished    = status === "published";
   const ogPreviewImage =
     ogImageUrl ||
     (coverMedia?.type === "image" ? coverMedia.imageUrl : null) ||
@@ -234,7 +235,7 @@ export default function ArticleSidebar({
 
         {/* ── Actions ── */}
         <Section>
-          {/* Preview + Save Draft — flat, no background box */}
+          {/* Preview + Save Draft */}
           <div className="flex gap-2 mb-3">
             <button
               type="button" onClick={onPreview}
@@ -253,14 +254,26 @@ export default function ArticleSidebar({
             </button>
           </div>
 
-          {/* Publish row */}
+          {/* Publish / Unpublish row */}
           <div className="flex gap-2">
             <button
               type="button" onClick={onPublish} disabled={saving}
               className="flex-1 flex items-center justify-center gap-1.5 h-8 rounded-lg bg-foreground text-background font-body text-xs font-semibold hover:opacity-85 transition-opacity disabled:opacity-40"
             >
-              <Send size={12} /> ލައިވް
+              <Send size={12} /> {isPublished ? "އަޕްޑޭޓް" : "ލައިވް"}
             </button>
+
+            {/* Unpublish — only shown when article is published */}
+            {isPublished && (
+              <button
+                type="button" onClick={onSaveDraft} disabled={saving}
+                title="ޑްރާފްޓަށް ބަދަލު"
+                className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-destructive hover:border-destructive transition-all disabled:opacity-40"
+              >
+                <Globe size={13} />
+              </button>
+            )}
+
             <button
               type="button" onClick={() => setShowScheduler(!showScheduler)}
               className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all ${
