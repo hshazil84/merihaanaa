@@ -66,8 +66,11 @@ const PLACEMENTS = [
 const BUCKET = "article-images";
 
 function slugify(text: string) {
-  const latin = text.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "");
-  return latin || `tag-${Date.now()}`;
+  const trimmed = text.trim();
+  const latin = trimmed.toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "");
+  if (latin.length >= 2) return latin;
+  const hash = trimmed.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  return `tag-${hash}`;
 }
 
 function Divider() {
