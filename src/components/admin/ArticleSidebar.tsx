@@ -154,6 +154,7 @@ export default function ArticleSidebar({
   const [aiSuggestions, setAiSuggestions] = useState<TagItem[]>([]);
   const [ogUploading, setOgUploading]     = useState(false);
   const ogInputRef                        = useRef<HTMLInputElement>(null);
+  const addingRef                         = useRef(false);
 
   const readingTime    = calculateReadingTime(body);
   const isVideoCover   = coverMedia?.type === "video";
@@ -186,10 +187,13 @@ export default function ArticleSidebar({
   const handleTagInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
+      if (addingRef.current) return;
       const val = tagInput.trim();
       if (!val) return;
+      addingRef.current = true;
       addTag({ name: val, slug: slugify(val) });
       setTagInput("");
+      setTimeout(() => { addingRef.current = false; }, 300);
     }
   };
 
@@ -235,7 +239,6 @@ export default function ArticleSidebar({
 
         {/* ── Actions ── */}
         <Section>
-          {/* Preview + Save Draft */}
           <div className="flex gap-2 mb-3">
             <button
               type="button" onClick={onPreview}
@@ -254,7 +257,6 @@ export default function ArticleSidebar({
             </button>
           </div>
 
-          {/* Publish / Unpublish row */}
           <div className="flex gap-2">
             <button
               type="button" onClick={onPublish} disabled={saving}
@@ -263,7 +265,6 @@ export default function ArticleSidebar({
               <Send size={12} /> {isPublished ? "އަޕްޑޭޓް" : "ލައިވް"}
             </button>
 
-            {/* Unpublish — only shown when article is published */}
             {isPublished && (
               <button
                 type="button" onClick={onSaveDraft} disabled={saving}
