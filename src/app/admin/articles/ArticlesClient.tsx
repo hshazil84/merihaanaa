@@ -31,6 +31,7 @@ interface Author {
 interface Category {
   id: string;
   name: string;
+  slug?: string;
 }
 
 interface Article {
@@ -54,6 +55,8 @@ interface Props {
   pageSize: number;
   currentStatus: string;
   currentQ: string;
+  currentCategory: string;
+  categories: Category[];
 }
 
 const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -86,6 +89,7 @@ function formatViews(n: number | null): string {
 
 export default function ArticlesClient({
   articles, totalCount, page, pageSize, currentStatus, currentQ,
+  currentCategory, categories,
 }: Props) {
   const router   = useRouter();
   const pathname = usePathname();
@@ -99,13 +103,13 @@ export default function ArticlesClient({
 
   const navigate = useCallback((params: Record<string, string>) => {
     const sp = new URLSearchParams();
-    const merged = { page: String(page), status: currentStatus, q: currentQ, ...params };
+    const merged = { page: String(page), status: currentStatus, q: currentQ, category: currentCategory, ...params };
     Object.entries(merged).forEach(([k, v]) => {
       if (v && v !== "all" && v !== "") sp.set(k, v);
       if (k === "page" && v !== "1") sp.set(k, v);
     });
     startTransition(() => { router.push(`${pathname}?${sp.toString()}`); });
-  }, [page, currentStatus, currentQ, pathname, router]);
+  }, [page, currentStatus, currentQ, currentCategory, pathname, router]);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -173,8 +177,9 @@ export default function ArticlesClient({
             )}
           </form>
 
+          {/* Status filter */}
           <Select value={currentStatus} onValueChange={(v) => navigate({ status: v, page: "1" })}>
-            <SelectTrigger className="w-40 text-right" dir="rtl">
+            <SelectTrigger className="w-36 text-right" dir="rtl">
               <SelectValue placeholder="ހާލަތު" />
             </SelectTrigger>
             <SelectContent dir="rtl" className="bg-background">
@@ -185,6 +190,29 @@ export default function ArticlesClient({
               ))}
             </SelectContent>
           </Select>
+
+          {/* Category filter */}
+          <Select value={currentCategory || "all"} onValueChange={(v) => navigate({ category: v === "all" ? "" : v, page: "1" })}>
+            <SelectTrigger className="w-36 text-right" dir="rtl">
+              <SelectValue placeholder="ކެޓަގަރީ" />
+            </SelectTrigger>
+            <SelectContent dir="rtl" className="bg-background">
+              <SelectItem value="all" className="text-right">ހުރިހާ</SelectItem>
+              {categories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id} className="text-right">
+                  {cat.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Clear category filter */}
+          {currentCategory && (
+            <Button type="button" variant="ghost" size="sm"
+              onClick={() => navigate({ category: "", page: "1" })}>
+              ސީދާ ކުރޭ
+            </Button>
+          )}
         </div>
 
         {/* Table */}
@@ -300,7 +328,7 @@ export default function ArticlesClient({
                         </Link>
 
                         {article.status === "published" ? (
-                          <Link href={`/news/${article.slug}`} target="_blank" rel="noopener noreferrer">
+                          <Link href={`/${article.category?.slug ?? "article"}/${article.slug}`} target="_blank" rel="noopener noreferrer">
                             <button type="button" title="ބަލާ"
                               className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
                               <Eye className="h-3.5 w-3.5" />
@@ -361,7 +389,7 @@ export default function ArticlesClient({
         )}
       </div>
 
-      {/* Delete modal — outside all containers so fixed positioning works */}
+      {/* Delete modal */}
       {deleteTarget && (
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
