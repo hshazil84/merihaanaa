@@ -196,7 +196,7 @@ export default function ArticlesClient({
             <SelectTrigger className="w-36 text-right" dir="rtl">
               <SelectValue placeholder="ކެޓަގަރީ" />
             </SelectTrigger>
-            <SelectContent dir="rtl" className="bg-background">
+            <SelectContent dir="rtl" className="bg-background" position="popper" side="bottom">
               <SelectItem value="all" className="text-right">ހުރިހާ</SelectItem>
               {categories.map((cat) => (
                 <SelectItem key={cat.id} value={cat.id} className="text-right">
