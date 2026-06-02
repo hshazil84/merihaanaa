@@ -57,7 +57,7 @@ export default function HeroSection({ article }: { article: HeroArticle }) {
 
         <Link href={`/${article.category?.slug ?? "article"}/${article.slug}`} className="block">
           <h1 className="font-display text-white leading-snug text-center"
-            style={{ fontSize: "1.8rem" }}>
+            style={{ fontSize: "2.8rem" }}>
             {article.title}
           </h1>
         </Link>
@@ -92,7 +92,7 @@ export default function HeroSection({ article }: { article: HeroArticle }) {
 
         <Link href={`/${article.category?.slug ?? "article"}/${article.slug}`} className="block">
           <h1 className="font-display text-white leading-snug hover:opacity-80 transition-opacity text-center max-w-lg"
-            style={{ fontSize: "2.475rem" }}>
+            style={{ fontSize: "3.475rem" }}>
             {article.title}
           </h1>
         </Link>
