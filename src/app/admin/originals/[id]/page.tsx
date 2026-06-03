@@ -115,9 +115,7 @@ export default function OriginalsEditPage() {
         filename: file.name,
         filetype: file.type || "video/mp4",
       },
-      headers: {
-        "x-tus-title": title || "Untitled",
-      },
+
       onProgress(bytesUploaded, bytesTotal) {
         const pct = Math.round((bytesUploaded / bytesTotal) * 100);
         setUploadProgress(pct);
