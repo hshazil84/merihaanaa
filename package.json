@@ -45,7 +45,8 @@
     "sharp": "^0.33.4",
     "slugify": "^1.6.6",
     "tailwind-merge": "^2.3.0",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "tus-js-client": "^4.1.0"
   },
   "devDependencies": {
     "@tiptap/html": "^2.27.2",
