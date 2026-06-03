@@ -40,7 +40,7 @@ const NAV_GROUPS = [
   ],
   [
     { href: "/admin/videos",       label: "ވީޑިއޯތައް",      icon: Video,           comingSoon: false },
-    { href: "/admin/series",       label: "ސީރީސް",           icon: Clapperboard,    comingSoon: true  },
+    { href: "/admin/originals",    label: "ވީއޯޑީ",           icon: Clapperboard,    comingSoon: false },
     { href: "/admin/podcast",      label: "ޕޮޑްކާސްޓް",      icon: Mic,             comingSoon: true  },
   ],
   [
@@ -53,16 +53,17 @@ const NAV_GROUPS = [
 ];
 
 const BREADCRUMB_MAP: Record<string, string> = {
-  "/admin":              "ޑޭޝްބޯޑް",
-  "/admin/articles":     "ލިޔުންތައް",
-  "/admin/articles/new": "އާ ލިޔުން",
-  "/admin/media":        "މީޑިއާ",
-  "/admin/videos":       "ވީޑިއޯ",
-  "/admin/series":       "ސީރީސް",
-  "/admin/podcast":      "ޕޮޑްކާސްޓް",
-  "/admin/comments":     "ކޮމެންޓް",
-  "/admin/subscribers":  "ސަބްސްކްރައިބަރ",
-  "/admin/authors":      "ލިޔުންތެރިން",
+  "/admin":               "ޑޭޝްބޯޑް",
+  "/admin/articles":      "ލިޔުންތައް",
+  "/admin/articles/new":  "އާ ލިޔުން",
+  "/admin/media":         "މީޑިއާ",
+  "/admin/videos":        "ވީޑިއޯ",
+  "/admin/originals":     "ވީއޯޑީ",
+  "/admin/originals/new": "އާ ވިޑިއޯ",
+  "/admin/podcast":       "ޕޮޑްކާސްޓް",
+  "/admin/comments":      "ކޮމެންޓް",
+  "/admin/subscribers":   "ސަބްސްކްރައިބަރ",
+  "/admin/authors":       "ލިޔުންތެރިން",
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -147,7 +148,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               {gi > 0 && <div className="mx-2 my-2 border-t border-border" />}
               {group.map((item) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.href;
+                const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
 
                 if (item.comingSoon) {
                   return (
