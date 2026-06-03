@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import * as tus from "tus-js-client";
 
 const TYPES = [
   { value: "documentary", label: "ޑޮކިއުމެންޓްރީ" },
@@ -47,21 +48,19 @@ export default function OriginalsEditPage() {
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [durationSeconds, setDurationSeconds] = useState("");
 
-  // Upload state
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "done" | "error">("idle");
   const [uploadError, setUploadError] = useState("");
   const [eta, setEta] = useState("");
   const uploadStartRef = useRef<number>(0);
-  const xhrRef = useRef<XMLHttpRequest | null>(null);
+  const tusUploadRef = useRef<tus.Upload | null>(null);
 
-  // Thumbnail upload
   const [thumbUploading, setThumbUploading] = useState(false);
   const [grabbingThumb, setGrabbingThumb] = useState(false);
 
   useEffect(() => {
     if (isNew) return;
-    fetch(`/api/originals`)
+    fetch("/api/originals")
       .then(r => r.json())
       .then(json => {
         const item = (json.data ?? []).find((d: any) => d.id === params.id);
@@ -88,63 +87,66 @@ export default function OriginalsEditPage() {
     setUploadError("");
     uploadStartRef.current = Date.now();
 
-    // Get direct upload URL + stream ID
-    const res = await fetch("/api/originals/stream-upload", {
+    // Step 1: get streamId from our API (response also has Location header with CF upload URL)
+    const initRes = await fetch("/api/originals/stream-upload", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title, maxDurationSeconds: 2400 }),
     });
-    const json = await res.json();
-    if (json.error || !json.uploadURL) {
+
+    if (!initRes.ok) {
       setUploadStatus("error");
       setUploadError("Upload URL ލިބޭގޮތެއް ނުވި");
       return;
     }
 
-    const { uploadURL, streamId: newStreamId } = json;
-    setStreamId(newStreamId);
+    const initJson = await initRes.json();
+    setStreamId(initJson.streamId);
 
-    // Use XHR for direct PUT upload with progress — no tus needed
-    const xhr = new XMLHttpRequest();
-    xhrRef.current = xhr;
-
-    xhr.upload.addEventListener("progress", (e) => {
-      if (!e.lengthComputable) return;
-      const pct = Math.round((e.loaded / e.total) * 100);
-      setUploadProgress(pct);
-      const elapsed = (Date.now() - uploadStartRef.current) / 1000;
-      const rate = e.loaded / elapsed;
-      const remaining = (e.total - e.loaded) / rate;
-      if (remaining > 0 && remaining < 86400) {
-        const m = Math.floor(remaining / 60);
-        const s = Math.floor(remaining % 60);
-        setEta(m > 0 ? `${m} މިނެޓް ${s} ސިކުންތު` : `${s} ސިކުންތު`);
-      }
-    });
-
-    xhr.addEventListener("load", () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
+    // Step 2: tus uses endpoint pointing to our route; our route returns 201 + Location
+    // tus reads Location header and uploads directly to Cloudflare from there
+    const upload = new tus.Upload(file, {
+      endpoint: "/api/originals/stream-upload",
+      retryDelays: [0, 3000, 5000, 10000, 20000],
+      chunkSize: 50 * 1024 * 1024,
+      removeFingerprintOnSuccess: true,
+      storeFingerprintForResuming: false,
+      metadata: {
+        filename: file.name,
+        filetype: file.type || "video/mp4",
+      },
+      headers: {
+        "x-tus-title": title || "Untitled",
+      },
+      onProgress(bytesUploaded, bytesTotal) {
+        const pct = Math.round((bytesUploaded / bytesTotal) * 100);
+        setUploadProgress(pct);
+        const elapsed = (Date.now() - uploadStartRef.current) / 1000;
+        const rate = bytesUploaded / elapsed;
+        const remaining = (bytesTotal - bytesUploaded) / rate;
+        if (remaining > 0 && remaining < 86400) {
+          const m = Math.floor(remaining / 60);
+          const s = Math.floor(remaining % 60);
+          setEta(m > 0 ? `${m} މިނެޓް ${s} ސިކުންތު` : `${s} ސިކުންތު`);
+        }
+      },
+      onSuccess() {
         setUploadStatus("done");
         setUploadProgress(100);
         setEta("");
-      } else {
+      },
+      onError(err) {
         setUploadStatus("error");
-        setUploadError(`Upload failed (${xhr.status})`);
-      }
+        setUploadError(err.message);
+      },
     });
 
-    xhr.addEventListener("error", () => {
-      setUploadStatus("error");
-      setUploadError("ނެޓްވޯކް ބްރޭކްވި — އަލުން ތަކުރާރު ކޮށްލާ");
-    });
-
-    xhr.open("PUT", uploadURL);
-    xhr.setRequestHeader("Content-Type", file.type || "video/mp4");
-    xhr.send(file);
+    tusUploadRef.current = upload;
+    upload.start();
   }
 
   function handleAbort() {
-    xhrRef.current?.abort();
+    tusUploadRef.current?.abort();
     setUploadStatus("idle");
     setUploadProgress(null);
     setEta("");
@@ -218,7 +220,6 @@ export default function OriginalsEditPage() {
 
   return (
     <div className="max-w-3xl mx-auto p-6">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
           <button onClick={() => router.push("/admin/originals")} className="text-neutral-400 hover:text-neutral-700 transition-colors">
@@ -231,119 +232,72 @@ export default function OriginalsEditPage() {
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => handleSave(false)}
-            disabled={saving}
+          <button onClick={() => handleSave(false)} disabled={saving}
             className="px-4 py-2 rounded-lg border border-neutral-200 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors disabled:opacity-50"
-            style={{ fontFamily: "MVTypewriter, serif" }}
-          >
+            style={{ fontFamily: "MVTypewriter, serif" }}>
             {saved ? "✓ ސޭވްވެއްޖެ" : "ސޭވް"}
           </button>
-          <button
-            onClick={() => handleSave(true)}
-            disabled={saving || status === "published"}
+          <button onClick={() => handleSave(true)} disabled={saving || status === "published"}
             className="px-4 py-2 rounded-lg bg-neutral-900 text-white text-sm hover:bg-neutral-700 transition-colors disabled:opacity-50"
-            style={{ fontFamily: "MVTypewriter, serif" }}
-          >
+            style={{ fontFamily: "MVTypewriter, serif" }}>
             {status === "published" ? "✓ ޝާއިއުވެއްޖެ" : "ޝާއިއުކުރޭ"}
           </button>
         </div>
       </div>
 
       <div className="space-y-6">
-        {/* Title */}
         <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-1.5" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
-            ނަން
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={e => {
-              setTitle(e.target.value);
-              if (isNew && e.target.value.trim().length > 3) setSlug(slugify(e.target.value));
-            }}
+          <label className="block text-sm font-medium text-neutral-700 mb-1.5" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>ނަން</label>
+          <input type="text" value={title}
+            onChange={e => { setTitle(e.target.value); if (isNew && e.target.value.trim().length > 3) setSlug(slugify(e.target.value)); }}
             className="w-full px-3 py-2.5 rounded-lg border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900 text-sm"
-            style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}
-            placeholder="ވިޑިއޯގެ ނަން"
-          />
+            style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }} placeholder="ވިޑިއޯގެ ނަން" />
         </div>
 
-        {/* Slug */}
         <div>
           <label className="block text-sm font-medium text-neutral-700 mb-1.5">Slug</label>
-          <input
-            type="text"
-            value={slug}
-            onChange={e => setSlug(e.target.value)}
+          <input type="text" value={slug} onChange={e => setSlug(e.target.value)}
             className="w-full px-3 py-2.5 rounded-lg border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900 text-sm font-mono"
-            placeholder="video-slug"
-          />
+            placeholder="video-slug" />
         </div>
 
-        {/* Type + Quality */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1.5" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
-              ބާވަތް
-            </label>
-            <select
-              value={type}
-              onChange={e => setType(e.target.value)}
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>ބާވަތް</label>
+            <select value={type} onChange={e => setType(e.target.value)}
               className="w-full px-3 py-2.5 rounded-lg border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900 text-sm bg-white"
-              style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}
-            >
+              style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
               {TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-neutral-700 mb-1.5">Quality cap</label>
-            <select
-              value={qualityCap}
-              onChange={e => setQualityCap(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-lg border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900 text-sm bg-white"
-            >
+            <select value={qualityCap} onChange={e => setQualityCap(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-lg border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900 text-sm bg-white">
               {QUALITY_OPTIONS.map(q => <option key={q.value} value={q.value}>{q.label}</option>)}
             </select>
           </div>
         </div>
 
-        {/* Episode number */}
         {type === "episode" && (
           <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1.5" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
-              އެޕިސޯޑް ނަންބަރ
-            </label>
-            <input
-              type="number"
-              value={episodeNumber}
-              onChange={e => setEpisodeNumber(e.target.value)}
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>އެޕިސޯޑް ނަންބަރ</label>
+            <input type="number" value={episodeNumber} onChange={e => setEpisodeNumber(e.target.value)}
               className="w-32 px-3 py-2.5 rounded-lg border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900 text-sm"
-              placeholder="1"
-            />
+              placeholder="1" />
           </div>
         )}
 
-        {/* Description */}
         <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-1.5" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
-            ތަފްސީލް
-          </label>
-          <textarea
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-            rows={4}
+          <label className="block text-sm font-medium text-neutral-700 mb-1.5" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>ތަފްސީލް</label>
+          <textarea value={description} onChange={e => setDescription(e.target.value)} rows={4}
             className="w-full px-3 py-2.5 rounded-lg border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900 text-sm resize-none"
-            style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}
-            placeholder="ވިޑިއޯގެ ތަފްސީލް"
-          />
+            style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }} placeholder="ވިޑިއޯގެ ތަފްސީލް" />
         </div>
 
         {/* Video upload */}
         <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-1.5" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
-            ވިޑިއޯ
-          </label>
+          <label className="block text-sm font-medium text-neutral-700 mb-1.5" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>ވިޑިއޯ</label>
 
           {streamId && uploadStatus !== "uploading" && (
             <div className="flex items-center gap-2 mb-3 p-3 rounded-lg bg-green-50 border border-green-200">
@@ -365,36 +319,21 @@ export default function OriginalsEditPage() {
                 <span className="text-sm text-neutral-600" style={{ fontFamily: "MVTypewriter, serif" }}>
                   އަޕްލޯޑްވަނީ... {uploadProgress}%
                 </span>
-                <button
-                  onClick={handleAbort}
-                  className="text-xs text-red-500 hover:text-red-700"
-                  style={{ fontFamily: "MVTypewriter, serif" }}
-                >
+                <button onClick={handleAbort} className="text-xs text-red-500 hover:text-red-700" style={{ fontFamily: "MVTypewriter, serif" }}>
                   ހުއްޓާލޭ
                 </button>
               </div>
               <div className="w-full h-2 bg-neutral-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-neutral-900 rounded-full transition-all duration-300"
-                  style={{ width: `${uploadProgress ?? 0}%` }}
-                />
+                <div className="h-full bg-neutral-900 rounded-full transition-all duration-300" style={{ width: `${uploadProgress ?? 0}%` }} />
               </div>
-              {eta && (
-                <p className="text-xs text-neutral-400 mt-1.5" style={{ fontFamily: "MVTypewriter, serif" }}>
-                  ގާތްގަނޑަކަށް {eta} ތެރޭ ނިމޭނެ
-                </p>
-              )}
+              {eta && <p className="text-xs text-neutral-400 mt-1.5" style={{ fontFamily: "MVTypewriter, serif" }}>ގާތްގަނޑަކަށް {eta} ތެރޭ ނިމޭނެ</p>}
             </div>
           )}
 
           {uploadStatus === "error" && (
-            <div className="mb-3 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-600">
-              {uploadError}
-              <button
-                onClick={() => setUploadStatus("idle")}
-                className="ml-3 underline text-xs"
-                style={{ fontFamily: "MVTypewriter, serif" }}
-              >
+            <div className="mb-3 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-600 flex items-center justify-between">
+              <span>{uploadError}</span>
+              <button onClick={() => setUploadStatus("idle")} className="ml-3 underline text-xs flex-none" style={{ fontFamily: "MVTypewriter, serif" }}>
                 އަލުން ތަކުރާރު
               </button>
             </div>
@@ -405,64 +344,44 @@ export default function OriginalsEditPage() {
               <svg className="w-8 h-8 text-neutral-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
-              <span className="text-sm text-neutral-500" style={{ fontFamily: "MVTypewriter, serif" }}>
-                ވިޑިއޯ ލިސްޓް ކުރޭ
-              </span>
+              <span className="text-sm text-neutral-500" style={{ fontFamily: "MVTypewriter, serif" }}>ވިޑިއޯ ލިސްޓް ކުރޭ</span>
               <span className="text-xs text-neutral-400 mt-1">MP4, MOV, MKV</span>
-              <input
-                type="file"
-                accept="video/*"
-                className="hidden"
-                onChange={e => e.target.files?.[0] && handleVideoFile(e.target.files[0])}
-              />
+              <input type="file" accept="video/*" className="hidden"
+                onChange={e => e.target.files?.[0] && handleVideoFile(e.target.files[0])} />
             </label>
           )}
 
-          {/* Manual Stream ID */}
           <div className="mt-3">
             <label className="block text-xs text-neutral-400 mb-1">ނުވަތަ Cloudflare Stream ID ޖައްސާ</label>
-            <input
-              type="text"
-              value={streamId}
-              onChange={e => setStreamId(e.target.value)}
+            <input type="text" value={streamId} onChange={e => setStreamId(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900 text-xs font-mono"
-              placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-            />
+              placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" />
           </div>
         </div>
 
-        {/* Duration */}
         <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-1.5" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
-            ވަގުތު (ސިކުންތު)
-          </label>
-          <input
-            type="number"
-            value={durationSeconds}
-            onChange={e => setDurationSeconds(e.target.value)}
-            className="w-40 px-3 py-2.5 rounded-lg border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900 text-sm"
-            placeholder="900"
-          />
-          {durationSeconds && (
-            <span className="ml-3 text-sm text-neutral-400">
-              = {Math.floor(parseInt(durationSeconds) / 60)} min {parseInt(durationSeconds) % 60} sec
-            </span>
-          )}
+          <label className="block text-sm font-medium text-neutral-700 mb-1.5" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>ވަގުތު (ސިކުންތު)</label>
+          <div className="flex items-center gap-3">
+            <input type="number" value={durationSeconds} onChange={e => setDurationSeconds(e.target.value)}
+              className="w-40 px-3 py-2.5 rounded-lg border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900 text-sm"
+              placeholder="900" />
+            {durationSeconds && (
+              <span className="text-sm text-neutral-400">
+                = {Math.floor(parseInt(durationSeconds) / 60)} min {parseInt(durationSeconds) % 60} sec
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Thumbnail */}
         <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-1.5" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
-            ތަމްބްނެއިލް
-          </label>
+          <label className="block text-sm font-medium text-neutral-700 mb-1.5" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>ތަމްބްނެއިލް</label>
 
           {thumbnailUrl && (
             <div className="relative w-48 aspect-video rounded-lg overflow-hidden mb-3 bg-neutral-100">
               <img src={thumbnailUrl} alt="thumbnail" className="w-full h-full object-cover" />
-              <button
-                onClick={() => setThumbnailUrl("")}
-                className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors"
-              >
+              <button onClick={() => setThumbnailUrl("")}
+                className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -482,21 +401,14 @@ export default function OriginalsEditPage() {
                   <span style={{ fontFamily: "MVTypewriter, serif" }}>ފޮޓޯ އިހްތިޔާރު</span>
                 </>
               )}
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={e => e.target.files?.[0] && handleThumbnailFile(e.target.files[0])}
-              />
+              <input type="file" accept="image/*" className="hidden"
+                onChange={e => e.target.files?.[0] && handleThumbnailFile(e.target.files[0])} />
             </label>
 
             {streamId && (
-              <button
-                onClick={handleGrabThumbnail}
-                disabled={grabbingThumb}
+              <button onClick={handleGrabThumbnail} disabled={grabbingThumb}
                 className="flex items-center gap-2 px-3 py-2 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors text-sm text-neutral-700 disabled:opacity-50"
-                style={{ fontFamily: "MVTypewriter, serif" }}
-              >
+                style={{ fontFamily: "MVTypewriter, serif" }}>
                 {grabbingThumb ? "ނަގަނީ..." : "Stream އިން ނަގާ"}
               </button>
             )}
