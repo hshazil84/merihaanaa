@@ -4,6 +4,7 @@ import TodaysPicks from "@/components/public/TodaysPicks";
 import FeatureSplit from "@/components/public/FeatureSplit";
 import ReelsStrip from "@/components/public/ReelsStrip";
 import ReviewsSection from "@/components/public/ReviewsSection";
+import OriginalsStrip from "@/components/public/OriginalsStrip";
 import NewsletterCTA from "@/components/public/NewsletterCTA";
 import Link from "next/link";
 
@@ -31,6 +32,7 @@ async function getHomeData() {
     { data: people },
     { data: reviews },
     { data: reels },
+    { data: originals },
     { data: latest },
   ] = await Promise.all([
     supabase.from("articles").select("id, title, slug, excerpt, featured_image, cover_type, cover_video_thumbnail, category:categories!category_id(name, slug), author:authors!author_id(full_name)").eq("status", "published").eq("homepage_placement", "hero").order("published_at", { ascending: false }).limit(1).single(),
@@ -38,6 +40,7 @@ async function getHomeData() {
     supabase.from("articles").select("id, title, slug, excerpt, featured_image, category:categories!category_id(name, slug), author:authors!author_id(full_name)").eq("status", "published").eq("homepage_placement", "people").order("published_at", { ascending: false }).limit(1),
     supabase.from("articles").select("id, title, slug, excerpt, featured_image, reading_time_minutes, category:categories!category_id(name, slug)").eq("status", "published").eq("homepage_placement", "review").order("published_at", { ascending: false }).limit(3),
     supabase.from("reels").select("id, title, slug, stream_video_id, thumbnail_url, duration_seconds, category:categories!category_id(name, slug)").eq("status", "published").eq("homepage_featured", true).order("published_at", { ascending: false }).limit(4),
+    supabase.from("originals").select("id, title, slug, thumbnail_url, duration_seconds, type").eq("status", "published").order("published_at", { ascending: false }).limit(8),
     supabase.from("articles").select("id, title, slug, excerpt, featured_image, reading_time_minutes, category:categories!category_id(name, slug)").eq("status", "published").is("homepage_placement", null).order("published_at", { ascending: false }).limit(8),
   ]);
   return {
@@ -46,6 +49,7 @@ async function getHomeData() {
     people: (people ?? []) as any[],
     reviews: (reviews ?? []) as any[],
     reels: (reels ?? []) as any[],
+    originals: (originals ?? []) as any[],
     latest: (latest ?? []) as any[],
   };
 }
@@ -73,7 +77,7 @@ export default async function HomePage() {
   const isAdmin = await isAdminUser();
   if (!isAdmin) return <ComingSoon />;
 
-  const { hero, todaysPicks, people, reviews, reels, latest } = await getHomeData();
+  const { hero, todaysPicks, people, reviews, reels, originals, latest } = await getHomeData();
 
   return (
     <div className="bg-[#F5F3EF]" dir="rtl">
@@ -88,8 +92,10 @@ export default async function HomePage() {
       )}
       {todaysPicks.length > 0 && <TodaysPicks articles={todaysPicks} />}
       {people.length > 0 && <FeatureSplit article={people[0]} />}
+      {reviews.length > 0 && <ReviewsSection articles={reviews} />}
       {reels.length > 0 && <ReelsStrip reels={reels} />}
-      <ReviewsSection articles={reviews} />
+      {originals.length > 0 && <OriginalsStrip originals={originals} />}
+      {/* <PodcastSection /> */}
       {latest.length > 0 && (
         <section className="max-w-6xl mx-auto px-6 py-12" dir="rtl">
           <h2 className="text-center mb-10" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontWeight: 400, fontSize: "26px", color: "rgb(26, 26, 26)", lineHeight: 2 }}>
