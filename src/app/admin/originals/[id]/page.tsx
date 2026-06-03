@@ -89,18 +89,25 @@ export default function OriginalsEditPage() {
     setUploadError("");
     uploadStartRef.current = Date.now();
 
+    // Get direct upload URL + stream ID from our API
     const res = await fetch("/api/originals/stream-upload", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title, maxDurationSeconds: 2400 }),
     });
-    const { uploadURL, streamId: newStreamId, error } = await res.json();
-    if (error) { setUploadStatus("error"); setUploadError("Upload URL ލިބޭގޮތެއް ނުވި"); return; }
+    const json = await res.json();
+    if (json.error) {
+      setUploadStatus("error");
+      setUploadError("Upload URL ލިބޭގޮތެއް ނުވި");
+      return;
+    }
 
+    const { uploadURL, streamId: newStreamId } = json;
     setStreamId(newStreamId);
 
+    // Use uploadUrl (not endpoint) — Cloudflare gives a pre-created upload slot
     const upload = new tus.Upload(file, {
-      endpoint: uploadURL,
+      uploadUrl: uploadURL,
       retryDelays: [0, 3000, 5000, 10000, 20000],
       chunkSize: 50 * 1024 * 1024,
       metadata: { filename: file.name, filetype: file.type },
