@@ -22,8 +22,9 @@ export default async function OriginalsWatchPage({ params }: { params: { slug: s
 
   const playerUrl = `https://customer-${CF_CUSTOMER_CODE}.cloudflarestream.com/${original.cloudflare_stream_id}/iframe?autoplay=true&preload=true${original.thumbnail_url ? `&poster=${encodeURIComponent(original.thumbnail_url)}` : ""}`;
 
-  const subtitle = original.series
-    ? `${original.series.title}${original.episode_number ? ` · E${original.episode_number}` : ""}`
+const series = Array.isArray(original.series) ? original.series[0] : original.series;
+const subtitle = series
+    ? `${series.title}${original.episode_number ? ` · E${original.episode_number}` : ""}`
     : null;
 
   return (
