@@ -107,10 +107,12 @@ export default function OriginalsEditPage() {
 
     // Use uploadUrl (not endpoint) — Cloudflare gives a pre-created upload slot
     const upload = new tus.Upload(file, {
-      uploadUrl: uploadURL,
-      retryDelays: [0, 3000, 5000, 10000, 20000],
-      chunkSize: 50 * 1024 * 1024,
-      metadata: { filename: file.name, filetype: file.type },
+          uploadUrl: uploadURL,
+          retryDelays: [0, 3000, 5000, 10000, 20000],
+          chunkSize: 50 * 1024 * 1024,
+          removeFingerprintOnSuccess: true,
+          storeFingerprintForResuming: false,
+          metadata: { filename: file.name, filetype: file.type },
       onProgress(bytesUploaded, bytesTotal) {
         const pct = Math.round((bytesUploaded / bytesTotal) * 100);
         setUploadProgress(pct);
