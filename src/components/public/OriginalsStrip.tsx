@@ -65,7 +65,7 @@ export default function OriginalsStrip({ originals }: OriginalsStripProps) {
               href={`/originals/${original.slug}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex-none w-[72vw] sm:w-[46vw] md:w-[calc(25%-12px)] snap-start"
+              className="group flex-none w-[72vw] sm:w-[46vw] md:w-[calc(40%-12px)] snap-start"
             >
               <div className="relative aspect-video rounded-lg overflow-hidden bg-neutral-900">
                 {original.thumbnail_url ? (
