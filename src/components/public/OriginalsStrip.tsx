@@ -22,11 +22,11 @@ function formatDuration(seconds: number | null): string {
 
 const TYPE_LABELS: Record<string, string> = {
   documentary: "ޑޮކިއުމެންޓްރީ",
-  profile: "ޕްރޮފައިލް",
-  episode: "އެޕިސޯޑް",
-  segment: "ސެގްމެންޓް",
-  interview: "އިންޓަވިއު",
-  short: "ޝޯޓް",
+  profile:     "ޕްރޮފައިލް",
+  episode:     "އެޕިސޯޑް",
+  segment:     "ސެގްމެންޓް",
+  interview:   "އިންޓަވިއު",
+  short:       "ޝޯޓް",
 };
 
 export default function OriginalsStrip({ originals }: OriginalsStripProps) {
@@ -38,111 +38,63 @@ export default function OriginalsStrip({ originals }: OriginalsStripProps) {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            {/* Red accent bar */}
             <span className="block w-1 h-6 bg-red-500 rounded-full" />
-            <h2
-              className="text-white text-xl md:text-2xl font-bold tracking-wide"
-              style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}
-            >
+            <h2 className="text-white text-xl md:text-2xl font-bold tracking-wide" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
               އޮރިޖިނަލްސް
             </h2>
           </div>
           <Link
             href="/originals"
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-sm text-neutral-400 hover:text-white transition-colors flex items-center gap-1"
             style={{ direction: "rtl", fontFamily: "MVTypewriter, serif" }}
           >
             ހުރިހާ ވިޑިއޯ
-            <svg
-              className="w-4 h-4 rotate-180"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
+            <svg className="w-4 h-4 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </Link>
         </div>
 
         {/* Horizontal scroll strip */}
-        <div
-          className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide snap-x snap-mandatory"
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-        >
+        <div className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
           {originals.map((original) => (
             <Link
               key={original.id}
-              href="/originals"
+              href={`/originals/${original.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
               className="group flex-none w-[72vw] sm:w-[46vw] md:w-[calc(25%-12px)] snap-start"
             >
-              {/* 16:9 thumbnail */}
               <div className="relative aspect-video rounded-lg overflow-hidden bg-neutral-900">
                 {original.thumbnail_url ? (
-                  <img
-                    src={original.thumbnail_url}
-                    alt={original.title}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
+                  <img src={original.thumbnail_url} alt={original.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                 ) : (
                   <div className="w-full h-full bg-neutral-800 flex items-center justify-center">
-                    <svg
-                      className="w-10 h-10 text-neutral-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"
-                      />
+                    <svg className="w-10 h-10 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
                     </svg>
                   </div>
                 )}
-
-                {/* Lower-third gradient + info */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-                {/* Play button */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-11 h-11 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center transition-all duration-200 group-hover:bg-white/30 group-hover:scale-110">
-                    <svg
-                      className="w-5 h-5 text-white ml-0.5"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
+                    <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                   </div>
                 </div>
-
-                {/* Bottom info overlay */}
                 <div className="absolute bottom-0 left-0 right-0 p-3">
-                  <p
-                    className="text-white text-sm font-semibold line-clamp-2 leading-snug mb-1"
-                    style={{ direction: "rtl", fontFamily: "MVTypewriter, serif" }}
-                  >
+                  <p className="text-white text-sm font-semibold line-clamp-2 leading-snug mb-1" style={{ direction: "rtl", fontFamily: "MVTypewriter, serif" }}>
                     {original.title}
                   </p>
                   <div className="flex items-center gap-2">
                     {original.type && (
-                      <span
-                        className="text-[10px] text-neutral-300 bg-white/10 px-1.5 py-0.5 rounded"
-                        style={{ direction: "rtl", fontFamily: "MVTypewriter, serif" }}
-                      >
+                      <span className="text-[10px] text-neutral-300 bg-white/10 px-1.5 py-0.5 rounded" style={{ direction: "rtl", fontFamily: "MVTypewriter, serif" }}>
                         {TYPE_LABELS[original.type] ?? original.type}
                       </span>
                     )}
                     {original.duration_seconds && (
-                      <span className="text-[10px] text-neutral-400">
-                        {formatDuration(original.duration_seconds)}
-                      </span>
+                      <span className="text-[10px] text-neutral-400">{formatDuration(original.duration_seconds)}</span>
                     )}
                   </div>
                 </div>
