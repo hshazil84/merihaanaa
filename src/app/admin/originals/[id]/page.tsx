@@ -1,10 +1,8 @@
 "use client";
 // src/app/admin/originals/[id]/page.tsx
-// Also used for /admin/originals/new (id === "new")
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import * as tus from "tus-js-client";
 
 const TYPES = [
   { value: "documentary", label: "ޑޮކިއުމެންޓްރީ" },
@@ -55,7 +53,7 @@ export default function OriginalsEditPage() {
   const [uploadError, setUploadError] = useState("");
   const [eta, setEta] = useState("");
   const uploadStartRef = useRef<number>(0);
-  const tusUploadRef = useRef<tus.Upload | null>(null);
+  const xhrRef = useRef<XMLHttpRequest | null>(null);
 
   // Thumbnail upload
   const [thumbUploading, setThumbUploading] = useState(false);
@@ -67,7 +65,7 @@ export default function OriginalsEditPage() {
       .then(r => r.json())
       .then(json => {
         const item = (json.data ?? []).find((d: any) => d.id === params.id);
-        if (!item) return;
+        if (!item) { setLoading(false); return; }
         setTitle(item.title ?? "");
         setSlug(item.slug ?? "");
         setDescription(item.description ?? "");
@@ -79,7 +77,8 @@ export default function OriginalsEditPage() {
         setThumbnailUrl(item.thumbnail_url ?? "");
         setDurationSeconds(item.duration_seconds?.toString() ?? "");
         setLoading(false);
-      });
+      })
+      .catch(() => setLoading(false));
   }, [params.id]);
 
   async function handleVideoFile(file: File) {
@@ -89,14 +88,14 @@ export default function OriginalsEditPage() {
     setUploadError("");
     uploadStartRef.current = Date.now();
 
-    // Get direct upload URL + stream ID from our API
+    // Get direct upload URL + stream ID
     const res = await fetch("/api/originals/stream-upload", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title, maxDurationSeconds: 2400 }),
     });
     const json = await res.json();
-    if (json.error) {
+    if (json.error || !json.uploadURL) {
       setUploadStatus("error");
       setUploadError("Upload URL ލިބޭގޮތެއް ނުވި");
       return;
@@ -105,39 +104,50 @@ export default function OriginalsEditPage() {
     const { uploadURL, streamId: newStreamId } = json;
     setStreamId(newStreamId);
 
-    // Use uploadUrl (not endpoint) — Cloudflare gives a pre-created upload slot
-    const upload = new tus.Upload(file, {
-          uploadUrl: uploadURL,
-          retryDelays: [0, 3000, 5000, 10000, 20000],
-          chunkSize: 50 * 1024 * 1024,
-          removeFingerprintOnSuccess: true,
-          storeFingerprintForResuming: false,
-          metadata: { filename: file.name, filetype: file.type },
-      onProgress(bytesUploaded, bytesTotal) {
-        const pct = Math.round((bytesUploaded / bytesTotal) * 100);
-        setUploadProgress(pct);
-        const elapsed = (Date.now() - uploadStartRef.current) / 1000;
-        const rate = bytesUploaded / elapsed;
-        const remaining = (bytesTotal - bytesUploaded) / rate;
-        if (remaining > 0 && remaining < 86400) {
-          const m = Math.floor(remaining / 60);
-          const s = Math.floor(remaining % 60);
-          setEta(m > 0 ? `${m} މިނެޓް ${s} ސިކުންތު` : `${s} ސިކުންތު`);
-        }
-      },
-      onSuccess() {
+    // Use XHR for direct PUT upload with progress — no tus needed
+    const xhr = new XMLHttpRequest();
+    xhrRef.current = xhr;
+
+    xhr.upload.addEventListener("progress", (e) => {
+      if (!e.lengthComputable) return;
+      const pct = Math.round((e.loaded / e.total) * 100);
+      setUploadProgress(pct);
+      const elapsed = (Date.now() - uploadStartRef.current) / 1000;
+      const rate = e.loaded / elapsed;
+      const remaining = (e.total - e.loaded) / rate;
+      if (remaining > 0 && remaining < 86400) {
+        const m = Math.floor(remaining / 60);
+        const s = Math.floor(remaining % 60);
+        setEta(m > 0 ? `${m} މިނެޓް ${s} ސިކުންތު` : `${s} ސިކުންތު`);
+      }
+    });
+
+    xhr.addEventListener("load", () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
         setUploadStatus("done");
         setUploadProgress(100);
         setEta("");
-      },
-      onError(err) {
+      } else {
         setUploadStatus("error");
-        setUploadError(err.message);
-      },
+        setUploadError(`Upload failed (${xhr.status})`);
+      }
     });
 
-    tusUploadRef.current = upload;
-    upload.start();
+    xhr.addEventListener("error", () => {
+      setUploadStatus("error");
+      setUploadError("ނެޓްވޯކް ބްރޭކްވި — އަލުން ތަކުރާރު ކޮށްލާ");
+    });
+
+    xhr.open("PUT", uploadURL);
+    xhr.setRequestHeader("Content-Type", file.type || "video/mp4");
+    xhr.send(file);
+  }
+
+  function handleAbort() {
+    xhrRef.current?.abort();
+    setUploadStatus("idle");
+    setUploadProgress(null);
+    setEta("");
   }
 
   async function handleGrabThumbnail() {
@@ -356,7 +366,7 @@ export default function OriginalsEditPage() {
                   އަޕްލޯޑްވަނީ... {uploadProgress}%
                 </span>
                 <button
-                  onClick={() => { tusUploadRef.current?.abort(); setUploadStatus("idle"); setUploadProgress(null); }}
+                  onClick={handleAbort}
                   className="text-xs text-red-500 hover:text-red-700"
                   style={{ fontFamily: "MVTypewriter, serif" }}
                 >
@@ -380,6 +390,13 @@ export default function OriginalsEditPage() {
           {uploadStatus === "error" && (
             <div className="mb-3 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-600">
               {uploadError}
+              <button
+                onClick={() => setUploadStatus("idle")}
+                className="ml-3 underline text-xs"
+                style={{ fontFamily: "MVTypewriter, serif" }}
+              >
+                އަލުން ތަކުރާރު
+              </button>
             </div>
           )}
 
@@ -401,7 +418,7 @@ export default function OriginalsEditPage() {
             </label>
           )}
 
-          {/* Manual Stream ID input */}
+          {/* Manual Stream ID */}
           <div className="mt-3">
             <label className="block text-xs text-neutral-400 mb-1">ނުވަތަ Cloudflare Stream ID ޖައްސާ</label>
             <input
