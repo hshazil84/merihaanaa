@@ -22,12 +22,11 @@ const QUALITY_OPTIONS = [
 ];
 
 function slugify(text: string) {
-  return text
-    .toLowerCase()
-    .trim()
-    .replace(/[\s\W-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    + "-" + Math.random().toString(36).slice(2, 6);
+  const suffix = Math.random().toString(36).slice(2, 6);
+  const latin = text.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "");
+  if (latin.length >= 3) return `${latin}-${suffix}`;
+  const wordCount = text.trim().split(/\s+/).length;
+  return `original-${wordCount}w-${suffix}`;
 }
 
 export default function OriginalsEditPage() {
@@ -90,7 +89,6 @@ export default function OriginalsEditPage() {
     setUploadError("");
     uploadStartRef.current = Date.now();
 
-    // Get direct upload URL from our API
     const res = await fetch("/api/originals/stream-upload", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -104,7 +102,7 @@ export default function OriginalsEditPage() {
     const upload = new tus.Upload(file, {
       endpoint: uploadURL,
       retryDelays: [0, 3000, 5000, 10000, 20000],
-      chunkSize: 50 * 1024 * 1024, // 50MB chunks — good for large files
+      chunkSize: 50 * 1024 * 1024,
       metadata: { filename: file.name, filetype: file.type },
       onProgress(bytesUploaded, bytesTotal) {
         const pct = Math.round((bytesUploaded / bytesTotal) * 100);
@@ -244,7 +242,7 @@ export default function OriginalsEditPage() {
             value={title}
             onChange={e => {
               setTitle(e.target.value);
-              if (isNew) setSlug(slugify(e.target.value));
+              if (isNew && e.target.value.trim().length > 3) setSlug(slugify(e.target.value));
             }}
             className="w-full px-3 py-2.5 rounded-lg border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900 text-sm"
             style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}
@@ -324,15 +322,17 @@ export default function OriginalsEditPage() {
 
         {/* Video upload */}
         <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-1.5">ވިޑިއޯ</label>
+          <label className="block text-sm font-medium text-neutral-700 mb-1.5" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
+            ވިޑިއޯ
+          </label>
 
           {streamId && uploadStatus !== "uploading" && (
             <div className="flex items-center gap-2 mb-3 p-3 rounded-lg bg-green-50 border border-green-200">
               <svg className="w-4 h-4 text-green-600 flex-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <span className="text-sm text-green-700 font-mono">{streamId}</span>
-              <button onClick={() => setStreamId("")} className="ml-auto text-green-500 hover:text-green-700">
+              <span className="text-sm text-green-700 font-mono truncate">{streamId}</span>
+              <button onClick={() => setStreamId("")} className="ml-auto text-green-500 hover:text-green-700 flex-none">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -362,7 +362,7 @@ export default function OriginalsEditPage() {
               </div>
               {eta && (
                 <p className="text-xs text-neutral-400 mt-1.5" style={{ fontFamily: "MVTypewriter, serif" }}>
-                  ގާތްގަנޑަކަށް {eta} ތެރޭ ނިމޭނެ
+                  ގާތްގަނޑަކަށް {eta} ތެރޭ ނިމޭނެ
                 </p>
               )}
             </div>
@@ -444,7 +444,7 @@ export default function OriginalsEditPage() {
             </div>
           )}
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-neutral-200 cursor-pointer hover:bg-neutral-50 transition-colors text-sm text-neutral-700">
               {thumbUploading ? (
                 <span style={{ fontFamily: "MVTypewriter, serif" }}>އަޕްލޯޑްވަނީ...</span>
