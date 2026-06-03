@@ -255,7 +255,7 @@ export default function NewArticlePage() {
             value={excerpt}
             onChange={(e) => setExcerpt(e.target.value)}
             placeholder="ކުރު ތަޢާރަފެއް — ކިޔުންތެރިން ފުރަތަމަ ފެންނާ ބައި..."
-            rows={2}
+            rows={6}
             dir="rtl"
             className="w-full font-body text-base text-muted-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 leading-relaxed"
           />
