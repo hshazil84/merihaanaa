@@ -83,9 +83,9 @@ export default async function OriginalsPage() {
   const hasContent = featured || Object.keys(grouped).length > 0;
 
   return (
-    <div className="pt-20 pb-16">
+    <div className="pb-16">
       {featured && (
-        <div className="relative w-full aspect-[21/9] md:aspect-[3/1] overflow-hidden mb-10">
+        <div className="relative w-full aspect-[21/9] md:aspect-[3/1] overflow-hidden mb-10 -mt-0">
           {featured.thumbnail_url ? (
             <img src={featured.thumbnail_url} alt={featured.title} className="w-full h-full object-cover" />
           ) : (
