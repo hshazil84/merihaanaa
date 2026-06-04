@@ -65,7 +65,7 @@ export default async function OriginalsDetailPage({ params }: { params: { slug: 
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
 
         {/* Content anchored to bottom-right of hero */}
-        <div className="absolute bottom-12 right-6 md:right-12 left-6 md:left-auto md:max-w-xl" dir="rtl">
+        <div className="absolute bottom-32 md:bottom-40 right-6 md:right-12 left-6 md:left-auto md:max-w-xl" dir="rtl">
           {/* Breadcrumb */}
           <div className="flex items-center gap-1.5 text-xs text-white/50 mb-3">
             <Link href="/originals" className="hover:text-white transition-colors" style={{ fontFamily: "MVTypewriter, serif" }}>
