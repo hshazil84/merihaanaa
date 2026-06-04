@@ -109,7 +109,7 @@ export default async function OriginalsPage() {
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white text-black text-sm font-semibold hover:bg-neutral-200 transition-colors"
               style={{ fontFamily: "MVTypewriter, serif" }}>
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-              ބަލާ
+              Watch
             </Link>
           </div>
         </div>
