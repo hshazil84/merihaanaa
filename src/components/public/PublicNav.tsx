@@ -344,7 +344,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
       <div
         ref={navWrapperRef}
         className="fixed top-0 right-0 left-0 z-50 will-change-transform"
-        style={{ transition: phase === "merged" ? "transform 0.3s ease" : "none" }}
+        style={{ transition: "none" }}
       >
         {/* Logo bar */}
         <div
