@@ -57,6 +57,9 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
 
     // Reveal cat bar once JS has control
     if (catBarRef.current) {
+      const heroHeight = window.innerHeight;
+      const naturalY = heroHeight - CAT_BAR_HEIGHT;
+      catBarRef.current.style.transform = `translateY(${naturalY}px)`;
       catBarRef.current.style.visibility = "visible";
       catBarRef.current.style.opacity = "1";
     }
