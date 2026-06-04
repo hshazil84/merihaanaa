@@ -22,7 +22,7 @@ export default function OriginalsLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Top bar — fully transparent, no gradient */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 md:px-8 py-3">
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 md:px-8 py-3" dir="ltr">
         {/* Left side (visual left = LTR left = search) */}
         <div className="flex items-center gap-2">
           {!searchOpen ? (
@@ -50,7 +50,7 @@ export default function OriginalsLayout({ children }: { children: React.ReactNod
 
         {/* Right side (visual right = LTR right = logo) */}
         <Link href="/" className="opacity-90 hover:opacity-100 transition-opacity">
-          <Image src="/logo.png" alt="މެރިހާނާ" width={100} height={30} className="h-7 w-auto object-contain" priority />
+          <Image src="/logo.png" alt="މެރިހާނާ" width={100} height={30} className="h-9 w-auto object-contain" priority />
         </Link>
       </header>
       {children}
