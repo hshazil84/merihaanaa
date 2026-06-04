@@ -148,7 +148,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               {gi > 0 && <div className="mx-2 my-2 border-t border-border" />}
               {group.map((item) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+                const isActive = pathname === item.href || 
+                  (item.href !== "/admin" && item.href !== "/admin/articles" && pathname.startsWith(item.href + "/"));
 
                 if (item.comingSoon) {
                   return (
