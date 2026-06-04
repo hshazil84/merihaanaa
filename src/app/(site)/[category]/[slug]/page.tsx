@@ -8,6 +8,7 @@ import Link from "next/link";
 import ArticleBody from "@/components/public/ArticleBody";
 import CommentSection from "@/components/public/CommentSection";
 import SocialShare from "@/components/public/SocialShare";
+import ViewTracker from "@/components/public/ViewTracker";
 
 interface PageProps {
   params: { category: string; slug: string };
