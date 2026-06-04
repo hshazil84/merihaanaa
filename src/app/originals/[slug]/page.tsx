@@ -49,32 +49,18 @@ export default async function OriginalsDetailPage({ params }: { params: { slug: 
   const series = Array.isArray(original.series) ? original.series[0] : original.series;
 
   return (
-    <div className="min-h-screen bg-black">
-      {/* Hero — full viewport height thumbnail */}
+    <div className="bg-black">
+      {/* Hero — full viewport height */}
       <div className="relative w-full h-screen overflow-hidden">
         {original.thumbnail_url ? (
-          <img
-            src={original.thumbnail_url}
-            alt={original.title}
-            className="w-full h-full object-cover object-center"
-          />
+          <img src={original.thumbnail_url} alt={original.title} className="w-full h-full object-cover object-center" />
         ) : (
           <div className="w-full h-full bg-neutral-900" />
         )}
-        {/* Bottom gradient only — fades into black content below */}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
 
-        {/* Content anchored to bottom-right of hero */}
-        <div className="absolute bottom-12 right-6 md:right-12 left-6 md:left-auto md:max-w-xl" dir="rtl">
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-1.5 text-xs text-white/50 mb-3">
-            <Link href="/originals" className="hover:text-white transition-colors" style={{ fontFamily: "MVTypewriter, serif" }}>
-              އޮރިޖިނަލްސް
-            </Link>
-            <span>/</span>
-            <span className="text-white/70 line-clamp-1" style={{ fontFamily: "MVTypewriter, serif" }}>{original.title}</span>
-          </div>
-
+        {/* Content — bottom right, with enough room for mobile header */}
+        <div className="absolute bottom-24 md:bottom-32 right-4 md:right-12 left-4 md:left-auto md:max-w-xl" dir="rtl">
           {/* Badges */}
           <div className="flex items-center gap-2 mb-3 flex-wrap">
             <span className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-white/60 border border-white/10" style={{ fontFamily: "MVTypewriter, serif" }}>
@@ -91,42 +77,54 @@ export default async function OriginalsDetailPage({ params }: { params: { slug: 
           </div>
 
           {/* Title */}
-          <h1 className="text-2xl md:text-4xl font-bold text-white leading-snug mb-3" style={{ fontFamily: "MVTypewriter, serif" }}>
+          <h1 className="text-xl md:text-4xl font-bold text-white leading-snug mb-3" style={{ fontFamily: "MVTypewriter, serif" }}>
             {original.title}
           </h1>
 
           {/* Description */}
           {original.description && (
-            <p className="text-sm text-white/70 leading-relaxed mb-6 line-clamp-3" style={{ fontFamily: "MVTypewriter, serif" }}>
+            <p className="text-sm text-white/70 leading-relaxed mb-5 line-clamp-2 md:line-clamp-3" style={{ fontFamily: "MVTypewriter, serif" }}>
               {original.description}
             </p>
           )}
 
-          {/* Watch button */}
-          {original.cloudflare_stream_id && (
+          {/* Buttons */}
+          <div className="flex items-center gap-3 flex-wrap">
+            {original.cloudflare_stream_id && (
+              <Link
+                href={`/originals/${original.slug}/watch`}
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-white text-black font-bold text-sm hover:bg-neutral-200 transition-colors"
+                style={{ fontFamily: "MVTypewriter, serif" }}
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                Watch
+              </Link>
+            )}
             <Link
-              href={`/originals/${original.slug}/watch`}
-              className="inline-flex items-center gap-3 px-8 py-3 rounded-lg bg-white text-black font-bold text-sm hover:bg-neutral-200 transition-colors"
+              href={`/originals/${original.slug}`}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-white/10 text-white text-sm font-semibold hover:bg-white/20 transition-colors border border-white/20"
               style={{ fontFamily: "MVTypewriter, serif" }}
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-              Watch
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              މައުލޫމާތު
             </Link>
-          )}
+          </div>
         </div>
       </div>
 
-      {/* Related videos — below hero */}
+      {/* Related videos */}
       {related.length > 0 && (
-        <div className="px-4 md:px-12 py-10">
-          <h2 className="text-sm font-bold text-white mb-5 flex items-center gap-2" dir="rtl" style={{ fontFamily: "MVTypewriter, serif" }}>
+        <div className="pt-6 pb-10 px-4 md:px-12">
+          <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2" dir="rtl" style={{ fontFamily: "MVTypewriter, serif" }}>
             <span className="block w-1 h-4 bg-red-500 rounded-full" />
             އިތުރު ވިޑިއޯ
           </h2>
           <div className="flex gap-4 overflow-x-auto pb-2 snap-x" style={{ scrollbarWidth: "none" }}>
             {related.map((item: any) => (
-              <Link key={item.id} href={`/originals/${item.slug}`}
-                className="group flex-none w-[72vw] sm:w-[40vw] md:w-[24vw] lg:w-[18vw] snap-start">
+              <Link key={item.id} href={`/originals/${item.slug}/watch`}
+                className="group flex-none w-[75vw] sm:w-[40vw] md:w-[24vw] lg:w-[18vw] snap-start">
                 <div className="relative aspect-video rounded-lg overflow-hidden bg-neutral-800">
                   {item.thumbnail_url ? (
                     <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
