@@ -21,6 +21,7 @@ export default function NewArticlePage() {
   const [categoryId, setCategoryId]     = useState<string | null>(null);
   const [categories, setCategories]     = useState<Category[]>([]);
   const [placement, setPlacement]       = useState<string | null>(null);
+  const [homepageSlot, setHomepageSlot] = useState<number | null>(null);
   const [homepageFeatured, setHomepageFeatured] = useState(false);
   const [isPremium, setIsPremium]       = useState(false);
   const [allowComments, setAllowComments] = useState(true);
@@ -98,9 +99,7 @@ export default function NewArticlePage() {
       null;
 
     return {
-      title,
-      excerpt,
-      body,
+      title, excerpt, body,
       category_id: categoryRef.current,
       author_id: authorId,
       content_type: "article",
@@ -109,6 +108,7 @@ export default function NewArticlePage() {
       published_at: publishStatus === "published" ? new Date().toISOString() : null,
       scheduled_for: publishStatus === "scheduled" ? scheduledFor : null,
       homepage_placement: placementRef.current,
+      homepage_slot: homepageSlot,
       homepage_featured: homepageFeatured,
       is_premium: isPremiumRef.current,
       allow_comments: allowComments,
@@ -175,54 +175,33 @@ export default function NewArticlePage() {
 
   return (
     <div className="flex h-full">
-
       <ArticleSidebar
-        title={title}
-        excerpt={excerpt}
-        body={body}
-        categories={categories}
-        categoryId={categoryId}
-        placement={placement}
-        homepageFeatured={homepageFeatured}
-        isPremium={isPremium}
-        allowComments={allowComments}
-        ogTitle={ogTitle}
-        ogDesc={ogDesc}
-        ogImageUrl={ogImageUrl}
-        coverMedia={coverMedia}
-        authorId={authorId}
-        scheduledAt={scheduledFor}
-        tags={tags}
+        title={title} excerpt={excerpt} body={body} categories={categories}
+        categoryId={categoryId} placement={placement} homepageSlot={homepageSlot}
+        homepageFeatured={homepageFeatured} isPremium={isPremium} allowComments={allowComments}
+        ogTitle={ogTitle} ogDesc={ogDesc} ogImageUrl={ogImageUrl} coverMedia={coverMedia}
+        authorId={authorId} scheduledAt={scheduledFor} tags={tags}
         onCategoryChange={(id) => { setCategoryId(id); categoryRef.current = id; }}
         onPlacementChange={setPlacement}
+        onHomepageSlotChange={setHomepageSlot}
         onHomepageFeaturedChange={setHomepageFeatured}
         onIsPremiumChange={setIsPremium}
         onAllowCommentsChange={setAllowComments}
-        onOgTitleChange={setOgTitle}
-        onOgDescChange={setOgDesc}
-        onOgImageUrlChange={setOgImageUrl}
-        onAuthorIdChange={setAuthorId}
-        onScheduledAtChange={setScheduledFor}
+        onOgTitleChange={setOgTitle} onOgDescChange={setOgDesc} onOgImageUrlChange={setOgImageUrl}
+        onAuthorIdChange={setAuthorId} onScheduledAtChange={setScheduledFor}
         onTagsChange={handleTagsChange}
         onSaveDraft={() => handleSave("draft")}
         onPublish={() => handleSave("published")}
         onSchedule={() => handleSave("scheduled")}
         onPreview={handlePreview}
-        saving={saving}
-        lastSaved={lastSaved}
-        error={error}
-        slug={slug}
+        saving={saving} lastSaved={lastSaved} error={error} slug={slug}
       />
 
       <div ref={editorScrollRef} className="flex-1 overflow-y-auto p-6">
         <div className="max-w-3xl mx-auto space-y-4">
-
-          {/* Category chips */}
           <div className="flex gap-2 flex-wrap" dir="rtl">
             {categories.map((cat) => (
-              <button
-                key={cat.id}
-                type="button"
+              <button key={cat.id} type="button"
                 onClick={() => { setCategoryId(cat.id); categoryRef.current = cat.id; }}
                 className={`font-body text-xs px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5 ${
                   categoryId === cat.id
@@ -240,41 +219,19 @@ export default function NewArticlePage() {
             ))}
           </div>
 
-          {/* Title */}
-          <textarea
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="ލިޔުމުގެ ސުރުހީ..."
-            rows={2}
-            dir="rtl"
+          <textarea value={title} onChange={(e) => setTitle(e.target.value)}
+            placeholder="ލިޔުމުގެ ސުރުހީ..." rows={2} dir="rtl"
             className="w-full font-display text-3xl font-bold bg-transparent border-none outline-none resize-none text-foreground placeholder:text-muted-foreground/40 leading-tight"
           />
-
-          {/* Excerpt */}
-          <textarea
-            value={excerpt}
-            onChange={(e) => setExcerpt(e.target.value)}
-            placeholder="ކުރު ތަޢާރަފެއް — ކިޔުންތެރިން ފުރަތަމަ ފެންނާ ބައި..."
-            rows={6}
-            dir="rtl"
+          <textarea value={excerpt} onChange={(e) => setExcerpt(e.target.value)}
+            placeholder="ކުރު ތަޢާރަފެއް — ކިޔުންތެރިން ފުރަތަމަ ފެންނާ ބައި..." rows={6} dir="rtl"
             className="w-full font-body text-base text-muted-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 leading-relaxed"
           />
-
-          {/* Cover */}
           <CoverMedia value={coverMedia} onChange={handleCoverMediaChange} />
+          <ArticleEditor content={body ?? undefined} onChange={handleBodyChange} placeholder="ލިޔުން ފަށާ..." />
 
-          {/* Editor */}
-          <ArticleEditor
-            content={body ?? undefined}
-            onChange={handleBodyChange}
-            placeholder="ލިޔުން ފަށާ..."
-          />
-
-          {/* ── Floating action bar ── */}
           <div className="sticky bottom-4 z-20" dir="rtl">
             <div className="flex items-center gap-2 p-2 rounded-2xl border border-border shadow-lg w-fit bg-card">
-
-              {/* Autosave indicator */}
               {lastSaved && (
                 <span className="flex items-center gap-1.5 px-2">
                   <span className="relative flex h-2 w-2">
@@ -286,37 +243,17 @@ export default function NewArticlePage() {
                   </span>
                 </span>
               )}
-
-              <button
-                type="button"
-                onClick={() => handleSave("draft")}
-                disabled={saving}
-                title="ސޭވް ޑްރާފްޓް"
-                className="flex items-center gap-2 px-3 py-2 rounded-xl font-body text-xs text-muted-foreground border border-border hover:bg-muted hover:text-foreground transition-colors disabled:opacity-40"
-              >
-                {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                ސޭވް
+              <button type="button" onClick={() => handleSave("draft")} disabled={saving}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl font-body text-xs text-muted-foreground border border-border hover:bg-muted hover:text-foreground transition-colors disabled:opacity-40">
+                {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} ސޭވް
               </button>
-
-              <button
-                type="button"
-                onClick={handlePreview}
-                title="ޕްރިވިއު"
-                className="flex items-center gap-2 px-3 py-2 rounded-xl font-body text-xs text-muted-foreground border border-border hover:bg-muted hover:text-foreground transition-colors"
-              >
-                <Eye size={14} />
-                ޕްރިވިއު
+              <button type="button" onClick={handlePreview}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl font-body text-xs text-muted-foreground border border-border hover:bg-muted hover:text-foreground transition-colors">
+                <Eye size={14} /> ޕްރިވިއު
               </button>
-
-              <button
-                type="button"
-                onClick={() => handleSave("published")}
-                disabled={saving}
-                title="ޝާއިއު"
-                className="flex items-center gap-2 px-3 py-2 rounded-xl font-body text-xs bg-foreground text-background hover:opacity-80 transition-opacity disabled:opacity-40"
-              >
-                {saving ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                ޝާއިއު
+              <button type="button" onClick={() => handleSave("published")} disabled={saving}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl font-body text-xs bg-foreground text-background hover:opacity-80 transition-opacity disabled:opacity-40">
+                {saving ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} ޝާއިއު
               </button>
             </div>
           </div>
@@ -326,10 +263,8 @@ export default function NewArticlePage() {
               <p className="font-body text-sm text-destructive">{error}</p>
             </div>
           )}
-
         </div>
       </div>
-
     </div>
   );
 }
