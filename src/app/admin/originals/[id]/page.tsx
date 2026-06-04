@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 const TYPES = [
   { value: "documentary", label: "ޑޮކިއުމެންޓްރީ" },
@@ -35,9 +36,12 @@ function formatDuration(s: number) {
   return `${m}:${sec.toString().padStart(2, "0")}`;
 }
 
+interface SeriesItem { id: string; title: string; }
+
 export default function OriginalsEditPage() {
   const params = useParams();
   const router = useRouter();
+  const supabase = createClient();
   const isNew = params.id === "new";
 
   const [loading, setLoading] = useState(!isNew);
@@ -48,12 +52,16 @@ export default function OriginalsEditPage() {
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState("documentary");
+  const [seriesId, setSeriesId] = useState("");
+  const [seasonNumber, setSeasonNumber] = useState("");
   const [episodeNumber, setEpisodeNumber] = useState("");
   const [qualityCap, setQualityCap] = useState("auto");
   const [status, setStatus] = useState<"draft" | "published">("draft");
   const [streamId, setStreamId] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [durationSeconds, setDurationSeconds] = useState("");
+
+  const [seriesList, setSeriesList] = useState<SeriesItem[]>([]);
 
   const [uploadState, setUploadState] = useState<UploadState>("idle");
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -66,6 +74,12 @@ export default function OriginalsEditPage() {
   const [thumbUploading, setThumbUploading] = useState(false);
   const [grabbingThumb, setGrabbingThumb] = useState(false);
 
+  // Load series list
+  useEffect(() => {
+    supabase.from("series").select("id, title").eq("is_active", true).order("title")
+      .then(({ data }) => setSeriesList(data ?? []));
+  }, []);
+
   useEffect(() => {
     if (isNew) return;
     fetch("/api/originals")
@@ -77,6 +91,8 @@ export default function OriginalsEditPage() {
         setSlug(item.slug ?? "");
         setDescription(item.description ?? "");
         setType(item.type ?? "documentary");
+        setSeriesId(item.series_id ?? "");
+        setSeasonNumber(item.season_number?.toString() ?? "");
         setEpisodeNumber(item.episode_number?.toString() ?? "");
         setQualityCap(item.quality_cap ?? "auto");
         setStatus(item.status ?? "draft");
@@ -88,11 +104,7 @@ export default function OriginalsEditPage() {
       .catch(() => setLoading(false));
   }, [params.id]);
 
-  useEffect(() => {
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, []);
+  useEffect(() => { return () => { if (pollRef.current) clearInterval(pollRef.current); }; }, []);
 
   function pollVideoStatus(videoId: string) {
     setUploadState("processing");
@@ -119,30 +131,19 @@ export default function OriginalsEditPage() {
   }
 
   async function handleFile(file: File) {
-    if (!file.type.startsWith("video/")) {
-      setUploadError("ވީޑިއޯ ފައިލެއް އިހްތިޔާރުކޮށްލާ");
-      return;
-    }
-
-    setUploadError("");
-    setUploadState("requesting");
-    setUploadProgress(0);
+    if (!file.type.startsWith("video/")) { setUploadError("ވީޑިއޯ ފައިލެއް"); return; }
+    setUploadError(""); setUploadState("requesting"); setUploadProgress(0);
     uploadStartRef.current = Date.now();
-
     try {
-      // Step 1: get upload URL from our existing stream upload route
       const res = await fetch("/api/stream/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ maxDurationSeconds: 2400 }),
       });
       const { uploadUrl, videoId, error: apiError } = await res.json();
       if (apiError || !uploadUrl) throw new Error(apiError ?? "Upload URL ނުލިބުނު");
-
       setStreamId(videoId);
       setUploadState("uploading");
 
-      // Step 2: POST FormData directly to Cloudflare (same as reels)
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhrRef.current = xhr;
@@ -160,10 +161,7 @@ export default function OriginalsEditPage() {
             }
           }
         };
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) resolve();
-          else reject(new Error("Upload failed: " + xhr.status));
-        };
+        xhr.onload = () => xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error("Upload failed: " + xhr.status));
         xhr.onerror = () => reject(new Error("ނެޓްވޯކް އެރާ"));
         xhr.open("POST", uploadUrl);
         const formData = new FormData();
@@ -171,9 +169,7 @@ export default function OriginalsEditPage() {
         xhr.send(formData);
       });
 
-      // Step 3: poll until ready
       pollVideoStatus(videoId);
-
     } catch (err: any) {
       setUploadState("error");
       setUploadError("އަޕްލޯޑް ނުވި: " + err.message);
@@ -183,17 +179,14 @@ export default function OriginalsEditPage() {
   function handleAbort() {
     xhrRef.current?.abort();
     if (pollRef.current) clearInterval(pollRef.current);
-    setUploadState("idle");
-    setUploadProgress(0);
-    setEta("");
+    setUploadState("idle"); setUploadProgress(0); setEta("");
   }
 
   async function handleGrabThumbnail() {
     if (!streamId) return;
     setGrabbingThumb(true);
     const res = await fetch("/api/originals/grab-thumbnail", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ streamId }),
     });
     const json = await res.json();
@@ -214,10 +207,9 @@ export default function OriginalsEditPage() {
   async function handleSave(publish = false) {
     setSaving(true);
     const payload = {
-      title,
-      slug: slug || slugify(title),
-      description,
-      type,
+      title, slug: slug || slugify(title), description, type,
+      series_id: seriesId || null,
+      season_number: seasonNumber ? parseInt(seasonNumber) : null,
       episode_number: episodeNumber ? parseInt(episodeNumber) : null,
       quality_cap: qualityCap,
       status: publish ? "published" : status,
@@ -228,34 +220,28 @@ export default function OriginalsEditPage() {
 
     if (isNew) {
       const res = await fetch("/api/originals", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const json = await res.json();
       if (json.data?.id) router.replace(`/admin/originals/${json.data.id}`);
     } else {
       await fetch("/api/originals", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        method: "PATCH", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: params.id, ...payload }),
       });
     }
-    setSaving(false);
-    setSaved(true);
+    setSaving(false); setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64 text-neutral-400" style={{ fontFamily: "MVTypewriter, serif" }}>
-        ލޯޑްވަނީ...
-      </div>
-    );
+    return <div className="flex items-center justify-center h-64 text-neutral-400" style={{ fontFamily: "MVTypewriter, serif" }}>ލޯޑްވަނީ...</div>;
   }
 
   return (
     <div className="max-w-3xl mx-auto p-6">
+      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
           <button onClick={() => router.push("/admin/originals")} className="text-neutral-400 hover:text-neutral-700 transition-colors">
@@ -318,15 +304,37 @@ export default function OriginalsEditPage() {
           </div>
         </div>
 
-        {/* Episode number */}
-        {type === "episode" && (
+        {/* Series */}
+        <div className="border border-neutral-200 rounded-xl p-4 space-y-4 bg-neutral-50">
+          <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider" style={{ fontFamily: "MVTypewriter, serif" }}>ސީރީސް</p>
+
           <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1.5" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>އެޕިސޯޑް ނަންބަރ</label>
-            <input type="number" value={episodeNumber} onChange={e => setEpisodeNumber(e.target.value)}
-              className="w-32 px-3 py-2.5 rounded-lg border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900 text-sm"
-              placeholder="1" />
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>ސީރީސް</label>
+            <select value={seriesId} onChange={e => setSeriesId(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-lg border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900 text-sm bg-white"
+              style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
+              <option value="">ސީރީސް ނެތް</option>
+              {seriesList.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+            </select>
           </div>
-        )}
+
+          {seriesId && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1.5" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>ސީޒަން</label>
+                <input type="number" value={seasonNumber} onChange={e => setSeasonNumber(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-lg border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900 text-sm"
+                  placeholder="1" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1.5" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>އެޕިސޯޑް</label>
+                <input type="number" value={episodeNumber} onChange={e => setEpisodeNumber(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-lg border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900 text-sm"
+                  placeholder="1" />
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Description */}
         <div>
@@ -340,7 +348,6 @@ export default function OriginalsEditPage() {
         <div>
           <label className="block text-sm font-medium text-neutral-700 mb-1.5" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>ވިޑިއޯ</label>
 
-          {/* Idle */}
           {uploadState === "idle" && !streamId && (
             <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-neutral-200 rounded-xl cursor-pointer hover:border-neutral-400 transition-colors bg-neutral-50">
               <svg className="w-8 h-8 text-neutral-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -348,12 +355,10 @@ export default function OriginalsEditPage() {
               </svg>
               <span className="text-sm text-neutral-500" style={{ fontFamily: "MVTypewriter, serif" }}>ވިޑިއޯ ލިސްޓް ކުރޭ</span>
               <span className="text-xs text-neutral-400 mt-1">MP4, MOV, MKV</span>
-              <input type="file" accept="video/*" className="hidden"
-                onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
+              <input type="file" accept="video/*" className="hidden" onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
             </label>
           )}
 
-          {/* Requesting */}
           {uploadState === "requesting" && (
             <div className="p-6 rounded-xl border border-neutral-200 bg-neutral-50 text-center">
               <div className="w-5 h-5 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
@@ -361,16 +366,11 @@ export default function OriginalsEditPage() {
             </div>
           )}
 
-          {/* Uploading */}
           {uploadState === "uploading" && (
             <div className="p-4 rounded-xl border border-neutral-200 bg-neutral-50">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-neutral-600" style={{ fontFamily: "MVTypewriter, serif" }}>
-                  އަޕްލޯޑްވަނީ... {uploadProgress}%
-                </span>
-                <button onClick={handleAbort} className="text-xs text-red-500 hover:text-red-700" style={{ fontFamily: "MVTypewriter, serif" }}>
-                  ހުއްޓާލޭ
-                </button>
+                <span className="text-sm text-neutral-600" style={{ fontFamily: "MVTypewriter, serif" }}>އަޕްލޯޑްވަނީ... {uploadProgress}%</span>
+                <button onClick={handleAbort} className="text-xs text-red-500 hover:text-red-700" style={{ fontFamily: "MVTypewriter, serif" }}>ހުއްޓާލޭ</button>
               </div>
               <div className="w-full h-2 bg-neutral-200 rounded-full overflow-hidden">
                 <div className="h-full bg-neutral-900 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
@@ -379,21 +379,17 @@ export default function OriginalsEditPage() {
             </div>
           )}
 
-          {/* Processing */}
           {uploadState === "processing" && (
             <div className="p-6 rounded-xl border border-neutral-200 bg-neutral-50 text-center">
               <div className="w-5 h-5 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
               <p className="text-sm text-neutral-600 font-medium" style={{ fontFamily: "MVTypewriter, serif" }}>ޕްރޮސެސްވަނީ...</p>
-              <p className="text-xs text-neutral-400 mt-1" style={{ fontFamily: "MVTypewriter, serif" }}>ކުޑަ ވަގުތެއް ނަގާ، މަޑުކޮށްލާ</p>
+              <p className="text-xs text-neutral-400 mt-1" style={{ fontFamily: "MVTypewriter, serif" }}>ކުޑަ ވަގުތެއް ނަގާ</p>
             </div>
           )}
 
-          {/* Ready */}
           {uploadState === "ready" && (
             <div className="flex items-center gap-3 p-3 rounded-xl border border-green-200 bg-green-50">
-              {thumbnailUrl && (
-                <img src={thumbnailUrl} alt="" className="w-16 aspect-video object-cover rounded-lg flex-none" />
-              )}
+              {thumbnailUrl && <img src={thumbnailUrl} alt="" className="w-16 aspect-video object-cover rounded-lg flex-none" />}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <svg className="w-4 h-4 text-green-500 flex-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -412,7 +408,6 @@ export default function OriginalsEditPage() {
             </div>
           )}
 
-          {/* Error */}
           {uploadState === "error" && (
             <div className="flex items-center justify-between p-3 rounded-xl border border-red-200 bg-red-50">
               <span className="text-sm text-red-600">{uploadError}</span>
@@ -422,7 +417,6 @@ export default function OriginalsEditPage() {
             </div>
           )}
 
-          {/* Stream ID already set (edit mode) */}
           {uploadState === "idle" && streamId && (
             <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 border border-green-200">
               <svg className="w-4 h-4 text-green-600 flex-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -437,7 +431,6 @@ export default function OriginalsEditPage() {
             </div>
           )}
 
-          {/* Manual Stream ID */}
           <div className="mt-3">
             <label className="block text-xs text-neutral-400 mb-1">ނުވަތަ Cloudflare Stream ID ޖައްސާ</label>
             <input type="text" value={streamId} onChange={e => setStreamId(e.target.value)}
@@ -454,7 +447,7 @@ export default function OriginalsEditPage() {
               className="w-40 px-3 py-2.5 rounded-lg border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900 text-sm"
               placeholder="900" />
             {durationSeconds && (
-              <span className="text-sm text-neutral-400">= {Math.floor(parseInt(durationSeconds) / 60)} min {parseInt(durationSeconds) % 60} sec</span>
+              <span className="text-sm text-neutral-400" dir="ltr">= {Math.floor(parseInt(durationSeconds) / 60)} min {parseInt(durationSeconds) % 60} sec</span>
             )}
           </div>
         </div>
@@ -462,7 +455,6 @@ export default function OriginalsEditPage() {
         {/* Thumbnail */}
         <div>
           <label className="block text-sm font-medium text-neutral-700 mb-1.5" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>ތަމްބްނެއިލް</label>
-
           {thumbnailUrl && (
             <div className="relative w-48 aspect-video rounded-lg overflow-hidden mb-3 bg-neutral-100">
               <img src={thumbnailUrl} alt="thumbnail" className="w-full h-full object-cover" />
@@ -474,23 +466,15 @@ export default function OriginalsEditPage() {
               </button>
             </div>
           )}
-
           <div className="flex items-center gap-3 flex-wrap">
             <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-neutral-200 cursor-pointer hover:bg-neutral-50 transition-colors text-sm text-neutral-700">
               {thumbUploading ? (
                 <span style={{ fontFamily: "MVTypewriter, serif" }}>އަޕްލޯޑްވަނީ...</span>
               ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <span style={{ fontFamily: "MVTypewriter, serif" }}>ފޮޓޯ އިހްތިޔާރު</span>
-                </>
+                <span style={{ fontFamily: "MVTypewriter, serif" }}>ފޮޓޯ އިހްތިޔާރު</span>
               )}
-              <input type="file" accept="image/*" className="hidden"
-                onChange={e => e.target.files?.[0] && handleThumbnailFile(e.target.files[0])} />
+              <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && handleThumbnailFile(e.target.files[0])} />
             </label>
-
             {streamId && (
               <button onClick={handleGrabThumbnail} disabled={grabbingThumb}
                 className="flex items-center gap-2 px-3 py-2 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors text-sm text-neutral-700 disabled:opacity-50"
