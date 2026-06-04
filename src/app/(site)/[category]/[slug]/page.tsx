@@ -115,6 +115,7 @@ export default async function ArticlePage({ params }: PageProps) {
 
   return (
     <div className="bg-[#F5F3EF] min-h-screen" dir="rtl">
+      <ViewTracker articleId={article.id} />
 
       {/* Header */}
       <header className="max-w-3xl mx-auto px-6 pt-8 pb-6 text-center">
