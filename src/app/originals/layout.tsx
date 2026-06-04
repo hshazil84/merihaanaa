@@ -1,13 +1,15 @@
-// src/app/originals/layout.tsx
 "use client";
+// src/app/originals/layout.tsx
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { Search, X } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Search, X, ArrowLeft } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
 
 export default function OriginalsLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const isWatch = pathname.endsWith("/watch");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -19,11 +21,13 @@ export default function OriginalsLayout({ children }: { children: React.ReactNod
     }
   }
 
+  // Watch page — no layout header, WatchPageClient has its own
+  if (isWatch) return <>{children}</>;
+
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Top bar — fully transparent, no gradient */}
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 md:px-8 py-3" dir="ltr">
-        {/* Left side (visual left = LTR left = search) */}
+        {/* Left — search */}
         <div className="flex items-center gap-2">
           {!searchOpen ? (
             <button onClick={() => setSearchOpen(true)} className="p-2 rounded-full text-white/60 hover:text-white transition-colors">
@@ -47,8 +51,7 @@ export default function OriginalsLayout({ children }: { children: React.ReactNod
             </div>
           )}
         </div>
-
-        {/* Right side (visual right = LTR right = logo) */}
+        {/* Right — logo */}
         <Link href="/" className="opacity-90 hover:opacity-100 transition-opacity">
           <Image src="/logo.png" alt="މެރިހާނާ" width={100} height={30} className="h-9 w-auto object-contain" priority />
         </Link>
