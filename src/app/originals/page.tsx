@@ -1,7 +1,7 @@
 // src/app/originals/page.tsx
+import OriginalCard from "./OriginalCard";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import OriginalCard from "./OriginalCard";
 
 const TYPE_LABELS: Record<string, string> = {
   documentary: "ޑޮކިއުމެންޓްރީ",
