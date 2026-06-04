@@ -49,59 +49,61 @@ export default async function OriginalsDetailPage({ params }: { params: { slug: 
   const series = Array.isArray(original.series) ? original.series[0] : original.series;
 
   return (
-    <div className="min-h-screen">
-      {/* Hero */}
-      <div className="relative w-full aspect-[16/7] md:aspect-[16/5] overflow-hidden">
+    <div className="min-h-screen bg-black">
+      {/* Hero — full viewport height thumbnail */}
+      <div className="relative w-full h-screen overflow-hidden">
         {original.thumbnail_url ? (
-          <img src={original.thumbnail_url} alt={original.title} className="w-full h-full object-cover object-center" />
+          <img
+            src={original.thumbnail_url}
+            alt={original.title}
+            className="w-full h-full object-cover object-center"
+          />
         ) : (
           <div className="w-full h-full bg-neutral-900" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/10" />
-      </div>
+        {/* Bottom gradient only — fades into black content below */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
 
-      {/* Content */}
-      <div className="relative -mt-40 md:-mt-56 px-4 md:px-12 pb-16">
+        {/* Content anchored to bottom-right of hero */}
+        <div className="absolute bottom-12 right-6 md:right-12 left-6 md:left-auto md:max-w-xl" dir="rtl">
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-1.5 text-xs text-white/50 mb-3">
+            <Link href="/originals" className="hover:text-white transition-colors" style={{ fontFamily: "MVTypewriter, serif" }}>
+              އޮރިޖިނަލްސް
+            </Link>
+            <span>/</span>
+            <span className="text-white/70 line-clamp-1" style={{ fontFamily: "MVTypewriter, serif" }}>{original.title}</span>
+          </div>
 
-        {/* Breadcrumb — RTL */}
-        <div className="flex items-center gap-1.5 text-xs text-neutral-500 mb-5 justify-end" dir="rtl">
-          <Link href="/originals" className="hover:text-white transition-colors" style={{ fontFamily: "MVTypewriter, serif" }}>
-            އޮރިޖިނަލްސް
-          </Link>
-          <span>/</span>
-          <span className="text-neutral-300 line-clamp-1 max-w-xs" style={{ fontFamily: "MVTypewriter, serif" }}>{original.title}</span>
-        </div>
-
-        {/* Badges */}
-        <div className="flex items-center gap-2 mb-4 flex-wrap justify-end" dir="rtl">
-          <span className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-white/60 border border-white/10" style={{ fontFamily: "MVTypewriter, serif" }}>
-            {TYPE_LABELS[original.type] ?? original.type}
-          </span>
-          {original.duration_seconds && (
-            <span className="text-xs text-neutral-400 tabular-nums" dir="ltr">{formatDuration(original.duration_seconds)}</span>
-          )}
-          {series && (
-            <span className="text-xs px-2.5 py-1 rounded-full bg-red-500/20 text-red-400 border border-red-500/20" style={{ fontFamily: "MVTypewriter, serif" }}>
-              {series.title}
+          {/* Badges */}
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <span className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-white/60 border border-white/10" style={{ fontFamily: "MVTypewriter, serif" }}>
+              {TYPE_LABELS[original.type] ?? original.type}
             </span>
+            {original.duration_seconds && (
+              <span className="text-xs text-white/50 tabular-nums" dir="ltr">{formatDuration(original.duration_seconds)}</span>
+            )}
+            {series && (
+              <span className="text-xs px-2.5 py-1 rounded-full bg-red-500/20 text-red-400 border border-red-500/20" style={{ fontFamily: "MVTypewriter, serif" }}>
+                {series.title}
+              </span>
+            )}
+          </div>
+
+          {/* Title */}
+          <h1 className="text-2xl md:text-4xl font-bold text-white leading-snug mb-3" style={{ fontFamily: "MVTypewriter, serif" }}>
+            {original.title}
+          </h1>
+
+          {/* Description */}
+          {original.description && (
+            <p className="text-sm text-white/70 leading-relaxed mb-6 line-clamp-3" style={{ fontFamily: "MVTypewriter, serif" }}>
+              {original.description}
+            </p>
           )}
-        </div>
 
-        {/* Title */}
-        <h1 className="text-2xl md:text-4xl font-bold text-white leading-snug mb-4 text-right" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
-          {original.title}
-        </h1>
-
-        {/* Description */}
-        {original.description && (
-          <p className="text-sm text-neutral-300 leading-relaxed max-w-xl mb-8 text-right mr-0 ml-auto" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
-            {original.description}
-          </p>
-        )}
-
-        {/* Watch button */}
-        {original.cloudflare_stream_id && (
-          <div className="flex justify-end">
+          {/* Watch button */}
+          {original.cloudflare_stream_id && (
             <Link
               href={`/originals/${original.slug}/watch`}
               className="inline-flex items-center gap-3 px-8 py-3 rounded-lg bg-white text-black font-bold text-sm hover:bg-neutral-200 transition-colors"
@@ -110,50 +112,47 @@ export default async function OriginalsDetailPage({ params }: { params: { slug: 
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
               Watch
             </Link>
-          </div>
-        )}
-
-        {/* Divider */}
-        <div className="h-px bg-white/10 my-10" />
-
-        {/* Related */}
-        {related.length > 0 && (
-          <div>
-            <h2 className="text-sm font-bold text-white mb-5 flex items-center gap-2 justify-end" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
-              <span className="block w-1 h-4 bg-red-500 rounded-full" />
-              އިތުރު ވިޑިއޯ
-            </h2>
-            <div className="flex gap-4 overflow-x-auto pb-2 snap-x" style={{ scrollbarWidth: "none" }}>
-              {related.map((item: any) => (
-                <Link key={item.id} href={`/originals/${item.slug}`}
-                  className="group flex-none w-[72vw] sm:w-[40vw] md:w-[24vw] lg:w-[18vw] snap-start">
-                  <div className="relative aspect-video rounded-lg overflow-hidden bg-neutral-800">
-                    {item.thumbnail_url ? (
-                      <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                    ) : (
-                      <div className="w-full h-full bg-neutral-800" />
-                    )}
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
-                      <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                    </div>
-                    {item.duration_seconds && (
-                      <div className="absolute bottom-1.5 right-1.5 text-[10px] bg-black/70 text-white px-1.5 py-0.5 rounded tabular-nums">
-                        {Math.floor(item.duration_seconds / 60)}:{String(item.duration_seconds % 60).padStart(2, "0")}
-                      </div>
-                    )}
-                  </div>
-                  <p className="mt-2 text-xs font-semibold text-neutral-200 line-clamp-2 group-hover:text-white transition-colors text-right" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
-                    {item.title}
-                  </p>
-                  <p className="text-[10px] text-neutral-500 mt-0.5 text-right" style={{ fontFamily: "MVTypewriter, serif" }}>
-                    {TYPE_LABELS[item.type] ?? item.type}
-                  </p>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
+
+      {/* Related videos — below hero */}
+      {related.length > 0 && (
+        <div className="px-4 md:px-12 py-10">
+          <h2 className="text-sm font-bold text-white mb-5 flex items-center gap-2" dir="rtl" style={{ fontFamily: "MVTypewriter, serif" }}>
+            <span className="block w-1 h-4 bg-red-500 rounded-full" />
+            އިތުރު ވިޑިއޯ
+          </h2>
+          <div className="flex gap-4 overflow-x-auto pb-2 snap-x" style={{ scrollbarWidth: "none" }}>
+            {related.map((item: any) => (
+              <Link key={item.id} href={`/originals/${item.slug}`}
+                className="group flex-none w-[72vw] sm:w-[40vw] md:w-[24vw] lg:w-[18vw] snap-start">
+                <div className="relative aspect-video rounded-lg overflow-hidden bg-neutral-800">
+                  {item.thumbnail_url ? (
+                    <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  ) : (
+                    <div className="w-full h-full bg-neutral-800" />
+                  )}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
+                    <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                  </div>
+                  {item.duration_seconds && (
+                    <div className="absolute bottom-1.5 right-1.5 text-[10px] bg-black/70 text-white px-1.5 py-0.5 rounded tabular-nums">
+                      {Math.floor(item.duration_seconds / 60)}:{String(item.duration_seconds % 60).padStart(2, "0")}
+                    </div>
+                  )}
+                </div>
+                <p className="mt-2 text-xs font-semibold text-neutral-200 line-clamp-2 group-hover:text-white transition-colors" dir="rtl" style={{ fontFamily: "MVTypewriter, serif" }}>
+                  {item.title}
+                </p>
+                <p className="text-[10px] text-neutral-500 mt-0.5" dir="rtl" style={{ fontFamily: "MVTypewriter, serif" }}>
+                  {TYPE_LABELS[item.type] ?? item.type}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
