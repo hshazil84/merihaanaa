@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
-  Send, Save, Eye, Clock, Star, BookOpen, FileText, Video,
+  Send, Save, Eye, Clock, Star, BookOpen, FileText,
   Check, Calendar, User, Globe, Lock, MessageCircle, RefreshCw,
   Sparkles, X, UploadCloud, Loader2, Home, ChevronDown, Tag,
 } from "lucide-react";
@@ -23,6 +23,7 @@ interface SidebarProps {
   categories: Category[];
   categoryId: string | null;
   placement: string | null;
+  homepageSlot: number | null;
   homepageFeatured: boolean;
   isPremium: boolean;
   allowComments: boolean;
@@ -36,6 +37,7 @@ interface SidebarProps {
   status?: string;
   onCategoryChange: (id: string) => void;
   onPlacementChange: (v: string | null) => void;
+  onHomepageSlotChange: (v: number | null) => void;
   onHomepageFeaturedChange: (v: boolean) => void;
   onIsPremiumChange: (v: boolean) => void;
   onAllowCommentsChange: (v: boolean) => void;
@@ -56,11 +58,10 @@ interface SidebarProps {
 }
 
 const PLACEMENTS = [
-  { value: "hero",           label: "ހީރޯ",          icon: Star,     desc: "ކަވަރ" },
-  { value: "editors_choice", label: "އެޑިޓަރ ޗޮއިސް", icon: BookOpen, desc: "4 ގްރިޑް" },
-  { value: "people",         label: "މީހުން",          icon: User,     desc: "ސްޕްލިޓް" },
-  { value: "review",         label: "ރިވިއު",          icon: FileText, desc: "ރިވިއު" },
-  { value: "reel",           label: "ރީލް",             icon: Video,    desc: "ވީޑިއޯ" },
+  { value: "hero",           label: "ހީރޯ",          icon: Star,     desc: "ކަވަރ",    slots: 1 },
+  { value: "editors_choice", label: "އެޑިޓަރ ޗޮއިސް", icon: BookOpen, desc: "4 ގްރިޑް", slots: 4 },
+  { value: "people",         label: "މީހުން",          icon: User,     desc: "ސްޕްލިޓް", slots: 1 },
+  { value: "review",         label: "ރިވިއު",          icon: FileText, desc: "3 ގްރިޑް",  slots: 3 },
 ];
 
 const BUCKET = "article-images";
@@ -140,10 +141,10 @@ function Collapsible({
 }
 
 export default function ArticleSidebar({
-  title, excerpt, body, categories, categoryId, placement, homepageFeatured,
+  title, excerpt, body, categories, categoryId, placement, homepageSlot, homepageFeatured,
   isPremium, allowComments, ogTitle, ogDesc, ogImageUrl, coverMedia,
   authorId, scheduledAt, tags = [], status,
-  onCategoryChange, onPlacementChange, onHomepageFeaturedChange,
+  onCategoryChange, onPlacementChange, onHomepageSlotChange, onHomepageFeaturedChange,
   onIsPremiumChange, onAllowCommentsChange, onOgTitleChange, onOgDescChange,
   onOgImageUrlChange, onAuthorIdChange, onScheduledAtChange, onTagsChange,
   onSaveDraft, onPublish, onSchedule, onPreview,
@@ -168,11 +169,22 @@ export default function ArticleSidebar({
     coverMedia?.videoMeta?.thumbnailUrl ||
     null;
 
+  // Slots for current placement
+  const currentPlacement = PLACEMENTS.find(p => p.value === placement);
+  const slotCount = currentPlacement?.slots ?? 0;
+
   useEffect(() => {
     supabase.from("user_profiles").select("id, full_name, role")
       .in("role", ["admin", "editor", "author"]).order("full_name")
       .then(({ data }) => { if (data) setAuthors(data); });
   }, [supabase]);
+
+  // Reset slot when placement changes
+  useEffect(() => {
+    if (!placement || slotCount <= 1) {
+      onHomepageSlotChange(null);
+    }
+  }, [placement]);
 
   const addTag = useCallback((tag: TagItem) => {
     if (!onTagsChange) return;
@@ -343,7 +355,7 @@ export default function ArticleSidebar({
           <SectionLabel icon={<Home size={11} />}>ހޯމްޕޭޖް</SectionLabel>
           <div className="space-y-0.5">
             <button
-              type="button" onClick={() => onPlacementChange(null)}
+              type="button" onClick={() => { onPlacementChange(null); onHomepageSlotChange(null); }}
               className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all ${
                 placement === null ? "bg-foreground" : "hover:bg-muted/60"
               }`}
@@ -369,7 +381,7 @@ export default function ArticleSidebar({
               return (
                 <button
                   key={p.value} type="button"
-                  onClick={() => onPlacementChange(isActive ? null : p.value)}
+                  onClick={() => { onPlacementChange(isActive ? null : p.value); onHomepageSlotChange(null); }}
                   className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all ${
                     isActive ? "bg-foreground" : "hover:bg-muted/60"
                   }`}
@@ -392,6 +404,36 @@ export default function ArticleSidebar({
               );
             })}
           </div>
+
+          {/* Slot picker — shown when placement has multiple slots */}
+          {placement && slotCount > 1 && (
+            <div className="mt-3 pt-3 border-t border-border">
+              <p className="font-body text-[10px] font-semibold text-muted-foreground mb-2">
+                ސްލޮޓް ({slotCount} ތެރެއިން)
+              </p>
+              <div className="flex gap-1.5 flex-wrap">
+                {Array.from({ length: slotCount }, (_, i) => i + 1).map((slot) => (
+                  <button
+                    key={slot}
+                    type="button"
+                    onClick={() => onHomepageSlotChange(homepageSlot === slot ? null : slot)}
+                    className={`w-8 h-8 rounded-lg font-body text-xs font-semibold transition-all border ${
+                      homepageSlot === slot
+                        ? "bg-foreground text-background border-foreground"
+                        : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {slot}
+                  </button>
+                ))}
+              </div>
+              {homepageSlot && (
+                <p className="font-body text-[9px] text-muted-foreground mt-1.5">
+                  ސްލޮޓް {homepageSlot} ގައި ދައްކާ
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
             <div>
