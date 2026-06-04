@@ -234,7 +234,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
             <div className="max-w-7xl mx-auto px-6 h-full">
               <div className="flex items-center justify-center gap-1 h-full">
                 {categories.map((cat) => (
-                  <Link key={cat.id} href={`/${cat.slug}`}
+                  <Link key={cat.id} href={`/${cat.slug}`} target={cat.slug === "originals" ? "_blank" : undefined} rel={cat.slug === "originals" ? "noopener noreferrer" : undefined}
                     className="whitespace-nowrap px-4 py-2 transition-colors hover:text-[rgb(26,26,26)]"
                     style={{ fontFamily: "'MVTypewriter', 'MV Boli', sans-serif", fontSize: "13px", color: "rgb(153,153,153)" }}>
                     {cat.name}
@@ -408,7 +408,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           <div className="max-w-7xl mx-auto px-6 h-full">
             <div className="flex items-center justify-center gap-1 h-full">
               {categories.map((cat) => (
-                <Link key={cat.id} href={`/${cat.slug}`}
+                <Link key={cat.id} href={`/${cat.slug}`} target={cat.slug === "originals" ? "_blank" : undefined} rel={cat.slug === "originals" ? "noopener noreferrer" : undefined}
                   className="whitespace-nowrap px-4 py-2 transition-colors hover:text-[rgb(26,26,26)]"
                   style={{ fontFamily: "'MVTypewriter', 'MV Boli', sans-serif", fontSize: "13px", color: "rgb(153,153,153)" }}>
                   {cat.name}
@@ -636,7 +636,7 @@ function MobileMenu({ categories, open, onClose, topOffset }: {
               transform: open ? "translateX(0)" : "translateX(20px)",
               transition: `opacity 0.3s ease ${i * 0.04}s, transform 0.3s ease ${i * 0.04}s`,
             }}>
-              <Link href={`/${cat.slug}`} onClick={onClose}
+              <Link href={`/${cat.slug}`} onClick={cat.slug === "originals" ? undefined : onClose} target={cat.slug === "originals" ? "_blank" : undefined} rel={cat.slug === "originals" ? "noopener noreferrer" : undefined}
                 className="block py-3 border-b border-[#e0ddd6]/60 transition-colors text-[#999] hover:text-[#333]"
                 style={{ fontFamily: "'MVTypewriter', 'MV Boli', sans-serif", fontSize: "1.2rem" }}>
                 {cat.name}
