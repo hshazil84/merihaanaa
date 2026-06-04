@@ -18,12 +18,19 @@ interface Reel {
   category: { name: string; slug: string } | null;
 }
 
+function formatDuration(s: number | null) {
+  if (!s) return null;
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${sec.toString().padStart(2, "0")}`;
+}
+
 export default function ReelWatchPage() {
   const params = useParams();
   const router = useRouter();
   const supabase = createClient();
 
-  const [reels, setReels] = useState<Reel[]>([]);
+  const [reels, setReels] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [muted, setMuted] = useState(true);
@@ -39,7 +46,7 @@ export default function ReelWatchPage() {
         .order("published_at", { ascending: false });
       const all = (data ?? []) as any[];
       setReels(all);
-      const idx = all.findIndex((r: Reel) => r.slug === params.slug);
+      const idx = all.findIndex((r: any) => r.slug === params.slug);
       setCurrentIndex(idx >= 0 ? idx : 0);
       setLoading(false);
     }
@@ -52,7 +59,6 @@ export default function ReelWatchPage() {
     router.replace(`/reels/${reels[index].slug}`, { scroll: false });
   }, [reels, router]);
 
-  // Keyboard navigation
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       if (e.key === "ArrowRight" || e.key === "ArrowDown") goTo(currentIndex + 1);
@@ -63,7 +69,6 @@ export default function ReelWatchPage() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [currentIndex, goTo, router]);
 
-  // Touch swipe
   function handleTouchStart(e: React.TouchEvent) {
     touchStartY.current = e.touches[0].clientY;
   }
@@ -76,6 +81,8 @@ export default function ReelWatchPage() {
   }
 
   const current = reels[currentIndex];
+  const prev = reels[currentIndex - 1];
+  const next = reels[currentIndex + 1];
 
   const playerUrl = current
     ? `https://customer-${CF_CUSTOMER_CODE}.cloudflarestream.com/${current.stream_video_id}/iframe?autoplay=true&muted=${muted ? "true" : "false"}&loop=true&preload=true${current.thumbnail_url ? `&poster=${encodeURIComponent(current.thumbnail_url)}` : ""}`
@@ -91,13 +98,15 @@ export default function ReelWatchPage() {
 
   if (!current) return null;
 
+  const category = Array.isArray(current.category) ? current.category[0] : current.category;
+
   return (
     <div
-      className="fixed inset-0 bg-black flex items-center justify-center"
+      className="fixed inset-0 bg-black flex items-center justify-center overflow-hidden"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Back button */}
+      {/* Close button */}
       <Link
         href="/"
         className="absolute top-4 left-4 z-30 w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white transition-colors"
@@ -114,92 +123,175 @@ export default function ReelWatchPage() {
       >
         {muted ? (
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
           </svg>
         ) : (
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M12 6v12m0 0l-4-4m4 4l4-4M9 9H5a1 1 0 00-1 1v4a1 1 0 001 1h4l5 5V4L9 9z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
           </svg>
         )}
       </button>
 
-      {/* Prev arrow — desktop */}
-      {currentIndex > 0 && (
-        <button
+      {/* Desktop layout — prev peek | current | next peek */}
+      <div className="hidden md:flex items-center justify-center w-full h-full gap-4 px-8">
+
+        {/* Prev peek */}
+        <div
+          className="flex-none cursor-pointer transition-all duration-300"
+          style={{ width: "12vw" }}
           onClick={() => goTo(currentIndex - 1)}
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white transition-colors hidden md:flex"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-      )}
-
-      {/* Next arrow — desktop */}
-      {currentIndex < reels.length - 1 && (
-        <button
-          onClick={() => goTo(currentIndex + 1)}
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white transition-colors hidden md:flex"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      )}
-
-      {/* 9:16 player container */}
-      <div className="relative h-full md:h-[90vh] aspect-[9/16] bg-neutral-950 overflow-hidden rounded-none md:rounded-2xl">
-        {playerUrl && (
-          <iframe
-            key={current.id}
-            src={playerUrl}
-            className="absolute inset-0 w-full h-full"
-            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
-            allowFullScreen
-          />
-        )}
-
-        {/* Lower-third overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none">
-          {current.category && (
-            <span
-              className="inline-block text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-white/60 border border-white/10 mb-2"
-              style={{ fontFamily: "MVTypewriter, serif" }}
-            >
-              {current.category.name}
-            </span>
+          {prev ? (
+            <div className="relative aspect-[9/16] rounded-xl overflow-hidden opacity-40 hover:opacity-60 transition-opacity">
+              {prev.thumbnail_url ? (
+                <img src={prev.thumbnail_url} alt={prev.title} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-neutral-800" />
+              )}
+              <div className="absolute inset-0 bg-black/30" />
+              {/* Prev arrow */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ width: "12vw" }} />
           )}
-          <p
-            className="text-white text-sm font-semibold leading-snug line-clamp-2"
-            style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}
-          >
-            {current.title}
-          </p>
         </div>
 
-        {/* Reel counter */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-1">
-          {reels.slice(0, 8).map((_, i) => (
-            <div
-              key={i}
-              className={`h-0.5 rounded-full transition-all ${
-                i === currentIndex ? "w-4 bg-white" : "w-1.5 bg-white/30"
-              }`}
-            />
-          ))}
+        {/* Current reel */}
+        <div
+          className="relative flex-none"
+          style={{ height: "90vh", aspectRatio: "9/16" }}
+        >
+          <div className="relative w-full h-full bg-neutral-950 rounded-2xl overflow-hidden">
+            {playerUrl && (
+              <iframe
+                key={current.id}
+                src={playerUrl}
+                className="absolute inset-0 w-full h-full"
+                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+                allowFullScreen
+              />
+            )}
+
+            {/* Lower-third overlay */}
+            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none">
+              {category && (
+                <span
+                  className="inline-block text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-white/60 border border-white/10 mb-2"
+                  style={{ fontFamily: "MVTypewriter, serif" }}
+                >
+                  {category.name}
+                </span>
+              )}
+              <p
+                className="text-white text-sm font-semibold leading-snug line-clamp-2"
+                style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}
+              >
+                {current.title}
+              </p>
+            </div>
+
+            {/* Dot indicators */}
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-1">
+              {reels.slice(0, 8).map((_: any, i: number) => (
+                <div
+                  key={i}
+                  className={`h-0.5 rounded-full transition-all duration-300 ${
+                    i === currentIndex ? "w-4 bg-white" : "w-1.5 bg-white/30"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Next peek */}
+        <div
+          className="flex-none cursor-pointer transition-all duration-300"
+          style={{ width: "12vw" }}
+          onClick={() => goTo(currentIndex + 1)}
+        >
+          {next ? (
+            <div className="relative aspect-[9/16] rounded-xl overflow-hidden opacity-40 hover:opacity-60 transition-opacity">
+              {next.thumbnail_url ? (
+                <img src={next.thumbnail_url} alt={next.title} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-neutral-800" />
+              )}
+              <div className="absolute inset-0 bg-black/30" />
+              {/* Next arrow */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ width: "12vw" }} />
+          )}
         </div>
       </div>
 
-      {/* Mobile swipe hint — shown briefly */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 md:hidden pointer-events-none">
-        {currentIndex < reels.length - 1 && (
-          <div className="flex flex-col items-center gap-1 text-white/30 animate-bounce">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-            </svg>
+      {/* Mobile layout — full screen */}
+      <div className="md:hidden w-full h-full relative">
+        <div className="relative w-full h-full bg-black">
+          {playerUrl && (
+            <iframe
+              key={current.id}
+              src={playerUrl}
+              className="absolute inset-0 w-full h-full"
+              allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+              allowFullScreen
+            />
+          )}
+
+          {/* Lower-third overlay */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 pb-8 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none">
+            {category && (
+              <span
+                className="inline-block text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-white/60 border border-white/10 mb-2"
+                style={{ fontFamily: "MVTypewriter, serif" }}
+              >
+                {category.name}
+              </span>
+            )}
+            <p
+              className="text-white text-sm font-semibold leading-snug line-clamp-2"
+              style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}
+            >
+              {current.title}
+            </p>
           </div>
-        )}
+
+          {/* Dot indicators */}
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-1">
+            {reels.slice(0, 8).map((_: any, i: number) => (
+              <div
+                key={i}
+                className={`h-0.5 rounded-full transition-all duration-300 ${
+                  i === currentIndex ? "w-4 bg-white" : "w-1.5 bg-white/30"
+                }`}
+              />
+            ))}
+          </div>
+
+          {/* Swipe hint */}
+          {currentIndex < reels.length - 1 && (
+            <div className="absolute bottom-20 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/30 animate-bounce pointer-events-none">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
