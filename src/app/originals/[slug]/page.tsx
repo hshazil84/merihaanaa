@@ -3,8 +3,6 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
-const CF_CUSTOMER_CODE = "hyktj7g4xsx8p15r";
-
 const TYPE_LABELS: Record<string, string> = {
   documentary: "ޑޮކިއުމެންޓްރީ",
   profile:     "ޕްރޮފައިލް",
@@ -48,68 +46,71 @@ export default async function OriginalsDetailPage({ params }: { params: { slug: 
   const original = await getOriginal(params.slug);
   if (!original) notFound();
   const related = await getRelated(original.id);
+  const series = Array.isArray(original.series) ? original.series[0] : original.series;
 
   return (
     <div className="min-h-screen">
-      {/* Hero — thumbnail with gradient */}
-      <div className="relative w-full aspect-[16/7] md:aspect-[16/6] overflow-hidden">
+      {/* Hero */}
+      <div className="relative w-full aspect-[16/7] md:aspect-[16/5] overflow-hidden">
         {original.thumbnail_url ? (
-          <img src={original.thumbnail_url} alt={original.title} className="w-full h-full object-cover object-top" />
+          <img src={original.thumbnail_url} alt={original.title} className="w-full h-full object-cover object-center" />
         ) : (
           <div className="w-full h-full bg-neutral-900" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-black/20" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/10" />
       </div>
 
-      {/* Content — overlaps hero */}
-      <div className="relative -mt-32 md:-mt-48 px-4 md:px-12 pb-16">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-1.5 text-xs text-neutral-500 mb-6" dir="ltr">
+      {/* Content */}
+      <div className="relative -mt-40 md:-mt-56 px-4 md:px-12 pb-16">
+
+        {/* Breadcrumb — RTL */}
+        <div className="flex items-center gap-1.5 text-xs text-neutral-500 mb-5 justify-end" dir="rtl">
           <Link href="/originals" className="hover:text-white transition-colors" style={{ fontFamily: "MVTypewriter, serif" }}>
             އޮރިޖިނަލްސް
           </Link>
           <span>/</span>
-          <span className="text-neutral-300" style={{ fontFamily: "MVTypewriter, serif" }}>{original.title}</span>
+          <span className="text-neutral-300 line-clamp-1 max-w-xs" style={{ fontFamily: "MVTypewriter, serif" }}>{original.title}</span>
         </div>
 
-        {/* Meta */}
-        <div className="flex items-center gap-2 mb-4 flex-wrap" dir="rtl">
+        {/* Badges */}
+        <div className="flex items-center gap-2 mb-4 flex-wrap justify-end" dir="rtl">
           <span className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-white/60 border border-white/10" style={{ fontFamily: "MVTypewriter, serif" }}>
             {TYPE_LABELS[original.type] ?? original.type}
           </span>
           {original.duration_seconds && (
-            <span className="text-xs text-neutral-400" dir="ltr">{formatDuration(original.duration_seconds)}</span>
+            <span className="text-xs text-neutral-400 tabular-nums" dir="ltr">{formatDuration(original.duration_seconds)}</span>
           )}
-          {original.series && (
+          {series && (
             <span className="text-xs px-2.5 py-1 rounded-full bg-red-500/20 text-red-400 border border-red-500/20" style={{ fontFamily: "MVTypewriter, serif" }}>
-              {original.series.title}
+              {series.title}
             </span>
           )}
         </div>
 
         {/* Title */}
-        <h1 className="text-2xl md:text-4xl font-bold text-white leading-snug mb-4 max-w-2xl" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
+        <h1 className="text-2xl md:text-4xl font-bold text-white leading-snug mb-4 text-right" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
           {original.title}
         </h1>
 
         {/* Description */}
         {original.description && (
-          <p className="text-sm text-neutral-300 leading-relaxed max-w-xl mb-8" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
+          <p className="text-sm text-neutral-300 leading-relaxed max-w-xl mb-8 text-right mr-0 ml-auto" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
             {original.description}
           </p>
         )}
 
-        {/* Play button */}
+        {/* Watch button */}
         {original.cloudflare_stream_id && (
-          <Link
-            href={`/originals/${original.slug}/watch`}
-            className="inline-flex items-center gap-3 px-8 py-3 rounded-lg bg-white text-black font-bold text-sm hover:bg-neutral-200 transition-colors"
-            style={{ fontFamily: "MVTypewriter, serif" }}
-          >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-            ބަލާ
-          </Link>
+          <div className="flex justify-end">
+            <Link
+              href={`/originals/${original.slug}/watch`}
+              className="inline-flex items-center gap-3 px-8 py-3 rounded-lg bg-white text-black font-bold text-sm hover:bg-neutral-200 transition-colors"
+              style={{ fontFamily: "MVTypewriter, serif" }}
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+              Watch
+            </Link>
+          </div>
         )}
 
         {/* Divider */}
@@ -118,7 +119,7 @@ export default async function OriginalsDetailPage({ params }: { params: { slug: 
         {/* Related */}
         {related.length > 0 && (
           <div>
-            <h2 className="text-sm font-bold text-white mb-5 flex items-center gap-2" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
+            <h2 className="text-sm font-bold text-white mb-5 flex items-center gap-2 justify-end" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
               <span className="block w-1 h-4 bg-red-500 rounded-full" />
               އިތުރު ވިޑިއޯ
             </h2>
@@ -136,15 +137,15 @@ export default async function OriginalsDetailPage({ params }: { params: { slug: 
                       <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                     </div>
                     {item.duration_seconds && (
-                      <div className="absolute bottom-1.5 right-1.5 text-[10px] bg-black/70 text-white px-1.5 py-0.5 rounded">
+                      <div className="absolute bottom-1.5 right-1.5 text-[10px] bg-black/70 text-white px-1.5 py-0.5 rounded tabular-nums">
                         {Math.floor(item.duration_seconds / 60)}:{String(item.duration_seconds % 60).padStart(2, "0")}
                       </div>
                     )}
                   </div>
-                  <p className="mt-2 text-xs font-semibold text-neutral-200 line-clamp-2 group-hover:text-white transition-colors" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
+                  <p className="mt-2 text-xs font-semibold text-neutral-200 line-clamp-2 group-hover:text-white transition-colors text-right" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
                     {item.title}
                   </p>
-                  <p className="text-[10px] text-neutral-500 mt-0.5" style={{ fontFamily: "MVTypewriter, serif" }}>
+                  <p className="text-[10px] text-neutral-500 mt-0.5 text-right" style={{ fontFamily: "MVTypewriter, serif" }}>
                     {TYPE_LABELS[item.type] ?? item.type}
                   </p>
                 </Link>
