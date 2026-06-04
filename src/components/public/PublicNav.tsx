@@ -26,23 +26,20 @@ const COMPACT_HEIGHT  = 48;
 export default function PublicNav({ categories, static: isStatic = false }: Props) {
   const router = useRouter();
 
-  // ── Home page refs ──
-  // navWrapperRef wraps BOTH logo bar and cat bar so they slide up together
-  const navWrapperRef = useRef<HTMLDivElement>(null);
-  const logoBarRef    = useRef<HTMLDivElement>(null);
-  const catBarRef     = useRef<HTMLDivElement>(null);
+  const navWrapperRef        = useRef<HTMLDivElement>(null);
+  const logoBarRef           = useRef<HTMLDivElement>(null);
+  const catBarRef            = useRef<HTMLDivElement>(null);
+  const compactDesktopRef    = useRef<HTMLDivElement>(null);
+  const compactMobileRef     = useRef<HTMLDivElement>(null);
 
-  // ── Home page state ──
   const [phase, setPhase]             = useState<"rising" | "merged">("rising");
-  const [homeCompact, setHomeCompact] = useState(false);
   const phaseRef                      = useRef<"rising" | "merged">("rising");
+  const homeCompactRef                = useRef(false);
   const lastScrollY                   = useRef(0);
 
-  // ── Static page compact nav state ──
-  const [compact, setCompact]  = useState(false);
-  const lastScrollYStatic      = useRef(0);
+  const [compact, setCompact]    = useState(false);
+  const lastScrollYStatic        = useRef(0);
 
-  // ── Shared UI state ──
   const [searchOpen, setSearchOpen]         = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery]       = useState("");
@@ -55,7 +52,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   useEffect(() => {
     if (isStatic) return;
 
-    // Reveal cat bar once JS has control
+    // Set initial position immediately — no jump
     if (catBarRef.current) {
       const heroHeight = window.innerHeight;
       const naturalY = heroHeight - CAT_BAR_HEIGHT;
@@ -72,12 +69,10 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
       const merged     = naturalY <= LOGO_BAR_HEIGHT;
 
       if (phaseRef.current === "rising") {
-        // Move cat bar up from hero bottom — direct DOM, no re-render
         if (catBarRef.current) {
           catBarRef.current.style.transform = `translateY(${clampedY}px)`;
         }
 
-        // Logo bar transparent until merged
         if (logoBarRef.current) {
           logoBarRef.current.style.backgroundColor = merged
             ? "rgb(249, 248, 245)"
@@ -91,7 +86,6 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         if (merged) {
           phaseRef.current = "merged";
           setPhase("merged");
-          // Lock cat bar at LOGO_BAR_HEIGHT — wrapper handles slide-up from here
           if (catBarRef.current) {
             catBarRef.current.style.transform = `translateY(${LOGO_BAR_HEIGHT}px)`;
           }
@@ -99,18 +93,36 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
       }
 
       if (phaseRef.current === "merged") {
-        // Slide up/down via React state — wrapper div handles both bars together
-        if (scrollY > lastScrollY.current) {
-          setHomeCompact(true);
-        } else {
-          setHomeCompact(false);
+        const shouldCompact = scrollY > lastScrollY.current;
+
+        if (shouldCompact !== homeCompactRef.current) {
+          homeCompactRef.current = shouldCompact;
+
+          // Direct DOM manipulation — no React re-render = no bounce
+          const offset = LOGO_BAR_HEIGHT + CAT_BAR_HEIGHT;
+          if (navWrapperRef.current) {
+            navWrapperRef.current.style.transform = shouldCompact
+              ? `translateY(-${offset}px)`
+              : "translateY(0)";
+          }
+          const compactOffset = shouldCompact ? "translateY(0)" : `translateY(-${COMPACT_HEIGHT}px)`;
+          if (compactDesktopRef.current) {
+            compactDesktopRef.current.style.transform = compactOffset;
+          }
+          if (compactMobileRef.current) {
+            compactMobileRef.current.style.transform = compactOffset;
+          }
         }
 
-        // Unmerge if user scrolls back to top
         if (naturalY > LOGO_BAR_HEIGHT) {
           phaseRef.current = "rising";
           setPhase("rising");
-          setHomeCompact(false);
+          homeCompactRef.current = false;
+
+          if (navWrapperRef.current) navWrapperRef.current.style.transform = "translateY(0)";
+          if (compactDesktopRef.current) compactDesktopRef.current.style.transform = `translateY(-${COMPACT_HEIGHT}px)`;
+          if (compactMobileRef.current) compactMobileRef.current.style.transform = `translateY(-${COMPACT_HEIGHT}px)`;
+
           if (logoBarRef.current) {
             logoBarRef.current.style.backgroundColor = "transparent";
             const icons = logoBarRef.current.querySelectorAll<HTMLElement>(".nav-icon");
@@ -125,7 +137,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
       lastScrollY.current = scrollY;
     };
 
-    setTimeout(update, 50);
+    update();
     window.addEventListener("scroll", update, { passive: true });
     window.addEventListener("resize", update, { passive: true });
     return () => {
@@ -187,15 +199,12 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
     }
   };
 
-  // ─────────────────────────────────────────────────────────
-  // NON-HOME PAGES
-  // ─────────────────────────────────────────────────────────
+  // ── Static pages ──
   if (isStatic) {
     return (
       <>
-        {/* Full nav — slides up on scroll down */}
         <div
-          className="fixed top-0 right-0 left-0 z-50 transition-transform duration-300 ease-in-out"
+          className="fixed top-0 right-0 left-0 z-50 transition-transform duration-300 ease-in-out will-change-transform"
           style={{
             transform: compact
               ? `translateY(-${LOGO_BAR_HEIGHT + CAT_BAR_HEIGHT}px)`
@@ -233,12 +242,13 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
               </div>
             </div>
           </header>
-
           <div className="hidden md:block" style={{ height: `${CAT_BAR_HEIGHT}px`, backgroundColor: "rgb(249, 248, 245)", borderBottom: "1px solid rgb(224, 221, 214)" }}>
             <div className="max-w-7xl mx-auto px-6 h-full">
               <div className="flex items-center justify-center gap-1 h-full">
                 {categories.map((cat) => (
-                  <Link key={cat.id} href={`/${cat.slug}`} target={cat.slug === "originals" ? "_blank" : undefined} rel={cat.slug === "originals" ? "noopener noreferrer" : undefined}
+                  <Link key={cat.id} href={`/${cat.slug}`}
+                    target={cat.slug === "originals" ? "_blank" : undefined}
+                    rel={cat.slug === "originals" ? "noopener noreferrer" : undefined}
                     className="whitespace-nowrap px-4 py-2 transition-colors hover:text-[rgb(26,26,26)]"
                     style={{ fontFamily: "'MVTypewriter', 'MV Boli', sans-serif", fontSize: "13px", color: "rgb(153,153,153)" }}>
                     {cat.name}
@@ -249,9 +259,9 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           </div>
         </div>
 
-        {/* Desktop compact bar */}
+        {/* Desktop compact */}
         <div
-          className="fixed top-0 right-0 left-0 z-50 transition-transform duration-300 ease-in-out hidden md:block"
+          className="fixed top-0 right-0 left-0 z-50 transition-transform duration-300 ease-in-out hidden md:block will-change-transform"
           style={{
             height: `${COMPACT_HEIGHT}px`,
             backgroundColor: "rgb(249, 248, 245)",
@@ -285,9 +295,9 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           </div>
         </div>
 
-        {/* Mobile compact bar */}
+        {/* Mobile compact */}
         <div
-          className="fixed top-0 right-0 left-0 z-50 transition-transform duration-300 ease-in-out md:hidden"
+          className="fixed top-0 right-0 left-0 z-50 transition-transform duration-300 ease-in-out md:hidden will-change-transform"
           style={{
             height: `${COMPACT_HEIGHT}px`,
             backgroundColor: "rgb(249, 248, 245)",
@@ -316,14 +326,9 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
 
         {searchOpen && (
           <SearchDropdown
-            searchRef={searchRef}
-            searchQuery={searchQuery}
-            searchResults={searchResults}
-            searchLoading={searchLoading}
-            onInput={handleSearchInput}
-            onKeyDown={handleKeyDown}
-            onClose={closeSearch}
-            topOffset={compact ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT + CAT_BAR_HEIGHT}
+            searchRef={searchRef} searchQuery={searchQuery} searchResults={searchResults}
+            searchLoading={searchLoading} onInput={handleSearchInput} onKeyDown={handleKeyDown}
+            onClose={closeSearch} topOffset={compact ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT + CAT_BAR_HEIGHT}
           />
         )}
         {searchOpen && <div className="fixed inset-0 z-[55]" onClick={closeSearch} />}
@@ -332,33 +337,19 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
     );
   }
 
-  // ─────────────────────────────────────────────────────────
-  // HOME PAGE
-  // Single wrapper div contains BOTH logo bar and cat bar.
-  // Phase rising: cat bar moves via transform inside wrapper (DOM ref).
-  // Phase merged: wrapper slides up/down via React state (homeCompact).
-  // ─────────────────────────────────────────────────────────
+  // ── Home page ──
   return (
     <>
-      {/* ── Nav wrapper: slides up as one unit when merged+compact ── */}
+      {/* Nav wrapper */}
       <div
         ref={navWrapperRef}
-        className="fixed top-0 right-0 left-0 z-50"
-        style={{
-          transition: phase === "merged" ? "transform 0.3s ease" : "none",
-          transform: phase === "merged" && homeCompact
-            ? `translateY(-${LOGO_BAR_HEIGHT + CAT_BAR_HEIGHT}px)`
-            : "translateY(0)",
-        }}
+        className="fixed top-0 right-0 left-0 z-50 will-change-transform"
+        style={{ transition: "transform 0.3s ease" }}
       >
         {/* Logo bar */}
         <div
           ref={logoBarRef}
-          style={{
-            height: `${LOGO_BAR_HEIGHT}px`,
-            backgroundColor: "transparent",
-            transition: "background-color 0.25s ease",
-          }}
+          style={{ height: `${LOGO_BAR_HEIGHT}px`, backgroundColor: "transparent", transition: "background-color 0.25s ease" }}
         >
           <div className="max-w-7xl mx-auto px-5 md:px-6 h-full flex items-center justify-center relative">
             <Link href="/" className="flex items-center">
@@ -384,24 +375,19 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
                 style={{ color: "rgb(255,255,255)" }}>
                 <Search className="w-[18px] h-[18px]" />
               </button>
-              <Link href="/login"
-                className="nav-icon p-2 rounded-full hover:bg-black/5 transition-colors"
-                style={{ color: "rgb(255,255,255)" }}>
+              <Link href="/login" className="nav-icon p-2 rounded-full hover:bg-black/5 transition-colors" style={{ color: "rgb(255,255,255)" }}>
                 <User className="w-[18px] h-[18px]" />
               </Link>
             </div>
           </div>
         </div>
 
-        {/* Cat bar — desktop only, starts hidden off-screen, rises via transform */}
+        {/* Cat bar */}
         <div
           ref={catBarRef}
           className="hidden md:block will-change-transform"
           style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
+            position: "absolute", top: 0, left: 0, right: 0,
             height: `${CAT_BAR_HEIGHT}px`,
             backgroundColor: "rgb(249, 248, 245)",
             borderBottom: "1px solid rgb(224, 221, 214)",
@@ -413,7 +399,9 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           <div className="max-w-7xl mx-auto px-6 h-full">
             <div className="flex items-center justify-center gap-1 h-full">
               {categories.map((cat) => (
-                <Link key={cat.id} href={`/${cat.slug}`} target={cat.slug === "originals" ? "_blank" : undefined} rel={cat.slug === "originals" ? "noopener noreferrer" : undefined}
+                <Link key={cat.id} href={`/${cat.slug}`}
+                  target={cat.slug === "originals" ? "_blank" : undefined}
+                  rel={cat.slug === "originals" ? "noopener noreferrer" : undefined}
                   className="whitespace-nowrap px-4 py-2 transition-colors hover:text-[rgb(26,26,26)]"
                   style={{ fontFamily: "'MVTypewriter', 'MV Boli', sans-serif", fontSize: "13px", color: "rgb(153,153,153)" }}>
                   {cat.name}
@@ -424,15 +412,16 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         </div>
       </div>
 
-      {/* ── Compact bar — slides in from top when merged+compact ── */}
-      {/* Desktop */}
+      {/* Compact desktop */}
       <div
-        className="fixed top-0 right-0 left-0 z-50 transition-transform duration-300 ease-in-out hidden md:block"
+        ref={compactDesktopRef}
+        className="fixed top-0 right-0 left-0 z-50 hidden md:block will-change-transform"
         style={{
           height: `${COMPACT_HEIGHT}px`,
           backgroundColor: "rgb(249, 248, 245)",
           borderBottom: "1px solid rgb(224, 221, 214)",
-          transform: phase === "merged" && homeCompact ? "translateY(0)" : `translateY(-${COMPACT_HEIGHT}px)`,
+          transform: `translateY(-${COMPACT_HEIGHT}px)`,
+          transition: "transform 0.3s ease",
         }}
       >
         <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between" dir="rtl">
@@ -461,14 +450,16 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         </div>
       </div>
 
-      {/* Mobile */}
+      {/* Compact mobile */}
       <div
-        className="fixed top-0 right-0 left-0 z-50 transition-transform duration-300 ease-in-out md:hidden"
+        ref={compactMobileRef}
+        className="fixed top-0 right-0 left-0 z-50 md:hidden will-change-transform"
         style={{
           height: `${COMPACT_HEIGHT}px`,
           backgroundColor: "rgb(249, 248, 245)",
           borderBottom: "1px solid rgb(224, 221, 214)",
-          transform: phase === "merged" && homeCompact ? "translateY(0)" : `translateY(-${COMPACT_HEIGHT}px)`,
+          transform: `translateY(-${COMPACT_HEIGHT}px)`,
+          transition: "transform 0.3s ease",
         }}
       >
         <div className="px-5 h-full flex items-center justify-between" dir="rtl">
@@ -492,24 +483,18 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
 
       {searchOpen && (
         <SearchDropdown
-          searchRef={searchRef}
-          searchQuery={searchQuery}
-          searchResults={searchResults}
-          searchLoading={searchLoading}
-          onInput={handleSearchInput}
-          onKeyDown={handleKeyDown}
-          onClose={closeSearch}
-          topOffset={phase === "merged" && homeCompact ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT}
+          searchRef={searchRef} searchQuery={searchQuery} searchResults={searchResults}
+          searchLoading={searchLoading} onInput={handleSearchInput} onKeyDown={handleKeyDown}
+          onClose={closeSearch} topOffset={homeCompactRef.current ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT}
         />
       )}
       {searchOpen && <div className="fixed inset-0 z-[55]" onClick={closeSearch} />}
-      <MobileMenu categories={categories} open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} topOffset={phase === "merged" && homeCompact ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT} />
+      <MobileMenu categories={categories} open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} topOffset={homeCompactRef.current ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT} />
     </>
   );
 }
 
-// ── Search dropdown ────────────────────────────────────────
-
+// ── Search dropdown ──
 function SearchDropdown({
   searchRef, searchQuery, searchResults, searchLoading,
   onInput, onKeyDown, onClose, topOffset,
@@ -525,21 +510,14 @@ function SearchDropdown({
 }) {
   const router = useRouter();
   return (
-    <div
-      className="fixed left-0 right-0 z-[60] bg-[#F5F3EF] border-b border-black/10 shadow-sm"
-      style={{ top: `${topOffset}px` }}
-    >
+    <div className="fixed left-0 right-0 z-[60] bg-[#F5F3EF] border-b border-black/10 shadow-sm" style={{ top: `${topOffset}px` }}>
       <div className="max-w-2xl mx-auto px-6 py-4">
         <div className="flex items-center gap-3 border border-black/15 rounded-full px-4 py-2.5 bg-white">
           <Search className="w-4 h-4 text-black/30 flex-shrink-0" />
           <input
-            ref={searchRef}
-            type="text"
-            value={searchQuery}
-            onChange={(e) => onInput(e.target.value)}
-            onKeyDown={onKeyDown}
-            placeholder="ހޯދާ..."
-            dir="rtl"
+            ref={searchRef} type="text" value={searchQuery}
+            onChange={(e) => onInput(e.target.value)} onKeyDown={onKeyDown}
+            placeholder="ހޯދާ..." dir="rtl"
             className="flex-1 bg-transparent outline-none text-[15px]"
             style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', color: "rgb(26,26,26)" }}
           />
@@ -549,37 +527,25 @@ function SearchDropdown({
             ކެންސަލް
           </button>
         </div>
-
         {searchQuery.trim().length >= 2 && (
           <div className="mt-3 pb-2">
             {searchLoading && (
-              <p className="text-center py-4" style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "12px", color: "rgb(160,158,152)" }}>
-                ހޯދަނީ...
-              </p>
+              <p className="text-center py-4" style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "12px", color: "rgb(160,158,152)" }}>ހޯދަނީ...</p>
             )}
             {!searchLoading && searchResults.length > 0 && (
               <>
-                <p className="mb-2" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "11px", color: "rgb(160,158,152)", lineHeight: 2 }}>
-                  ނަތީޖާ
-                </p>
+                <p className="mb-2" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "11px", color: "rgb(160,158,152)", lineHeight: 2 }}>ނަތީޖާ</p>
                 <div className="space-y-0">
                   {searchResults.slice(0, 5).map((result) => (
-                    <Link
-                      key={result.id}
-                      href={`/${result.category?.slug ?? "article"}/${result.slug}`}
-                      onClick={onClose}
-                      className="flex items-center justify-between py-3 border-b border-black/6 hover:opacity-60 transition-opacity"
-                    >
+                    <Link key={result.id} href={`/${result.category?.slug ?? "article"}/${result.slug}`} onClick={onClose}
+                      className="flex items-center justify-between py-3 border-b border-black/6 hover:opacity-60 transition-opacity">
                       <h3 style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "14px", fontWeight: 700, color: "rgb(26,26,26)", lineHeight: 1.6 }}>
                         {result.title}
                       </h3>
                       {result.category && (
                         <span className="flex-shrink-0 mr-4 text-[10px] px-2.5 py-1 rounded-full border" style={{
-                          fontFamily: "'MVTypewriter', sans-serif",
-                          color: "rgb(100,100,100)",
-                          borderColor: "rgb(210,207,200)",
-                          backgroundColor: "rgb(240,239,233)",
-                          lineHeight: 2,
+                          fontFamily: "'MVTypewriter', sans-serif", color: "rgb(100,100,100)",
+                          borderColor: "rgb(210,207,200)", backgroundColor: "rgb(240,239,233)", lineHeight: 2,
                         }}>
                           {result.category.name}
                         </span>
@@ -588,21 +554,16 @@ function SearchDropdown({
                   ))}
                 </div>
                 <div className="mt-4 text-center">
-                  <Link
-                    href={`/search?q=${encodeURIComponent(searchQuery.trim())}`}
-                    onClick={onClose}
+                  <Link href={`/search?q=${encodeURIComponent(searchQuery.trim())}`} onClick={onClose}
                     className="inline-flex items-center justify-center px-6 py-2.5 rounded-full transition-colors hover:opacity-80"
-                    style={{ backgroundColor: "rgb(26,26,26)", color: "rgb(249,248,245)", fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "12px", fontWeight: 700 }}
-                  >
+                    style={{ backgroundColor: "rgb(26,26,26)", color: "rgb(249,248,245)", fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "12px", fontWeight: 700 }}>
                     އިތުރު އާޓިކަލް ބެލުމަށް
                   </Link>
                 </div>
               </>
             )}
             {!searchLoading && searchResults.length === 0 && (
-              <p className="text-center py-4" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "13px", color: "rgb(160,158,152)", lineHeight: 2 }}>
-                ނަތީޖާ ނެތް
-              </p>
+              <p className="text-center py-4" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "13px", color: "rgb(160,158,152)", lineHeight: 2 }}>ނަތީޖާ ނެތް</p>
             )}
           </div>
         )}
@@ -611,8 +572,7 @@ function SearchDropdown({
   );
 }
 
-// ── Mobile menu ────────────────────────────────────────────
-
+// ── Mobile menu ──
 function MobileMenu({ categories, open, onClose, topOffset }: {
   categories: Category[];
   open: boolean;
@@ -620,17 +580,9 @@ function MobileMenu({ categories, open, onClose, topOffset }: {
   topOffset: number;
 }) {
   return (
-    <div
-      className="fixed inset-0 z-[55] transition-opacity duration-300"
-      style={{
-        backgroundColor: "rgb(249, 248, 245)",
-        top: `${topOffset}px`,
-        opacity: open ? 1 : 0,
-        pointerEvents: open ? "auto" : "none",
-      }}
-    >
-      <button type="button" onClick={onClose}
-        className="absolute top-4 left-5 p-2 hover:bg-black/5 rounded-full text-[rgb(26,26,26)]">
+    <div className="fixed inset-0 z-[55] transition-opacity duration-300"
+      style={{ backgroundColor: "rgb(249, 248, 245)", top: `${topOffset}px`, opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none" }}>
+      <button type="button" onClick={onClose} className="absolute top-4 left-5 p-2 hover:bg-black/5 rounded-full text-[rgb(26,26,26)]">
         <X className="w-5 h-5" />
       </button>
       <div className="h-full overflow-y-auto px-8 py-12 max-w-md mx-auto flex flex-col" dir="rtl">
@@ -641,7 +593,10 @@ function MobileMenu({ categories, open, onClose, topOffset }: {
               transform: open ? "translateX(0)" : "translateX(20px)",
               transition: `opacity 0.3s ease ${i * 0.04}s, transform 0.3s ease ${i * 0.04}s`,
             }}>
-              <Link href={`/${cat.slug}`} onClick={cat.slug === "originals" ? undefined : onClose} target={cat.slug === "originals" ? "_blank" : undefined} rel={cat.slug === "originals" ? "noopener noreferrer" : undefined}
+              <Link href={`/${cat.slug}`}
+                onClick={cat.slug === "originals" ? undefined : onClose}
+                target={cat.slug === "originals" ? "_blank" : undefined}
+                rel={cat.slug === "originals" ? "noopener noreferrer" : undefined}
                 className="block py-3 border-b border-[#e0ddd6]/60 transition-colors text-[#999] hover:text-[#333]"
                 style={{ fontFamily: "'MVTypewriter', 'MV Boli', sans-serif", fontSize: "1.2rem" }}>
                 {cat.name}
@@ -649,18 +604,13 @@ function MobileMenu({ categories, open, onClose, topOffset }: {
             </div>
           ))}
         </nav>
-        <div
-          className="pt-6 mt-6 border-t border-[#e0ddd6]/60"
-          style={{
-            opacity: open ? 1 : 0,
-            transform: open ? "translateX(0)" : "translateX(20px)",
-            transition: `opacity 0.3s ease ${categories.length * 0.04 + 0.1}s, transform 0.3s ease ${categories.length * 0.04 + 0.1}s`,
-          }}
-        >
+        <div className="pt-6 mt-6 border-t border-[#e0ddd6]/60" style={{
+          opacity: open ? 1 : 0, transform: open ? "translateX(0)" : "translateX(20px)",
+          transition: `opacity 0.3s ease ${categories.length * 0.04 + 0.1}s, transform 0.3s ease ${categories.length * 0.04 + 0.1}s`,
+        }}>
           <Link href="/login" onClick={onClose}
             className="flex items-center gap-3 py-3 transition-colors text-[#999] hover:text-[#333]"
-            style={{ fontFamily: "'MVTypewriter', 'MV Boli', sans-serif", fontSize: "1rem" }}
-          >
+            style={{ fontFamily: "'MVTypewriter', 'MV Boli', sans-serif", fontSize: "1rem" }}>
             <User className="w-4 h-4 flex-shrink-0" />
             ސައިން އިން
           </Link>
