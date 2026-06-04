@@ -58,6 +58,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
     // Reveal cat bar once JS has control
     if (catBarRef.current) {
       catBarRef.current.style.visibility = "visible";
+      catBarRef.current.style.opacity = "1";
     }
 
     const update = () => {
@@ -403,6 +404,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
             borderBottom: "1px solid rgb(224, 221, 214)",
             transform: "translateY(110vh)",
             visibility: "hidden",
+            opacity: 0,
           }}
         >
           <div className="max-w-7xl mx-auto px-6 h-full">
