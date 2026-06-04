@@ -1,296 +1,256 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+"use client";
+// src/app/admin/page.tsx
+
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import {
-  FileText,
-  FilePlus,
-  LayoutTemplate,
-  Video,
-  MessageSquare,
-  Users,
-  TrendingUp,
-  Eye,
-  PenLine,
-} from "lucide-react";
-import type { DashboardStats } from "@/types";
 
-async function getStats(): Promise<DashboardStats> {
-  const supabase = await createServerSupabaseClient();
-  const [
-    { count: total_articles },
-    { count: published_articles },
-    { count: draft_articles },
-    { count: total_subscribers },
-    { count: pending_comments },
-    { count: total_videos },
-  ] = await Promise.all([
-    supabase.from("articles").select("*", { count: "exact", head: true }),
-    supabase.from("articles").select("*", { count: "exact", head: true }).eq("status", "published"),
-    supabase.from("articles").select("*", { count: "exact", head: true }).eq("status", "draft"),
-    supabase.from("subscribers").select("*", { count: "exact", head: true }),
-    supabase.from("comments").select("*", { count: "exact", head: true }).eq("is_approved", false),
-    supabase.from("videos").select("*", { count: "exact", head: true }),
-  ]);
-  return {
-    total_articles: total_articles || 0,
-    published_articles: published_articles || 0,
-    draft_articles: draft_articles || 0,
-    total_subscribers: total_subscribers || 0,
-    pending_comments: pending_comments || 0,
-    total_videos: total_videos || 0,
-  };
-}
-
-async function getRecentArticles() {
-  const supabase = await createServerSupabaseClient();
-  const { data } = await supabase
-    .from("articles")
-    .select("id, title, status, published_at, homepage_placement, featured_image")
-    .order("created_at", { ascending: false })
-    .limit(8);
-  return data || [];
-}
-
-const PLACEMENT_MAP: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
-  hero:           { label: "ހީރޯ",    variant: "default" },
-  editors_choice: { label: "އެޑިޓަރ", variant: "default" },
-  review:         { label: "ރިވިއު",  variant: "secondary" },
-  reel:           { label: "ރީލް",    variant: "outline" },
+const COUNTRY_FLAGS: Record<string, string> = {
+  MV: "🇲🇻", SA: "🇸🇦", AE: "🇦🇪", GB: "🇬🇧", US: "🇺🇸",
+  IN: "🇮🇳", AU: "🇦🇺", SG: "🇸🇬", QA: "🇶🇦", KW: "🇰🇼",
+  PK: "🇵🇰", MY: "🇲🇾", LK: "🇱🇰", DE: "🇩🇪", FR: "🇫🇷",
 };
 
-const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-  published: { label: "ލައިވް",    variant: "default" },
-  draft:     { label: "ޑްރާފްޓް", variant: "secondary" },
-  scheduled: { label: "އެޑްމިން",      variant: "outline" },
-};
+function fmt(n: number) {
+  if (n >= 1000) return (n / 1000).toFixed(1) + "k";
+  return n.toString();
+}
 
-export default async function AdminDashboard() {
-  const [stats, recentArticles] = await Promise.all([
-    getStats(),
-    getRecentArticles(),
-  ]);
+function MetricCard({ label, value, sub, subColor }: {
+  label: string; value: string | number; sub?: string; subColor?: string;
+}) {
+  return (
+    <div className="bg-muted/40 rounded-xl p-4">
+      <p className="text-[11px] text-muted-foreground mb-1.5 font-body" style={{ direction: "rtl", fontFamily: "MVTypewriter, serif" }}>
+        {label}
+      </p>
+      <p className="text-2xl font-semibold text-foreground tabular-nums">{value}</p>
+      {sub && (
+        <p className="text-[11px] mt-1 font-body" style={{ color: subColor ?? "var(--muted-foreground)", fontFamily: "MVTypewriter, serif" }}>
+          {sub}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export default function AdminDashboard() {
+  const supabase = createClient();
+
+  const [viewStats, setViewStats] = useState<any>(null);
+  const [articles, setArticles] = useState<any[]>([]);
+  const [counts, setCounts] = useState({ total: 0, drafts: 0, comments: 0, subscribers: 0, videos: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      const [
+        viewsRes,
+        { data: arts },
+        { count: totalArts },
+        { count: drafts },
+        { count: comments },
+        { count: subscribers },
+        { count: videos },
+      ] = await Promise.all([
+        fetch("/api/views").then(r => r.json()),
+        supabase.from("articles").select("id, title, status, published_at, category:categories!category_id(name)").order("created_at", { ascending: false }).limit(8),
+        supabase.from("articles").select("*", { count: "exact", head: true }).eq("status", "published"),
+        supabase.from("articles").select("*", { count: "exact", head: true }).eq("status", "draft"),
+        supabase.from("comments").select("*", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("subscribers").select("*", { count: "exact", head: true }),
+        supabase.from("reels").select("*", { count: "exact", head: true }),
+      ]);
+
+      setViewStats(viewsRes);
+      setArticles(arts ?? []);
+      setCounts({
+        total: totalArts ?? 0,
+        drafts: drafts ?? 0,
+        comments: comments ?? 0,
+        subscribers: subscribers ?? 0,
+        videos: videos ?? 0,
+      });
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const totalViews = viewStats?.total ?? 0;
+  const maxCountry = viewStats?.topCountries?.[0]?.count ?? 1;
+  const totalDevices = (viewStats?.deviceCounts?.mobile ?? 0) + (viewStats?.deviceCounts?.desktop ?? 0) + (viewStats?.deviceCounts?.tablet ?? 0);
+  const mobilePct = totalDevices > 0 ? Math.round(((viewStats?.deviceCounts?.mobile ?? 0) / totalDevices) * 100) : 0;
+  const desktopPct = totalDevices > 0 ? Math.round(((viewStats?.deviceCounts?.desktop ?? 0) / totalDevices) * 100) : 0;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64 text-muted-foreground font-body text-sm" style={{ fontFamily: "MVTypewriter, serif" }}>
+        ލޯޑްވަނީ...
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto">
-
+    <div className="p-6 max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl text-foreground">ޑޭޝްބޯޑް</h1>
-          <p className="font-body text-sm text-muted-foreground mt-0.5">
-            {new Date().toLocaleDateString("en-US", {
-              weekday: "long", year: "numeric",
-              month: "long", day: "numeric",
-            })}
-          </p>
+          <h1 className="text-xl font-semibold text-foreground" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
+            ޑޭޝްބޯޑް
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{today}</p>
         </div>
-        <Link href="/admin/articles/new">
-          <Button className="font-body gap-2">
-            <FilePlus size={14} />
-            އާ ލިޔުން
-          </Button>
-        </Link>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="font-body text-sm font-medium text-muted-foreground">
-              ޖުމްލަ ލިޔުން
-            </CardTitle>
-            <FileText size={15} className="text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="font-body text-3xl font-bold">{stats.total_articles}</div>
-            <p className="font-body text-xs text-emerald-600 mt-1 flex items-center gap-1">
-              <TrendingUp size={11} />
-              {stats.published_articles} ލައިވް
+      {/* Views metrics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <MetricCard label="ޖުމްލަ ވިއު" value={fmt(totalViews)} />
+        <MetricCard label="މިއަދު" value={fmt(viewStats?.today ?? 0)} />
+        <MetricCard label="މިހަފްތާ" value={fmt(viewStats?.week ?? 0)} />
+        <MetricCard label="މި މަހު" value={fmt(viewStats?.month ?? 0)} />
+      </div>
+
+      {/* Content metrics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <MetricCard
+          label="ލިޔުންތައް"
+          value={counts.total}
+          sub={`${counts.drafts} ޑްރާފްޓް`}
+        />
+        <MetricCard label="ސަބްސްކްރައިބަރ" value={counts.subscribers} />
+        <MetricCard
+          label="ކޮމެންޓް"
+          value={counts.comments}
+          sub={counts.comments > 0 ? "ރިވިއު ކުރޭ" : undefined}
+          subColor={counts.comments > 0 ? "#854F0B" : undefined}
+        />
+        <MetricCard label="ވީޑިއޯ" value={counts.videos} />
+      </div>
+
+      {/* Country + Top articles */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Country breakdown */}
+        <div className="border border-border rounded-xl p-5 bg-background">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-4" style={{ fontFamily: "MVTypewriter, serif" }}>
+            ގައުމުތަކުން ބެލި ގޮތް
+          </p>
+          {viewStats?.topCountries?.length > 0 ? (
+            <div className="space-y-3">
+              {viewStats.topCountries.map((c: any) => (
+                <div key={c.code} className="flex items-center gap-3">
+                  <span className="text-base w-6 text-center">{COUNTRY_FLAGS[c.code] ?? "🌐"}</span>
+                  <span className="text-xs text-muted-foreground w-6">{c.code}</span>
+                  <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-foreground"
+                      style={{ width: `${Math.round((c.count / maxCountry) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-xs text-muted-foreground tabular-nums w-10 text-right">{fmt(c.count)}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground" style={{ fontFamily: "MVTypewriter, serif" }}>ތަފްސީލެއް ނެތް</p>
+          )}
+
+          {/* Device split */}
+          <div className="mt-6">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3" style={{ fontFamily: "MVTypewriter, serif" }}>
+              ޑިވައިސް
             </p>
-          </CardContent>
-        </Card>
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground w-20 text-right" style={{ fontFamily: "MVTypewriter, serif" }}>މޮބައިލް</span>
+                <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${mobilePct}%`, backgroundColor: "#378ADD" }} />
+                </div>
+                <span className="text-xs text-muted-foreground tabular-nums w-8 text-right">{mobilePct}%</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground w-20 text-right" style={{ fontFamily: "MVTypewriter, serif" }}>ޑެސްކްޓޮޕް</span>
+                <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${desktopPct}%`, backgroundColor: "#7F77DD" }} />
+                </div>
+                <span className="text-xs text-muted-foreground tabular-nums w-8 text-right">{desktopPct}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="font-body text-sm font-medium text-muted-foreground">
-              ޑްރާފްޓް
-            </CardTitle>
-            <PenLine size={15} className="text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="font-body text-3xl font-bold">{stats.draft_articles}</div>
-            <p className="font-body text-xs text-muted-foreground mt-1">ތައްޔާރުވަނީ</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="font-body text-sm font-medium text-muted-foreground">
-              ސަބްސްކްރައިބަރ
-            </CardTitle>
-            <Users size={15} className="text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="font-body text-3xl font-bold">{stats.total_subscribers}</div>
-            <p className="font-body text-xs text-muted-foreground mt-1">ނިއުސްލެޓަރ</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="font-body text-sm font-medium text-muted-foreground">
-              ވީޑިއޯ
-            </CardTitle>
-            <Video size={15} className="text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="font-body text-3xl font-bold">{stats.total_videos}</div>
-            <p className="font-body text-xs text-muted-foreground mt-1">ކްލައުޑްފްލެއަރ</p>
-          </CardContent>
-        </Card>
-
-        <Card className={stats.pending_comments > 0 ? "border-amber-300 dark:border-amber-800" : ""}>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="font-body text-sm font-medium text-muted-foreground">
-              ކޮމެންޓް
-            </CardTitle>
-            <MessageSquare size={15} className="text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="font-body text-3xl font-bold">{stats.pending_comments}</div>
-            <p className={`font-body text-xs mt-1 ${stats.pending_comments > 0 ? "text-amber-600" : "text-muted-foreground"}`}>
-              ޕެންޑިންގ
-            </p>
-          </CardContent>
-        </Card>
-
-        <Link href="/admin/homepage">
-          <Card className="cursor-pointer hover:border-foreground transition-colors h-full">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="font-body text-sm font-medium text-muted-foreground">
-                ހޯމްޕޭޖް
-              </CardTitle>
-              <LayoutTemplate size={15} className="text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="font-body text-lg font-bold">ލޭއައުޓް</div>
-              <p className="font-body text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                <Eye size={11} />
-                ބަދަލުކޮށްލާ
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+        {/* Top articles */}
+        <div className="border border-border rounded-xl p-5 bg-background">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-4" style={{ fontFamily: "MVTypewriter, serif" }}>
+            އެންމެ ގިނައިން ބެލި ލިޔުންތައް
+          </p>
+          {viewStats?.topArticles?.length > 0 ? (
+            <div className="space-y-0">
+              {viewStats.topArticles.map((a: any, i: number) => (
+                <div key={a.id} className="flex items-center gap-3 py-2.5 border-b border-border last:border-0">
+                  <span className="text-xs font-semibold text-muted-foreground w-5">{i + 1}</span>
+                  <p className="flex-1 text-sm text-foreground line-clamp-2 leading-snug" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
+                    {a.title}
+                  </p>
+                  <span className="text-xs text-muted-foreground tabular-nums flex-none">{fmt(a.views)}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground" style={{ fontFamily: "MVTypewriter, serif" }}>ތަފްސީލެއް ނެތް</p>
+          )}
+        </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-4 gap-3">
-        {[
-          { href: "/admin/articles/new", label: "ލިޔުން ލިޔާ",  icon: FilePlus },
-          { href: "/admin/homepage",     label: "ހޯމްޕޭޖް",     icon: LayoutTemplate },
-          { href: "/admin/videos",       label: "ވީޑިއޯ",        icon: Video },
-          { href: "/admin/comments",     label: "ކޮމެންޓް",      icon: MessageSquare },
-        ].map((a) => {
-          const Icon = a.icon;
-          return (
-            <Link key={a.href} href={a.href}>
-              <Card className="cursor-pointer hover:border-foreground transition-colors">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <Icon size={16} className="text-muted-foreground flex-shrink-0" />
-                  <span className="font-body text-sm font-semibold">{a.label}</span>
-                </CardContent>
-              </Card>
-            </Link>
-          );
-        })}
-      </div>
-
-      {/* Recent Articles */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between py-4">
-          <CardTitle className="font-body text-base font-semibold">
+      {/* Recent articles */}
+      <div className="border border-border rounded-xl overflow-hidden bg-background">
+        <div className="px-5 py-3 border-b border-border bg-muted/30 flex items-center justify-between">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider" style={{ fontFamily: "MVTypewriter, serif" }}>
             ފަހުގެ ލިޔުންތައް
-          </CardTitle>
-          <Link href="/admin/articles">
-            <Button variant="ghost" size="sm" className="font-body text-xs">
-              ހުރިހާ ←
-            </Button>
+          </p>
+          <Link href="/admin/articles" className="text-xs text-muted-foreground hover:text-foreground transition-colors" style={{ fontFamily: "MVTypewriter, serif" }}>
+            ހުރިހާ ލިޔުން ←
           </Link>
-        </CardHeader>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="font-body text-xs">ލިޔުން</TableHead>
-              <TableHead className="font-body text-xs">ހޯމްޕޭޖް ތަން</TableHead>
-              <TableHead className="font-body text-xs">ހާލަތު</TableHead>
-              <TableHead className="font-body text-xs text-left">ޢަމަލު</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {recentArticles.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center py-12 font-body text-sm text-muted-foreground">
-                  ލިޔުމެއް ނެތް — + އާ ލިޔުން ފަށާ
-                </TableCell>
-              </TableRow>
-            ) : (
-              recentArticles.map((article) => (
-                <TableRow key={article.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      {article.featured_image ? (
-                        <img src={article.featured_image} alt="" className="w-12 h-9 object-cover rounded flex-shrink-0" />
-                      ) : (
-                        <div className="w-12 h-9 bg-muted rounded flex-shrink-0" />
-                      )}
-                      <span className="font-body text-sm font-medium line-clamp-1">
-                        {article.title}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {article.homepage_placement ? (
-                      <Badge variant={PLACEMENT_MAP[article.homepage_placement]?.variant || "outline"} className="font-body text-xs">
-                        {PLACEMENT_MAP[article.homepage_placement]?.label}
-                      </Badge>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={STATUS_MAP[article.status]?.variant || "outline"} className="font-body text-xs">
-                      {STATUS_MAP[article.status]?.label}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-left">
-                    <Link href={`/admin/articles/${article.id}`}>
-                      <Button variant="outline" size="sm" className="font-body text-xs h-7 gap-1.5">
-                        <PenLine size={11} />
-                        އެޑިޓް
-                      </Button>
-                    </Link>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </Card>
+        </div>
+        <table className="w-full text-sm">
+          <thead className="border-b border-border">
+            <tr className="text-right">
+              <th className="px-5 py-2.5 text-[11px] font-medium text-muted-foreground" style={{ fontFamily: "MVTypewriter, serif" }}>ސުރުޚީ</th>
+              <th className="px-5 py-2.5 text-[11px] font-medium text-muted-foreground hidden md:table-cell" style={{ fontFamily: "MVTypewriter, serif" }}>ކެޓަގަރީ</th>
+              <th className="px-5 py-2.5 text-[11px] font-medium text-muted-foreground" style={{ fontFamily: "MVTypewriter, serif" }}>ހާލަތު</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {articles.map((a) => (
+              <tr key={a.id} className="hover:bg-muted/20 transition-colors">
+                <td className="px-5 py-3">
+                  <Link href={`/admin/articles/${a.id}`} className="hover:opacity-70 transition-opacity">
+                    <p className="text-sm text-foreground line-clamp-1" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
+                      {a.title}
+                    </p>
+                  </Link>
+                </td>
+                <td className="px-5 py-3 hidden md:table-cell">
+                  {a.category && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground" style={{ fontFamily: "MVTypewriter, serif" }}>
+                      {a.category.name}
+                    </span>
+                  )}
+                </td>
+                <td className="px-5 py-3">
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                    a.status === "published"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-amber-100 text-amber-700"
+                  }`} style={{ fontFamily: "MVTypewriter, serif" }}>
+                    {a.status === "published" ? "ލައިވް" : "ޑްރާފްޓް"}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
