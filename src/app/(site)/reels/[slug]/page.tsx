@@ -37,7 +37,7 @@ export default function ReelWatchPage() {
         .eq("status", "published")
         .eq("homepage_featured", true)
         .order("published_at", { ascending: false });
-      const all = data ?? [];
+      const all = (data ?? []) as any[];
       setReels(all);
       const idx = all.findIndex((r: Reel) => r.slug === params.slug);
       setCurrentIndex(idx >= 0 ? idx : 0);
