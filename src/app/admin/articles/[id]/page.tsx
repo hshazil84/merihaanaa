@@ -37,6 +37,8 @@ export default function EditArticlePage() {
   const [tags, setTags]                         = useState<TagItem[]>([]);
   const [slug, setSlug]                         = useState("");
   const [status, setStatus]                     = useState<string>("draft");
+  const [seriesId, setSeriesId]                 = useState<string | null>(null);
+  const [chapterNumber, setChapterNumber]       = useState<number | null>(null);
 
   const [loading, setLoading]     = useState(true);
   const [saving, setSaving]       = useState(false);
@@ -90,6 +92,8 @@ export default function EditArticlePage() {
       setScheduledFor(a.scheduled_for ?? null);
       setTags(Array.isArray(a.tags) ? a.tags : []);
       setStatus(a.status ?? "draft");
+      setSeriesId(a.series_id ?? null);
+      setChapterNumber(a.chapter_number ?? null);
 
       if (a.cover_type === "image" && (a.cover_url || a.featured_image)) {
         setCoverMedia({ type: "image", imageUrl: a.cover_url || a.featured_image });
@@ -135,8 +139,7 @@ export default function EditArticlePage() {
       } else {
         setTags(updater);
       }
-    },
-    []
+    }, []
   );
 
   useEffect(() => {
@@ -153,16 +156,10 @@ export default function EditArticlePage() {
         ? { cover_type: "video", cover_url: null, featured_image: null, cover_video_id: coverMedia.videoMeta?.videoId ?? null, cover_video_provider: coverMedia.videoMeta?.provider ?? null, cover_video_thumbnail: coverMedia.videoMeta?.thumbnailUrl ?? null }
         : { cover_type: null, cover_url: null, featured_image: null, cover_video_id: null, cover_video_provider: null, cover_video_thumbnail: null };
 
-    const resolvedOgImage =
-      ogImageUrl ||
-      coverFields.featured_image ||
-      coverFields.cover_video_thumbnail ||
-      null;
+    const resolvedOgImage = ogImageUrl || coverFields.featured_image || coverFields.cover_video_thumbnail || null;
 
     return {
-      title,
-      excerpt,
-      body,
+      title, excerpt, body,
       category_id: categoryRef.current,
       author_id: authorId,
       content_type: "article",
@@ -179,20 +176,18 @@ export default function EditArticlePage() {
       og_description: ogDesc || excerpt,
       og_image_url: resolvedOgImage,
       tags,
+      series_id: seriesId,
+      chapter_number: chapterNumber,
       reading_time_minutes: calculateReadingTime(body),
       updated_at: new Date().toISOString(),
     };
   };
 
-  const handleSave = async (
-    publishStatus: "draft" | "published" | "scheduled",
-    silent = false,
-  ) => {
+  const handleSave = async (publishStatus: "draft" | "published" | "scheduled", silent = false) => {
     if (!title.trim()) { if (!silent) setError("ސުރުހީ ލިޔެލާ"); return; }
     if (!silent) { setSaving(true); setError(null); }
 
-    const { error: err } = await supabase
-      .from("articles").update(buildPayload(publishStatus)).eq("id", id);
+    const { error: err } = await supabase.from("articles").update(buildPayload(publishStatus)).eq("id", id);
 
     if (!silent) setSaving(false);
     if (err) { if (!silent) setError("ލިޔުން ސޭވް ނުވި: " + err.message); return; }
@@ -205,9 +200,7 @@ export default function EditArticlePage() {
     }
   };
 
-  const handlePreview = () => {
-    window.open(`/preview/${slug}`, "_blank");
-  };
+  const handlePreview = () => { window.open(`/preview/${slug}`, "_blank"); };
 
   if (loading) {
     return (
@@ -225,6 +218,7 @@ export default function EditArticlePage() {
         homepageFeatured={homepageFeatured} isPremium={isPremium} allowComments={allowComments}
         ogTitle={ogTitle} ogDesc={ogDesc} ogImageUrl={ogImageUrl} coverMedia={coverMedia}
         authorId={authorId} scheduledAt={scheduledFor} tags={tags} status={status}
+        seriesId={seriesId} chapterNumber={chapterNumber}
         onCategoryChange={(catId) => { setCategoryId(catId); categoryRef.current = catId; }}
         onPlacementChange={setPlacement}
         onHomepageSlotChange={setHomepageSlot}
@@ -234,6 +228,8 @@ export default function EditArticlePage() {
         onOgTitleChange={setOgTitle} onOgDescChange={setOgDesc} onOgImageUrlChange={setOgImageUrl}
         onAuthorIdChange={setAuthorId} onScheduledAtChange={setScheduledFor}
         onTagsChange={handleTagsChange}
+        onSeriesIdChange={setSeriesId}
+        onChapterNumberChange={setChapterNumber}
         onSaveDraft={() => handleSave("draft")}
         onPublish={() => handleSave("published")}
         onSchedule={() => handleSave("scheduled")}
@@ -248,11 +244,8 @@ export default function EditArticlePage() {
               <button key={cat.id} type="button"
                 onClick={() => { setCategoryId(cat.id); categoryRef.current = cat.id; }}
                 className={`font-body text-xs px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5 ${
-                  categoryId === cat.id
-                    ? "bg-foreground text-background border-foreground"
-                    : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
-                }`}
-              >
+                  categoryId === cat.id ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
+                }`}>
                 {categoryId === cat.id && (
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                     <path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -265,12 +258,12 @@ export default function EditArticlePage() {
 
           <textarea value={title} onChange={(e) => setTitle(e.target.value)}
             placeholder="ލިޔުމުގެ ސުރުހީ..." rows={2} dir="rtl"
-            className="w-full font-display text-3xl font-bold bg-transparent border-none outline-none resize-none text-foreground placeholder:text-muted-foreground/40 leading-tight"
-          />
+            className="w-full font-display text-3xl font-bold bg-transparent border-none outline-none resize-none text-foreground placeholder:text-muted-foreground/40 leading-tight" />
+
           <textarea value={excerpt} onChange={(e) => setExcerpt(e.target.value)}
             placeholder="ކުރު ތަޢާރަފެއް — ކިޔުންތެރިން ފުރަތަމަ ފެންނާ ބައި..." rows={2} dir="rtl"
-            className="w-full font-body text-base text-muted-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 leading-relaxed"
-          />
+            className="w-full font-body text-base text-muted-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 leading-relaxed" />
+
           <CoverMedia value={coverMedia} onChange={handleCoverMediaChange} />
           <ArticleEditor key={id} content={body ?? undefined} onChange={handleBodyChange} placeholder="ލިޔުން ފަށާ..." />
 
