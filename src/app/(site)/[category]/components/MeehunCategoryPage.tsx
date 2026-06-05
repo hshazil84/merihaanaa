@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Pagination } from "./Pagination";
+import { Pagination } from "@/app/(site)/[category]/components/Pagination";
 import { formatDhivehiDate } from "@/lib/formatDhivehiDate";
 
 const FONT_THAANA = '"MVTypewriter", "Noto Sans Thaana", sans-serif';
@@ -11,6 +11,12 @@ const BG_PAGE = "#F5F3EF";
 const BG_CARD = "#EBE8E1";
 const DIVIDER = "rgba(0,0,0,0.1)";
 const RED_TAG = "#9B2020";
+
+function getAuthorName(author: any): string {
+  if (!author) return "";
+  if (Array.isArray(author)) return author[0]?.full_name ?? "";
+  return author.full_name ?? "";
+}
 
 function TagLabel({ tags }: { tags?: string[] | null }) {
   const tag = tags?.[0];
@@ -98,7 +104,7 @@ export function MeehunCategoryPage({
                   {article.title}
                 </p>
                 <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_MUTED, margin: 0, lineHeight: 2 }}>
-                  {article.author?.full_name}
+                  {getAuthorName(article.author)}
                   {article.published_at && (
                     <> · {formatDhivehiDate(article.published_at)}</>
                   )}
@@ -148,7 +154,7 @@ export function MeehunCategoryPage({
                 </p>
               )}
               <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_MUTED, margin: 0, lineHeight: 2 }}>
-                {featuredArticle.author?.full_name}
+                {getAuthorName(featuredArticle.author)}
                 {featuredArticle.reading_time_minutes && (
                   <> · {featuredArticle.reading_time_minutes} މިނެޓު</>
                 )}
@@ -205,7 +211,7 @@ export function MeehunCategoryPage({
         <div style={{ borderTop: `0.5px solid ${DIVIDER}` }} />
       </div>
 
-      {/* Card grid */}
+      {/* Card grid 4x2 */}
       {articles.length > 0 && (
         <div style={{ maxWidth: "72rem", margin: "0 auto", padding: "0 1.5rem 4rem" }}>
           <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "16px", fontWeight: 600 }}>
@@ -246,7 +252,7 @@ export function MeehunCategoryPage({
                   {article.title}
                 </h3>
                 <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_MUTED, margin: 0, lineHeight: 2 }}>
-                  {article.author?.full_name}
+                  {getAuthorName(article.author)}
                   {article.reading_time_minutes && (
                     <> · {article.reading_time_minutes} މިނެޓު</>
                   )}
