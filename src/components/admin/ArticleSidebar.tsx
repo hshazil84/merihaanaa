@@ -7,14 +7,15 @@ import {
   Send, Save, Eye, Clock, Star, BookOpen, FileText,
   Check, Calendar, User, Globe, Lock, MessageCircle, RefreshCw,
   Sparkles, X, UploadCloud, Loader2, Home, ChevronDown, Tag, BookMarked,
+  ImageIcon,
 } from "lucide-react";
 import { calculateReadingTime } from "@/lib/utils";
 import { processImage, ACCEPTED_IMAGE_TYPES } from "@/lib/imageUtils";
 import type { CoverMediaValue } from "@/components/admin/CoverMedia";
 
-interface Author  { id: string; full_name: string; role: string; }
-interface TagItem { name: string; slug: string; }
-interface Category { id: string; name: string; }
+interface Author    { id: string; full_name: string; role: string; }
+interface TagItem   { name: string; slug: string; }
+interface Category  { id: string; name: string; }
 interface SeriesItem { id: string; title: string; }
 
 interface SidebarProps {
@@ -32,6 +33,7 @@ interface SidebarProps {
   ogDesc: string;
   ogImageUrl: string;
   coverMedia: CoverMediaValue | null;
+  coverPortraitUrl: string | null;
   authorId: string | null;
   scheduledAt: string | null;
   tags?: TagItem[];
@@ -47,6 +49,7 @@ interface SidebarProps {
   onOgTitleChange: (v: string) => void;
   onOgDescChange: (v: string) => void;
   onOgImageUrlChange: (v: string) => void;
+  onCoverPortraitUrlChange: (v: string | null) => void;
   onAuthorIdChange: (v: string | null) => void;
   onScheduledAtChange: (v: string | null) => void;
   onTagsChange?: (tags: TagItem[] | ((prev: TagItem[]) => TagItem[])) => void;
@@ -100,7 +103,9 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
     </button>
   );
 }
-function Collapsible({ label, icon, children, defaultOpen = false }: { label: string; icon?: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean; }) {
+function Collapsible({ label, icon, children, defaultOpen = false }: {
+  label: string; icon?: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean;
+}) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <>
@@ -116,6 +121,96 @@ function Collapsible({ label, icon, children, defaultOpen = false }: { label: st
         {open && <div className="pb-3.5">{children}</div>}
       </div>
     </>
+  );
+}
+
+// ── Portrait Uploader ──
+function PortraitUploader({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (v: string | null) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleFile = useCallback(async (file: File) => {
+    setError(null);
+    setUploading(true);
+    try {
+      const blob = await processImage(file, {
+        targetW: 900,
+        targetH: 1200,
+        watermark: false,
+      });
+      const formData = new FormData();
+      formData.append("file", new File([blob], `portrait-${Date.now()}.jpg`, { type: "image/jpeg" }));
+      const res = await fetch("/api/upload-image", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error ?? "Upload failed");
+      onChange(data.url);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "އަލުން ލޯޑްކޮށްލާ");
+    } finally {
+      setUploading(false);
+    }
+  }, [onChange]);
+
+  if (value) {
+    return (
+      <div className="relative rounded-lg overflow-hidden border border-border" style={{ aspectRatio: "3/4" }}>
+        <img src={value} alt="ކަވަރ ޕޯޓްރެއިޓް" className="w-full h-full object-cover" />
+        <button
+          type="button"
+          onClick={() => onChange(null)}
+          className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center hover:bg-black/80 transition-colors"
+        >
+          <X size={10} className="text-white" />
+        </button>
+        <div className="absolute bottom-0 left-0 right-0 px-2 py-1 bg-black/40">
+          <p className="font-body text-[9px] text-white/70 text-center">3:4 · ވާހަކަ ކަވަރ</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <input
+        ref={inputRef}
+        type="file"
+        accept={ACCEPTED_IMAGE_TYPES.join(",")}
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
+      />
+      <div
+        onClick={() => !uploading && inputRef.current?.click()}
+        className={`w-full rounded-lg border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center gap-2 ${
+          uploading ? "pointer-events-none border-border" : "border-border hover:border-foreground hover:bg-muted/30"
+        }`}
+        style={{ aspectRatio: "3/4" }}
+      >
+        {uploading ? (
+          <>
+            <Loader2 size={20} className="animate-spin text-muted-foreground" />
+            <p className="font-body text-[10px] text-muted-foreground">ލޯޑްވަނީ...</p>
+          </>
+        ) : (
+          <>
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-muted text-muted-foreground">
+              <ImageIcon size={18} />
+            </div>
+            <p className="font-body text-[11px] font-semibold text-foreground">ޕޯޓްރެއިޓް ލޯޑްކޮށްލާ</p>
+            <p className="font-body text-[9px] text-muted-foreground">3:4 · ވާހަކަ ކަވަރ</p>
+          </>
+        )}
+      </div>
+      {error && (
+        <p className="font-body text-[10px] text-destructive">{error}</p>
+      )}
+    </div>
   );
 }
 
@@ -145,9 +240,7 @@ function CreateSeriesModal({ onClose, onCreate }: { onClose: () => void; onCreat
       <div className="relative bg-white rounded-2xl w-full max-w-sm shadow-2xl p-5" dir="rtl">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-bold" style={{ fontFamily: "MVTypewriter, serif" }}>އާ ސީރީޒް</h2>
-          <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600">
-            <X size={16} />
-          </button>
+          <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600"><X size={16} /></button>
         </div>
         <input autoFocus type="text" value={title} onChange={e => { setTitle(e.target.value); setError(""); }}
           className="w-full px-3 py-2.5 rounded-lg border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900 text-sm mb-3"
@@ -171,12 +264,12 @@ function CreateSeriesModal({ onClose, onCreate }: { onClose: () => void; onCreat
 
 export default function ArticleSidebar({
   title, excerpt, body, categories, categoryId, placement, homepageSlot, homepageFeatured,
-  isPremium, allowComments, ogTitle, ogDesc, ogImageUrl, coverMedia,
+  isPremium, allowComments, ogTitle, ogDesc, ogImageUrl, coverMedia, coverPortraitUrl,
   authorId, scheduledAt, tags = [], status, seriesId, chapterNumber,
   onCategoryChange, onPlacementChange, onHomepageSlotChange, onHomepageFeaturedChange,
   onIsPremiumChange, onAllowCommentsChange, onOgTitleChange, onOgDescChange,
-  onOgImageUrlChange, onAuthorIdChange, onScheduledAtChange, onTagsChange,
-  onSeriesIdChange, onChapterNumberChange,
+  onOgImageUrlChange, onCoverPortraitUrlChange, onAuthorIdChange, onScheduledAtChange,
+  onTagsChange, onSeriesIdChange, onChapterNumberChange,
   onSaveDraft, onPublish, onSchedule, onPreview,
   saving, lastSaved, error, slug,
 }: SidebarProps) {
@@ -203,7 +296,6 @@ export default function ArticleSidebar({
   const currentPlacement = PLACEMENTS.find(p => p.value === placement);
   const slotCount = currentPlacement?.slots ?? 0;
 
-  // Check if current category is ވާހަކަ
   const isStoryCategory = categories.find(c => c.id === categoryId)?.name === STORY_CATEGORY_NAME;
 
   useEffect(() => {
@@ -342,7 +434,7 @@ export default function ArticleSidebar({
 
           <Divider />
 
-          {/* Story Series — only shown for ވާހަކަ category */}
+          {/* Story Series + Portrait — only for ވާހަކަ */}
           {isStoryCategory && (
             <>
               <Section>
@@ -371,6 +463,14 @@ export default function ArticleSidebar({
                   </div>
                 )}
               </Section>
+
+              <Divider />
+
+              <Section>
+                <SectionLabel icon={<ImageIcon size={11} />}>ވާހަކަ ކަވަރ</SectionLabel>
+                <PortraitUploader value={coverPortraitUrl} onChange={onCoverPortraitUrlChange} />
+              </Section>
+
               <Divider />
             </>
           )}
