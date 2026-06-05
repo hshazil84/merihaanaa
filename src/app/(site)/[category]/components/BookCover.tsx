@@ -20,27 +20,23 @@ export function BookCover({ article, categorySlug }: BookCoverProps) {
 
   return (
     <Link href={`/${categorySlug}/${article.slug}`} className="group block">
-      {/* Book cover card */}
       <div
-        className="relative overflow-hidden transition-all duration-500 group-hover:scale-[1.02]"
+        className="relative transition-all duration-500 group-hover:scale-[1.02] group-hover:-translate-y-1"
         style={{
-          aspectRatio: "2/3",
-          borderRadius: "4px 12px 12px 4px",
-          boxShadow: "4px 6px 20px rgba(60,40,10,0.18), inset -3px 0 8px rgba(0,0,0,0.08)",
-          transform: "perspective(600px) rotateY(-2deg)",
+          aspectRatio: "3/4",
+          borderRadius: "5px",
+          backgroundImage: coverImage
+            ? `linear-gradient(to left, rgb(60, 13, 20) 3px, rgba(255,255,255,0.5) 5px, rgba(255,255,255,0.25) 7px, rgba(255,255,255,0.25) 10px, transparent 12px, transparent 16px, rgba(255,255,255,0.25) 17px, transparent 22px), url(${coverImage})`
+            : `linear-gradient(to left, rgb(60, 13, 20) 3px, rgba(255,255,255,0.5) 5px, rgba(255,255,255,0.25) 7px, rgba(255,255,255,0.25) 10px, transparent 12px, transparent 16px, rgba(255,255,255,0.25) 17px, transparent 22px), linear-gradient(160deg, rgb(220,205,165), rgb(195,175,120))`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          boxShadow: "0 0 5px -1px black, inset 1px 1px 2px rgba(255,255,255,0.5)",
         }}
       >
-        {/* Cover image or parchment fallback */}
-        {coverImage ? (
-          <img
-            src={coverImage}
-            alt={article.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-          />
-        ) : (
+        {/* Parchment fallback — no image */}
+        {!coverImage && (
           <div style={{
-            width: "100%", height: "100%",
-            background: "linear-gradient(160deg, rgb(220,205,165), rgb(195,175,120))",
+            position: "absolute", inset: 0,
             display: "flex", flexDirection: "column",
             alignItems: "center", justifyContent: "center",
             padding: "20px",
@@ -60,23 +56,13 @@ export function BookCover({ article, categorySlug }: BookCoverProps) {
           </div>
         )}
 
-        {/* RTL spine shadow — right edge is the binding */}
-        <div style={{
-          position: "absolute", top: 0, right: 0, bottom: 0, width: "10px",
-          background: "linear-gradient(to left, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.08) 60%, transparent 100%)",
-          pointerEvents: "none",
-        }} />
-        {/* Left page-edge highlight */}
-        <div style={{
-          position: "absolute", top: 0, left: 0, bottom: 0, width: "3px",
-          background: "linear-gradient(to right, rgba(255,255,255,0.15), transparent)",
-          pointerEvents: "none",
-        }} />
-
         {/* Hover overlay */}
         <div
           className="absolute inset-0 transition-opacity duration-300 opacity-0 group-hover:opacity-100"
-          style={{ background: "linear-gradient(to top, rgba(40,28,8,0.7) 0%, transparent 50%)" }}
+          style={{
+            background: "linear-gradient(to top, rgba(40,28,8,0.75) 0%, transparent 55%)",
+            borderRadius: "inherit",
+          }}
         >
           <div className="absolute bottom-0 left-0 right-0 p-4">
             <p style={{
