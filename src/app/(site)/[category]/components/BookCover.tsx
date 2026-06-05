@@ -21,10 +21,41 @@ export function BookCover({ article, categorySlug }: BookCoverProps) {
 
   return (
     <Link href={`/${categorySlug}/${article.slug}`} className="group block">
-      {/* Perspective wrapper */}
-      <div style={{ perspective: "800px" }}>
+      {/* Outer wrapper provides the page-edge illusion */}
+      <div
+        className="relative transition-all duration-500 group-hover:-translate-y-2"
+        style={{
+          paddingBottom: "6px",
+          paddingRight: "4px",
+        }}
+      >
+        {/* Page stack — bottom edge */}
+        <div style={{
+          position: "absolute",
+          bottom: 0,
+          left: "6px",
+          right: 0,
+          height: "100%",
+          borderRadius: "2px 5px 5px 2px",
+          background: "linear-gradient(to right, #c8b89a 0%, #e8dcc8 30%, #f5efe0 60%, #e8dcc8 100%)",
+          transform: "translateX(3px) translateY(3px)",
+          zIndex: 0,
+        }} />
+        <div style={{
+          position: "absolute",
+          bottom: 0,
+          left: "4px",
+          right: 0,
+          height: "100%",
+          borderRadius: "2px 5px 5px 2px",
+          background: "linear-gradient(to right, #b8a88a 0%, #d8ccb8 30%, #ede5d0 60%, #d8ccb8 100%)",
+          transform: "translateX(1.5px) translateY(1.5px)",
+          zIndex: 0,
+        }} />
+
+        {/* Book cover */}
         <div
-          className="relative transition-all duration-500"
+          className="relative"
           style={{
             aspectRatio: "3/4",
             borderRadius: "2px 5px 5px 2px",
@@ -33,18 +64,8 @@ export function BookCover({ article, categorySlug }: BookCoverProps) {
               : `linear-gradient(to left, rgb(60, 13, 20) 3px, rgba(255,255,255,0.5) 5px, rgba(255,255,255,0.25) 7px, rgba(255,255,255,0.25) 10px, transparent 12px, transparent 16px, rgba(255,255,255,0.25) 17px, transparent 22px), linear-gradient(160deg, rgb(220,205,165), rgb(195,175,120))`,
             backgroundSize: "cover",
             backgroundPosition: "center",
-            boxShadow: "6px 6px 20px rgba(0,0,0,0.35), inset 1px 1px 2px rgba(255,255,255,0.5)",
-            transform: "perspective(800px) rotateY(8deg) rotateX(2deg)",
-            transformOrigin: "left center",
-            transition: "transform 0.4s ease, box-shadow 0.4s ease",
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.transform = "perspective(800px) rotateY(4deg) rotateX(1deg) translateY(-4px)";
-            (e.currentTarget as HTMLElement).style.boxShadow = "10px 16px 32px rgba(0,0,0,0.4), inset 1px 1px 2px rgba(255,255,255,0.5)";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.transform = "perspective(800px) rotateY(8deg) rotateX(2deg)";
-            (e.currentTarget as HTMLElement).style.boxShadow = "6px 6px 20px rgba(0,0,0,0.35), inset 1px 1px 2px rgba(255,255,255,0.5)";
+            boxShadow: "0 0 5px -1px black, inset 1px 1px 2px rgba(255,255,255,0.5)",
+            zIndex: 1,
           }}
         >
           {/* Parchment fallback */}
@@ -67,7 +88,7 @@ export function BookCover({ article, categorySlug }: BookCoverProps) {
             </div>
           )}
 
-          {/* Hover read overlay */}
+          {/* Hover overlay */}
           <div
             className="absolute inset-0 transition-opacity duration-300 opacity-0 group-hover:opacity-100"
             style={{
