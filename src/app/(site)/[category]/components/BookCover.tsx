@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatDhivehiDate } from "../utils/formatDhivehiDate";
+import { formatDhivehiDate } from "@/lib/formatDhivehiDate";
 
 interface BookCoverProps {
   article: {
