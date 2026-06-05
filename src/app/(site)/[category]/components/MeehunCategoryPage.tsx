@@ -18,8 +18,10 @@ function getAuthorName(author: any): string {
   return author.full_name ?? "";
 }
 
-function TagLabel({ tags }: { tags?: string[] | null }) {
-  const tag = tags?.[0];
+function TagLabel({ tags }: { tags?: any }) {
+  if (!tags || !Array.isArray(tags) || tags.length === 0) return null;
+  const raw = tags[0];
+  const tag = typeof raw === "string" ? raw : typeof raw === "object" && raw !== null ? (raw.name ?? null) : null;
   if (!tag) return null;
   return (
     <span style={{
