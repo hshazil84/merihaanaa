@@ -29,6 +29,7 @@ export default function NewArticlePage() {
   const [ogDesc, setOgDesc]             = useState("");
   const [ogImageUrl, setOgImageUrl]     = useState("");
   const [coverMedia, setCoverMedia]     = useState<CoverMediaValue | null>(null);
+  const [coverPortraitUrl, setCoverPortraitUrl] = useState<string | null>(null);
   const [authorId, setAuthorId]         = useState<string | null>(null);
   const [scheduledFor, setScheduledFor] = useState<string | null>(null);
   const [tags, setTags]                 = useState<{ name: string; slug: string }[]>([]);
@@ -99,6 +100,7 @@ export default function NewArticlePage() {
       author_id: authorId,
       content_type: "article",
       ...coverFields,
+      cover_portrait_url: coverPortraitUrl,
       status: publishStatus,
       published_at: publishStatus === "published" ? new Date().toISOString() : null,
       scheduled_for: publishStatus === "scheduled" ? scheduledFor : null,
@@ -166,6 +168,7 @@ export default function NewArticlePage() {
         categoryId={categoryId} placement={placement} homepageSlot={homepageSlot}
         homepageFeatured={homepageFeatured} isPremium={isPremium} allowComments={allowComments}
         ogTitle={ogTitle} ogDesc={ogDesc} ogImageUrl={ogImageUrl} coverMedia={coverMedia}
+        coverPortraitUrl={coverPortraitUrl}
         authorId={authorId} scheduledAt={scheduledFor} tags={tags}
         seriesId={seriesId} chapterNumber={chapterNumber}
         onCategoryChange={(id) => { setCategoryId(id); categoryRef.current = id; }}
@@ -175,6 +178,7 @@ export default function NewArticlePage() {
         onIsPremiumChange={setIsPremium}
         onAllowCommentsChange={setAllowComments}
         onOgTitleChange={setOgTitle} onOgDescChange={setOgDesc} onOgImageUrlChange={setOgImageUrl}
+        onCoverPortraitUrlChange={setCoverPortraitUrl}
         onAuthorIdChange={setAuthorId} onScheduledAtChange={setScheduledFor}
         onTagsChange={handleTagsChange}
         onSeriesIdChange={setSeriesId}
