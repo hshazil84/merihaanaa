@@ -92,16 +92,16 @@ async function getCategoryData(slug: string, page: number) {
     }
 
     const { data: gridArticles, count } = await gridQuery;
-
+    
     return {
       category,
       featuredArticle: featuredArticle ?? null,
-      mostRead: mostRead ?? [],
-      recentArticles: recentArticles ?? [],
-      articles: gridArticles ?? [],
+      mostRead: (mostRead ?? []) as any[],
+      recentArticles: (recentArticles ?? []) as any[],
+      articles: (gridArticles ?? []) as any[],
       total: count ?? 0,
       totalPages: Math.ceil((count ?? 0) / PAGE_SIZE),
-      isMeehun: true,
+      isMeehun: true as const,
     };
   }
 
