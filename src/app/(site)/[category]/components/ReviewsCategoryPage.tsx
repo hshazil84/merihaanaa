@@ -2,7 +2,7 @@ import Link from "next/link";
 import NewsletterCTA from "@/components/public/NewsletterCTA";
 import { StarRating } from "./StarRating";
 import { Pagination } from "./Pagination";
-import { formatDhivehiDate } from "../utils/formatDhivehiDate";
+import { formatDhivehiDate } from "@/lib/formatDhivehiDate";
 
 export function ReviewsCategoryPage({
   category, articles, total, totalPages, page,
