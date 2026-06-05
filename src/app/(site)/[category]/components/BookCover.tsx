@@ -25,7 +25,7 @@ export function BookCover({ article, categorySlug }: BookCoverProps) {
         className="relative transition-transform duration-100 ease-out group-hover:-translate-y-1 group-hover:scale-[1.03]"
         style={{
           aspectRatio: "3/4",
-          borderRadius: "2px 6px 6px 2px",
+          borderRadius: "6px 2px 2px 6px",
           backgroundImage: coverImage
             ? `url(${coverImage})`
             : `linear-gradient(160deg, rgb(220,205,165), rgb(195,175,120))`,
@@ -34,18 +34,34 @@ export function BookCover({ article, categorySlug }: BookCoverProps) {
           boxShadow: [
             "inset 1px 1px 0 1px rgba(255,255,255,0.2)",
             "inset 0 0 0 1px rgba(0,0,0,0.1)",
-            "-4px 2px 4px 0 rgba(0,0,0,0.3)",
-            "-8px 8px 20px 0 rgba(0,0,0,0.2)",
+            "4px 2px 4px 0 rgba(0,0,0,0.3)",
+            "8px 8px 20px 0 rgba(0,0,0,0.2)",
           ].join(", "),
         }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLElement).style.boxShadow = [
+            "inset 1px 1px 0 1px rgba(255,255,255,0.2)",
+            "inset 0 0 0 1px rgba(0,0,0,0.1)",
+            "4px 4px 8px 0 rgba(0,0,0,0.3)",
+            "12px 16px 30px 0 rgba(0,0,0,0.3)",
+          ].join(", ");
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLElement).style.boxShadow = [
+            "inset 1px 1px 0 1px rgba(255,255,255,0.2)",
+            "inset 0 0 0 1px rgba(0,0,0,0.1)",
+            "4px 2px 4px 0 rgba(0,0,0,0.3)",
+            "8px 8px 20px 0 rgba(0,0,0,0.2)",
+          ].join(", ");
+        }}
       >
-        {/* Spine overlay — direct translation of ::before */}
+        {/* Spine overlay — RTL, binding on right */}
         <div
           style={{
             position: "absolute",
             inset: 0,
             borderRadius: "inherit",
-            backgroundImage: "linear-gradient(to right, rgba(0,0,0,0.2), rgba(255,255,255,0.3) 1%, transparent 6%, rgba(0,0,0,0.15) 8%, rgba(255,255,255,0.2) 9%, transparent 20%)",
+            backgroundImage: "linear-gradient(to left, rgba(0,0,0,0.2), rgba(255,255,255,0.3) 1%, transparent 6%, rgba(0,0,0,0.15) 8%, rgba(255,255,255,0.2) 9%, transparent 20%)",
             pointerEvents: "none",
           }}
         />
