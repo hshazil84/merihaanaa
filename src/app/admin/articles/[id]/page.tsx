@@ -32,6 +32,7 @@ export default function EditArticlePage() {
   const [ogDesc, setOgDesc]                     = useState("");
   const [ogImageUrl, setOgImageUrl]             = useState("");
   const [coverMedia, setCoverMedia]             = useState<CoverMediaValue | null>(null);
+  const [coverPortraitUrl, setCoverPortraitUrl] = useState<string | null>(null);
   const [authorId, setAuthorId]                 = useState<string | null>(null);
   const [scheduledFor, setScheduledFor]         = useState<string | null>(null);
   const [tags, setTags]                         = useState<TagItem[]>([]);
@@ -94,6 +95,7 @@ export default function EditArticlePage() {
       setStatus(a.status ?? "draft");
       setSeriesId(a.series_id ?? null);
       setChapterNumber(a.chapter_number ?? null);
+      setCoverPortraitUrl(a.cover_portrait_url ?? null);
 
       if (a.cover_type === "image" && (a.cover_url || a.featured_image)) {
         setCoverMedia({ type: "image", imageUrl: a.cover_url || a.featured_image });
@@ -164,6 +166,7 @@ export default function EditArticlePage() {
       author_id: authorId,
       content_type: "article",
       ...coverFields,
+      cover_portrait_url: coverPortraitUrl,
       status: publishStatus,
       published_at: publishStatus === "published" ? new Date().toISOString() : undefined,
       scheduled_for: publishStatus === "scheduled" ? scheduledFor : null,
@@ -217,6 +220,7 @@ export default function EditArticlePage() {
         categoryId={categoryId} placement={placement} homepageSlot={homepageSlot}
         homepageFeatured={homepageFeatured} isPremium={isPremium} allowComments={allowComments}
         ogTitle={ogTitle} ogDesc={ogDesc} ogImageUrl={ogImageUrl} coverMedia={coverMedia}
+        coverPortraitUrl={coverPortraitUrl}
         authorId={authorId} scheduledAt={scheduledFor} tags={tags} status={status}
         seriesId={seriesId} chapterNumber={chapterNumber}
         onCategoryChange={(catId) => { setCategoryId(catId); categoryRef.current = catId; }}
@@ -226,6 +230,7 @@ export default function EditArticlePage() {
         onIsPremiumChange={setIsPremium}
         onAllowCommentsChange={setAllowComments}
         onOgTitleChange={setOgTitle} onOgDescChange={setOgDesc} onOgImageUrlChange={setOgImageUrl}
+        onCoverPortraitUrlChange={setCoverPortraitUrl}
         onAuthorIdChange={setAuthorId} onScheduledAtChange={setScheduledFor}
         onTagsChange={handleTagsChange}
         onSeriesIdChange={setSeriesId}
