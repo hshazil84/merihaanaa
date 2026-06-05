@@ -32,6 +32,8 @@ export default function NewArticlePage() {
   const [authorId, setAuthorId]         = useState<string | null>(null);
   const [scheduledFor, setScheduledFor] = useState<string | null>(null);
   const [tags, setTags]                 = useState<{ name: string; slug: string }[]>([]);
+  const [seriesId, setSeriesId]         = useState<string | null>(null);
+  const [chapterNumber, setChapterNumber] = useState<number | null>(null);
 
   const [saving, setSaving]       = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -49,10 +51,7 @@ export default function NewArticlePage() {
       .then(({ data }) => {
         if (data) {
           setCategories(data);
-          if (data.length > 0) {
-            setCategoryId(data[0].id);
-            categoryRef.current = data[0].id;
-          }
+          if (data.length > 0) { setCategoryId(data[0].id); categoryRef.current = data[0].id; }
         }
       });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -92,11 +91,7 @@ export default function NewArticlePage() {
         ? { cover_type: "video", cover_url: null, featured_image: null, cover_video_id: coverMedia.videoMeta?.videoId ?? null, cover_video_provider: coverMedia.videoMeta?.provider ?? null, cover_video_thumbnail: coverMedia.videoMeta?.thumbnailUrl ?? null }
         : { cover_type: null, cover_url: null, featured_image: null, cover_video_id: null, cover_video_provider: null, cover_video_thumbnail: null };
 
-    const resolvedOgImage =
-      ogImageUrl?.trim() ||
-      coverFields.featured_image ||
-      coverFields.cover_video_thumbnail ||
-      null;
+    const resolvedOgImage = ogImageUrl?.trim() || coverFields.featured_image || coverFields.cover_video_thumbnail || null;
 
     return {
       title, excerpt, body,
@@ -116,14 +111,13 @@ export default function NewArticlePage() {
       og_description: ogDesc || excerpt,
       og_image_url: resolvedOgImage,
       tags,
+      series_id: seriesId,
+      chapter_number: chapterNumber,
       reading_time_minutes: calculateReadingTime(body),
     };
   };
 
-  const handleSave = async (
-    publishStatus: "draft" | "published" | "scheduled",
-    silent = false,
-  ) => {
+  const handleSave = async (publishStatus: "draft" | "published" | "scheduled", silent = false) => {
     if (!title.trim()) { if (!silent) setError("ސުރުހީ ލިޔެލާ"); return; }
     if (!silent) { setSaving(true); setError(null); }
 
@@ -134,14 +128,12 @@ export default function NewArticlePage() {
     let data, err;
 
     if (articleIdRef.current) {
-      ({ data, error: err } = await supabase
-        .from("articles").update(payload).eq("id", articleIdRef.current).select().single());
+      ({ data, error: err } = await supabase.from("articles").update(payload).eq("id", articleIdRef.current).select().single());
     } else {
       const generatedSlug = generateArticleSlug(title);
       slugRef.current = generatedSlug;
       setSlug(generatedSlug);
-      ({ data, error: err } = await supabase
-        .from("articles").insert({ ...payload, slug: generatedSlug }).select().single());
+      ({ data, error: err } = await supabase.from("articles").insert({ ...payload, slug: generatedSlug }).select().single());
     }
 
     if (!silent) setSaving(false);
@@ -161,17 +153,11 @@ export default function NewArticlePage() {
 
   const handleTagsChange = useCallback(
     (updater: { name: string; slug: string }[] | ((prev: { name: string; slug: string }[]) => { name: string; slug: string }[])) => {
-      if (typeof updater === "function") {
-        setTags((prev) => updater(prev));
-      } else {
-        setTags(updater);
-      }
+      if (typeof updater === "function") { setTags((prev) => updater(prev)); } else { setTags(updater); }
     }, []
   );
 
-  const handlePreview = () => {
-    window.open(`/preview/${slugRef.current || generateArticleSlug(title)}`, "_blank");
-  };
+  const handlePreview = () => { window.open(`/preview/${slugRef.current || generateArticleSlug(title)}`, "_blank"); };
 
   return (
     <div className="flex h-full">
@@ -181,6 +167,7 @@ export default function NewArticlePage() {
         homepageFeatured={homepageFeatured} isPremium={isPremium} allowComments={allowComments}
         ogTitle={ogTitle} ogDesc={ogDesc} ogImageUrl={ogImageUrl} coverMedia={coverMedia}
         authorId={authorId} scheduledAt={scheduledFor} tags={tags}
+        seriesId={seriesId} chapterNumber={chapterNumber}
         onCategoryChange={(id) => { setCategoryId(id); categoryRef.current = id; }}
         onPlacementChange={setPlacement}
         onHomepageSlotChange={setHomepageSlot}
@@ -190,6 +177,8 @@ export default function NewArticlePage() {
         onOgTitleChange={setOgTitle} onOgDescChange={setOgDesc} onOgImageUrlChange={setOgImageUrl}
         onAuthorIdChange={setAuthorId} onScheduledAtChange={setScheduledFor}
         onTagsChange={handleTagsChange}
+        onSeriesIdChange={setSeriesId}
+        onChapterNumberChange={setChapterNumber}
         onSaveDraft={() => handleSave("draft")}
         onPublish={() => handleSave("published")}
         onSchedule={() => handleSave("scheduled")}
@@ -204,11 +193,8 @@ export default function NewArticlePage() {
               <button key={cat.id} type="button"
                 onClick={() => { setCategoryId(cat.id); categoryRef.current = cat.id; }}
                 className={`font-body text-xs px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5 ${
-                  categoryId === cat.id
-                    ? "bg-foreground text-background border-foreground"
-                    : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
-                }`}
-              >
+                  categoryId === cat.id ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
+                }`}>
                 {categoryId === cat.id && (
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                     <path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -221,12 +207,12 @@ export default function NewArticlePage() {
 
           <textarea value={title} onChange={(e) => setTitle(e.target.value)}
             placeholder="ލިޔުމުގެ ސުރުހީ..." rows={2} dir="rtl"
-            className="w-full font-display text-3xl font-bold bg-transparent border-none outline-none resize-none text-foreground placeholder:text-muted-foreground/40 leading-tight"
-          />
+            className="w-full font-display text-3xl font-bold bg-transparent border-none outline-none resize-none text-foreground placeholder:text-muted-foreground/40 leading-tight" />
+
           <textarea value={excerpt} onChange={(e) => setExcerpt(e.target.value)}
             placeholder="ކުރު ތަޢާރަފެއް — ކިޔުންތެރިން ފުރަތަމަ ފެންނާ ބައި..." rows={6} dir="rtl"
-            className="w-full font-body text-base text-muted-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 leading-relaxed"
-          />
+            className="w-full font-body text-base text-muted-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 leading-relaxed" />
+
           <CoverMedia value={coverMedia} onChange={handleCoverMediaChange} />
           <ArticleEditor content={body ?? undefined} onChange={handleBodyChange} placeholder="ލިޔުން ފަށާ..." />
 
