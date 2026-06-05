@@ -13,6 +13,64 @@ interface PageProps {
 const PAGE_SIZE = 8;
 const DEFAULT_PAGE_SIZE = 12;
 
+async function getMeehunData(categoryId: string, categoryObj: any, page: number) {
+  const supabase = await createServerSupabaseClient();
+
+  const { data: featuredArticle } = await supabase
+    .from("articles")
+    .select("id, title, slug, excerpt, featured_image, reading_time_minutes, published_at, view_count, tags, author:authors!author_id(full_name)")
+    .eq("status", "published")
+    .eq("category_id", categoryId)
+    .eq("is_featured", true)
+    .order("published_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const featuredId = featuredArticle?.id ?? null;
+
+  let mostReadQuery = supabase
+    .from("articles")
+    .select("id, title, slug, view_count, author:authors!author_id(full_name)")
+    .eq("status", "published")
+    .eq("category_id", categoryId)
+    .order("view_count", { ascending: false })
+    .limit(5);
+  if (featuredId) mostReadQuery = mostReadQuery.neq("id", featuredId);
+  const { data: mostRead } = await mostReadQuery;
+
+  let recentQuery = supabase
+    .from("articles")
+    .select("id, title, slug, published_at, tags, author:authors!author_id(full_name)")
+    .eq("status", "published")
+    .eq("category_id", categoryId)
+    .order("published_at", { ascending: false })
+    .limit(5);
+  if (featuredId) recentQuery = recentQuery.neq("id", featuredId);
+  const { data: recentArticles } = await recentQuery;
+
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+  let gridQuery = supabase
+    .from("articles")
+    .select("id, title, slug, excerpt, featured_image, reading_time_minutes, published_at, tags, author:authors!author_id(full_name)", { count: "exact" })
+    .eq("status", "published")
+    .eq("category_id", categoryId)
+    .order("published_at", { ascending: false })
+    .range(from, to);
+  if (featuredId) gridQuery = gridQuery.neq("id", featuredId);
+  const { data: gridArticles, count } = await gridQuery;
+
+  return {
+    category: categoryObj,
+    featuredArticle: featuredArticle ?? null,
+    mostRead: (mostRead ?? []) as any[],
+    recentArticles: (recentArticles ?? []) as any[],
+    articles: (gridArticles ?? []) as any[],
+    total: count ?? 0,
+    totalPages: Math.ceil((count ?? 0) / PAGE_SIZE),
+  };
+}
+
 async function getCategoryData(slug: string, page: number) {
   const supabase = await createServerSupabaseClient();
 
@@ -24,88 +82,6 @@ async function getCategoryData(slug: string, page: number) {
 
   if (!category) return null;
 
-  if (slug === "meehun") {
-    // Featured article (is_featured = true)
-    const { data: featuredArticle } = await supabase
-      .from("articles")
-      .select(
-        "id, title, slug, excerpt, featured_image, reading_time_minutes, published_at, view_count, author:authors!author_id(full_name)"
-      )
-      .eq("status", "published")
-      .eq("category_id", category.id)
-      .eq("is_featured", true)
-      .order("published_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    // Most read (top 5 by view_count, excluding featured)
-    const mostReadQuery = supabase
-      .from("articles")
-      .select(
-        "id, title, slug, view_count, author:authors!author_id(full_name)"
-      )
-      .eq("status", "published")
-      .eq("category_id", category.id)
-      .order("view_count", { ascending: false })
-      .limit(5);
-
-    if (featuredArticle) {
-      mostReadQuery.neq("id", featuredArticle.id);
-    }
-
-    const { data: mostRead } = await mostReadQuery;
-
-    // Recent articles (latest 5, excluding featured)
-    const recentQuery = supabase
-      .from("articles")
-      .select(
-        "id, title, slug, published_at, tags, author:authors!author_id(full_name)"
-      )
-      .eq("status", "published")
-      .eq("category_id", category.id)
-      .order("published_at", { ascending: false })
-      .limit(5);
-
-    if (featuredArticle) {
-      recentQuery.neq("id", featuredArticle.id);
-    }
-
-    const { data: recentArticles } = await recentQuery;
-
-    // Paginated grid (8 per page, excluding featured)
-    const from = (page - 1) * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
-
-    const gridQuery = supabase
-      .from("articles")
-      .select(
-        "id, title, slug, excerpt, featured_image, reading_time_minutes, published_at, tags, author:authors!author_id(full_name)",
-        { count: "exact" }
-      )
-      .eq("status", "published")
-      .eq("category_id", category.id)
-      .order("published_at", { ascending: false })
-      .range(from, to);
-
-    if (featuredArticle) {
-      gridQuery.neq("id", featuredArticle.id);
-    }
-
-    const { data: gridArticles, count } = await gridQuery;
-    
-    return {
-      category,
-      featuredArticle: featuredArticle ?? null,
-      mostRead: (mostRead ?? []) as any[],
-      recentArticles: (recentArticles ?? []) as any[],
-      articles: (gridArticles ?? []) as any[],
-      total: count ?? 0,
-      totalPages: Math.ceil((count ?? 0) / PAGE_SIZE),
-      isMeehun: true as const,
-    };
-  }
-
-  // All other categories
   const from = (page - 1) * DEFAULT_PAGE_SIZE;
   const to = from + DEFAULT_PAGE_SIZE - 1;
   const isVaahaka = slug === "vaahaka";
@@ -128,7 +104,6 @@ async function getCategoryData(slug: string, page: number) {
     articles: articles ?? [],
     total: count ?? 0,
     totalPages: Math.ceil((count ?? 0) / DEFAULT_PAGE_SIZE),
-    isMeehun: false,
   };
 }
 
@@ -150,25 +125,34 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default async function CategoryPage({ params, searchParams }: PageProps) {
   const page = Math.max(1, parseInt(searchParams.page ?? "1", 10));
-  const data = await getCategoryData(params.category, page);
-  if (!data) notFound();
 
-  const { category, articles, total, totalPages } = data;
-
-  if (category.slug === "meehun" && data.isMeehun) {
+  if (params.category === "meehun") {
+    const supabase = await createServerSupabaseClient();
+    const { data: category } = await supabase
+      .from("categories")
+      .select("id, name, slug")
+      .eq("slug", "meehun")
+      .single();
+    if (!category) notFound();
+    const data = await getMeehunData(category.id, category, page);
     return (
       <MeehunCategoryPage
-        category={category}
+        category={data.category}
         featuredArticle={data.featuredArticle}
         mostRead={data.mostRead}
         recentArticles={data.recentArticles}
-        articles={articles}
-        total={total}
-        totalPages={totalPages}
+        articles={data.articles}
+        total={data.total}
+        totalPages={data.totalPages}
         page={page}
       />
     );
   }
+
+  const data = await getCategoryData(params.category, page);
+  if (!data) notFound();
+
+  const { category, articles, total, totalPages } = data;
 
   if (category.slug === "vaahaka") {
     return <StoriesCategoryPage category={category} articles={articles} total={total} totalPages={totalPages} page={page} />;
