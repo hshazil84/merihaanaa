@@ -1,467 +1,151 @@
-import Link from "next/link";
-import { formatDhivehiDate } from "@/lib/formatDhivehiDate";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { notFound } from "next/navigation";
+import { DefaultCategoryPage } from "./components/DefaultCategoryPage";
+import { ReviewsCategoryPage } from "./components/ReviewsCategoryPage";
+import { StoriesCategoryPage } from "./components/StoriesCategoryPage";
+import { MeehunCategoryPage } from "./components/MeehunCategoryPage";
 
-const FONT_THAANA = '"MVTypewriter", "Noto Sans Thaana", sans-serif';
-const FONT_DISPLAY = '"SanguSuruhee", "MVTypewriter", "Noto Sans Thaana", sans-serif';
-const TEXT_PRIMARY = "rgb(26,26,26)";
-const TEXT_MUTED = "rgb(160,158,152)";
-const TEXT_SECONDARY = "rgb(100,98,92)";
-const BG_PAGE = "#F5F3EF";
-const BG_CARD = "#EBE8E1";
-const DIVIDER = "rgba(0,0,0,0.08)";
-const CORAL = "#E87060";
-
-function getAuthorName(author: any): string {
-  if (!author) return "";
-  if (Array.isArray(author)) return author[0]?.full_name ?? "";
-  return author.full_name ?? "";
+interface PageProps {
+  params: { category: string };
+  searchParams: { page?: string };
 }
 
-function TagLabel({ tags }: { tags?: any }) {
-  if (!tags || !Array.isArray(tags) || tags.length === 0) return null;
-  const raw = tags[0];
-  const tag = typeof raw === "string" ? raw : typeof raw === "object" && raw !== null ? (raw.name ?? null) : null;
-  if (!tag) return null;
-  return (
-    <span style={{
-      fontFamily: FONT_THAANA,
-      fontSize: "10px",
-      letterSpacing: "0.05em",
-      color: CORAL,
-      fontWeight: 600,
-      display: "block",
-      marginBottom: "3px",
-    }}>
-      {tag}
-    </span>
-  );
+const PAGE_SIZE = 8;
+const DEFAULT_PAGE_SIZE = 12;
+
+export async function generateMetadata({ params }: PageProps) {
+  const supabase = await createServerSupabaseClient();
+  const { data: category } = await supabase
+    .from("categories")
+    .select("name, slug")
+    .eq("slug", params.category)
+    .single();
+  if (!category) return { title: "ކެޓަގަރީ ނުލިބުނު" };
+  return {
+    title: category.name,
+    description: `${category.name} - މެރިހާނާ`,
+  };
 }
 
-function MostReadPill({ rank }: { rank: number }) {
-  return (
-    <span style={{
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      width: "22px",
-      height: "22px",
-      borderRadius: "999px",
-      background: "rgba(232,112,96,0.12)",
-      border: "0.5px solid rgba(232,112,96,0.25)",
-      fontFamily: "Georgia, serif",
-      fontSize: "12px",
-      fontWeight: 400,
-      color: "rgba(232,112,96,0.85)",
-      flexShrink: 0,
-      marginTop: "2px",
-    }}>
-      {rank}
-    </span>
-  );
-}
+export default async function CategoryPage({ params, searchParams }: PageProps) {
+  const page = Math.max(1, parseInt(searchParams.page ?? "1", 10));
+  const supabase = await createServerSupabaseClient();
 
-function ColLabel({ children }: { children: string }) {
-  return (
-    <p style={{
-      fontFamily: FONT_THAANA,
-      fontSize: "10px",
-      letterSpacing: "0.08em",
-      color: TEXT_MUTED,
-      marginBottom: "14px",
-      fontWeight: 600,
-      borderRight: `2px solid ${CORAL}`,
-      paddingRight: "8px",
-    }}>
-      {children}
-    </p>
-  );
-}
+  const { data: category } = await supabase
+    .from("categories")
+    .select("id, name, slug")
+    .eq("slug", params.category)
+    .single();
 
-function RecentArticleCard({ article, categorySlug, isLast }: { article: any; categorySlug: string; isLast: boolean }) {
-  return (
-    <Link
-      href={`/${categorySlug}/${article.slug}`}
-      style={{
-        display: "block",
-        textDecoration: "none",
-        paddingBottom: isLast ? "0" : "14px",
-        marginBottom: isLast ? "0" : "14px",
-        borderBottom: isLast ? "none" : `0.5px solid ${DIVIDER}`,
-        textAlign: "center",
-      }}
-      className="recent-card"
-    >
-      <div style={{
-        width: "88px",
-        height: "88px",
-        borderRadius: "999px",
-        overflow: "hidden",
-        backgroundColor: BG_CARD,
-        margin: "0 auto 10px",
-        flexShrink: 0,
-      }}>
-        {article.featured_image ? (
-          <img
-            src={article.featured_image}
-            alt={article.title}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
-        ) : (
-          <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
-        )}
-      </div>
-      <p style={{
-        fontFamily: FONT_THAANA,
-        fontSize: "11px",
-        color: TEXT_PRIMARY,
-        lineHeight: 1.7,
-        margin: 0,
-        transition: "opacity 0.2s",
-      }}
-        className="line-clamp-2">
-        {article.title}
-      </p>
-    </Link>
-  );
-}
+  if (!category) notFound();
 
-export function MeehunCategoryPage({
-  category,
-  featuredArticle,
-  mostRead,
-  recentArticles,
-  articles,
-  total,
-  totalPages,
-  page,
-}: {
-  category: any;
-  featuredArticle: any;
-  mostRead: any[];
-  recentArticles: any[];
-  articles: any[];
-  total: number;
-  totalPages: number;
-  page: number;
-}) {
-  return (
-    <div style={{ backgroundColor: BG_PAGE, minHeight: "100vh" }} dir="rtl">
+  // ── MEEHUN ──────────────────────────────────────────
+  if (category.slug === "meehun") {
+    // 1. Featured
+    const { data: featuredArticle } = await supabase
+      .from("articles")
+      .select("id, title, slug, excerpt, featured_image, reading_time_minutes, published_at, view_count, tags, author:authors!author_id(full_name)")
+      .eq("status", "published")
+      .eq("category_id", category.id)
+      .eq("homepage_featured", true)
+      .order("published_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-      <style>{`
-        .meehun-grid {
-          display: grid;
-          grid-template-columns: 140px 1fr 200px;
-          gap: 2.5rem;
-          align-items: start;
-        }
-        .meehun-col-left,
-        .meehun-col-right {
-          display: block;
-        }
-        .most-read-mobile {
-          display: none;
-        }
-        .recent-mobile {
-          display: none;
-        }
-        .card-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 1rem;
-        }
-        @media (max-width: 1024px) {
-          .meehun-grid {
-            grid-template-columns: 1fr;
-            gap: 0;
-          }
-          .meehun-col-left,
-          .meehun-col-right {
-            display: none;
-          }
-          .most-read-mobile {
-            display: block;
-          }
-          .recent-mobile {
-            display: block;
-          }
-          .card-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
-        }
-        @media (max-width: 480px) {
-          .card-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-        .most-read-scroll {
-          display: flex;
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
-          scrollbar-width: none;
-          gap: 12px;
-          padding-bottom: 4px;
-        }
-        .most-read-scroll::-webkit-scrollbar { display: none; }
-        .most-read-scroll-item {
-          flex-shrink: 0;
-          width: 150px;
-          padding-left: 12px;
-          border-left: 0.5px solid rgba(0,0,0,0.08);
-        }
-        .most-read-scroll-item:first-child {
-          border-left: none;
-          padding-left: 0;
-        }
-        .recent-scroll {
-          display: flex;
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
-          scrollbar-width: none;
-          gap: 0;
-          padding-bottom: 4px;
-        }
-        .recent-scroll::-webkit-scrollbar { display: none; }
-        .recent-scroll-item {
-          flex-shrink: 0;
-          width: 110px;
-          text-align: center;
-          text-decoration: none;
-          padding: 0 10px;
-          border-left: 0.5px solid rgba(0,0,0,0.08);
-        }
-        .recent-scroll-item:first-child {
-          border-left: none;
-          padding-right: 0;
-        }
-        .card-link:hover img { transform: scale(1.05); }
-        .featured-link:hover h2 { opacity: 0.7; }
-        .recent-card:hover p { opacity: 0.65; }
-      `}</style>
+    const featuredId = featuredArticle?.id ?? null;
 
-      {/* Page header */}
-      <header style={{ maxWidth: "72rem", margin: "0 auto", padding: "0.75rem 1.5rem 1.25rem", textAlign: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1rem" }}>
-          <span style={{ color: "rgba(0,0,0,0.18)", fontSize: "11px" }}>✦</span>
-          <h1 style={{
-            fontFamily: FONT_DISPLAY,
-            fontSize: "clamp(1.8rem, 4vw, 2.8rem)",
-            color: CORAL,
-            lineHeight: 1.5,
-            fontWeight: 400,
-            margin: 0,
-          }}>
-            {category.name}
-          </h1>
-          <span style={{ color: "rgba(0,0,0,0.18)", fontSize: "11px" }}>✦</span>
-        </div>
-      </header>
+    // 2. Most read (exclude featured)
+    let mostReadQuery = supabase
+      .from("articles")
+      .select("id, title, slug, view_count, author:authors!author_id(full_name)")
+      .eq("status", "published")
+      .eq("category_id", category.id)
+      .order("view_count", { ascending: false })
+      .limit(5);
+    if (featuredId) mostReadQuery = mostReadQuery.neq("id", featuredId);
+    const { data: mostReadRaw } = await mostReadQuery;
 
-      {/* 3-col strip */}
-      <div style={{ maxWidth: "72rem", margin: "0 auto", padding: "0 1.5rem" }} className="meehun-grid">
+    // 3. Recent (exclude featured)
+    let recentQuery = supabase
+      .from("articles")
+      .select("id, title, slug, featured_image, published_at, tags, author:authors!author_id(full_name)")
+      .eq("status", "published")
+      .eq("category_id", category.id)
+      .order("published_at", { ascending: false })
+      .limit(3);
+    if (featuredId) recentQuery = recentQuery.neq("id", featuredId);
+    const { data: recentRaw } = await recentQuery;
 
-        {/* LEFT: Recent circles — desktop */}
-        <div className="meehun-col-left">
-          {recentArticles.map((article, i) => (
-            <RecentArticleCard
-              key={article.id}
-              article={article}
-              categorySlug={category.slug}
-              isLast={i === recentArticles.length - 1}
-            />
-          ))}
-        </div>
+    // 4. Grid — exclude featured + recent IDs
+    const excludeIds = [
+      featuredId,
+      ...(recentRaw ?? []).map((a: any) => a.id),
+    ].filter(Boolean) as string[];
 
-        {/* CENTER: Featured */}
-        <div>
-          {featuredArticle ? (
-            <Link href={`/${category.slug}/${featuredArticle.slug}`} style={{ display: "block", textDecoration: "none" }} className="featured-link">
-              <div style={{ width: "100%", aspectRatio: "3/2", borderRadius: "12px", overflow: "hidden", backgroundColor: BG_CARD, marginBottom: "14px" }}>
-                {featuredArticle.featured_image ? (
-                  <img
-                    src={featuredArticle.featured_image}
-                    alt={featuredArticle.title}
-                    style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.7s ease" }}
-                  />
-                ) : (
-                  <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
-                )}
-              </div>
-              <TagLabel tags={featuredArticle.tags} />
-              <h2 style={{
-                fontFamily: FONT_THAANA,
-                fontSize: "clamp(1.1rem, 2.5vw, 1.45rem)",
-                fontWeight: 700,
-                color: TEXT_PRIMARY,
-                lineHeight: 1.9,
-                margin: "0 0 8px",
-                transition: "opacity 0.2s",
-              }}>
-                {featuredArticle.title}
-              </h2>
-              {featuredArticle.excerpt && (
-                <p style={{ fontFamily: FONT_THAANA, fontSize: "13px", color: TEXT_SECONDARY, lineHeight: 1.9, margin: "0 0 10px" }}
-                  className="line-clamp-3">
-                  {featuredArticle.excerpt}
-                </p>
-              )}
-              <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_MUTED, margin: 0, lineHeight: 2 }}>
-                {getAuthorName(featuredArticle.author)}
-                {featuredArticle.reading_time_minutes && <> · {featuredArticle.reading_time_minutes} މިނެޓު</>}
-              </p>
-            </Link>
-          ) : (
-            <p style={{ fontFamily: FONT_THAANA, fontSize: "13px", color: TEXT_MUTED }}>ފީޗަރ ލިޔުމެއް ނެތް</p>
-          )}
+    const from = (page - 1) * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
 
-          {/* Recent — mobile horizontal scroll */}
-          {recentArticles.length > 0 && (
-            <div className="recent-mobile" style={{ marginTop: "1.5rem", paddingTop: "1.25rem", borderTop: `0.5px solid ${DIVIDER}` }}>
-              <div className="recent-scroll">
-                {recentArticles.map((article) => (
-                  <Link
-                    key={article.id}
-                    href={`/${category.slug}/${article.slug}`}
-                    className="recent-scroll-item recent-card"
-                    style={{ textDecoration: "none" }}
-                  >
-                    <div style={{
-                      width: "68px",
-                      height: "68px",
-                      borderRadius: "999px",
-                      overflow: "hidden",
-                      backgroundColor: BG_CARD,
-                      margin: "0 auto 8px",
-                    }}>
-                      {article.featured_image ? (
-                        <img src={article.featured_image} alt={article.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      ) : (
-                        <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
-                      )}
-                    </div>
-                    <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_PRIMARY, lineHeight: 1.6, margin: 0, transition: "opacity 0.2s" }}
-                      className="line-clamp-2">
-                      {article.title}
-                    </p>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
+    let gridQuery = supabase
+      .from("articles")
+      .select("id, title, slug, excerpt, featured_image, reading_time_minutes, published_at, tags, author:authors!author_id(full_name)", { count: "exact" })
+      .eq("status", "published")
+      .eq("category_id", category.id)
+      .order("published_at", { ascending: false })
+      .range(from, to);
 
-          {/* Most read — mobile horizontal scroll */}
-          {mostRead.length > 0 && (
-            <div className="most-read-mobile" style={{ marginTop: "1.5rem", paddingTop: "1.25rem", borderTop: `0.5px solid ${DIVIDER}` }}>
-              <ColLabel>އެންމެ ގިނައިން ކިޔާ</ColLabel>
-              <div className="most-read-scroll">
-                {mostRead.map((article, i) => (
-                  <Link
-                    key={article.id}
-                    href={`/${category.slug}/${article.slug}`}
-                    className="most-read-scroll-item"
-                    style={{ textDecoration: "none" }}
-                  >
-                    <div style={{ marginBottom: "6px" }}>
-                      <MostReadPill rank={i + 1} />
-                    </div>
-                    <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: "0 0 3px" }}
-                      className="line-clamp-3">
-                      {article.title}
-                    </p>
-                    {article.view_count != null && (
-                      <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_MUTED, margin: 0, lineHeight: 2 }}>
-                        {article.view_count.toLocaleString()} ކިޔާ
-                      </p>
-                    )}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+    if (excludeIds.length > 0) {
+      gridQuery = gridQuery.not("id", "in", `(${excludeIds.join(",")})`);
+    }
 
-        {/* RIGHT: Most read — desktop */}
-        <div className="meehun-col-right">
-          <ColLabel>އެންމެ ގިނައިން ކިޔާ</ColLabel>
-          {mostRead.map((article, i) => (
-            <Link
-              key={article.id}
-              href={`/${category.slug}/${article.slug}`}
-              className="recent-card"
-              style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "9px 0", borderBottom: i < mostRead.length - 1 ? `0.5px solid ${DIVIDER}` : "none", textDecoration: "none" }}
-            >
-              <MostReadPill rank={i + 1} />
-              <div>
-                <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: "0 0 2px", transition: "opacity 0.2s" }}
-                  className="line-clamp-2">
-                  {article.title}
-                </p>
-                {article.view_count != null && (
-                  <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_MUTED, margin: 0, lineHeight: 2 }}>
-                    {article.view_count.toLocaleString()} ކިޔާ
-                  </p>
-                )}
-              </div>
-            </Link>
-          ))}
-        </div>
+    const { data: gridRaw, count } = await gridQuery;
 
-      </div>
+    const mostRead: any[] = mostReadRaw ?? [];
+    const recentArticles: any[] = recentRaw ?? [];
+    const articles: any[] = gridRaw ?? [];
 
-      {/* Divider */}
-      <div style={{ maxWidth: "72rem", margin: "2rem auto 1.5rem", padding: "0 1.5rem" }}>
-        <div style={{ borderTop: `0.5px solid ${DIVIDER}` }} />
-      </div>
+    return (
+      <MeehunCategoryPage
+        category={category}
+        featuredArticle={featuredArticle ?? null}
+        mostRead={mostRead}
+        recentArticles={recentArticles}
+        articles={articles}
+        total={count ?? 0}
+        totalPages={Math.ceil((count ?? 0) / PAGE_SIZE)}
+        page={page}
+      />
+    );
+  }
 
-      {/* Card grid */}
-      {articles.length > 0 && (
-        <div style={{ maxWidth: "72rem", margin: "0 auto", padding: "0 1.5rem 4rem" }}>
-          <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "16px", fontWeight: 600, borderRight: `2px solid ${CORAL}`, paddingRight: "8px" }}>
-            ހުރިހާ ލިޔުންތައް
-          </p>
-          <div className="card-grid">
-            {articles.map((article) => (
-              <Link
-                key={article.id}
-                href={`/${category.slug}/${article.slug}`}
-                style={{ textDecoration: "none", display: "block" }}
-                className="card-link"
-              >
-                <div style={{ aspectRatio: "4/3", overflow: "hidden", borderRadius: "8px", backgroundColor: BG_CARD, marginBottom: "10px" }}>
-                  {article.featured_image ? (
-                    <img
-                      src={article.featured_image}
-                      alt={article.title}
-                      style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.5s ease" }}
-                    />
-                  ) : (
-                    <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
-                  )}
-                </div>
-                <TagLabel tags={article.tags} />
-                <h3
-                  className="line-clamp-2"
-                  style={{
-                    fontFamily: FONT_THAANA,
-                    fontWeight: 700,
-                    fontSize: "13px",
-                    color: TEXT_PRIMARY,
-                    lineHeight: 1.9,
-                    margin: "0 0 4px",
-                  }}
-                >
-                  {article.title}
-                </h3>
-                <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_MUTED, margin: 0, lineHeight: 2 }}>
-                  {getAuthorName(article.author)}
-                  {article.reading_time_minutes && <> · {article.reading_time_minutes} މިނެޓު</>}
-                </p>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
+  // ── ALL OTHER CATEGORIES ─────────────────────────────
+  const from = (page - 1) * DEFAULT_PAGE_SIZE;
+  const to = from + DEFAULT_PAGE_SIZE - 1;
+  const isVaahaka = category.slug === "vaahaka";
 
-      <Pagination page={page} totalPages={totalPages} categorySlug={category.slug} />
-    </div>
-  );
+  const { data: articles, count } = await supabase
+    .from("articles")
+    .select(
+      isVaahaka
+        ? "id, title, slug, excerpt, featured_image, cover_portrait_url, cover_type, cover_video_thumbnail, reading_time_minutes, published_at, review_score, review_subject, tags, author:authors!author_id(full_name)"
+        : "id, title, slug, excerpt, featured_image, cover_type, cover_video_thumbnail, reading_time_minutes, published_at, review_score, review_subject, tags, author:authors!author_id(full_name)",
+      { count: "exact" }
+    )
+    .eq("status", "published")
+    .eq("category_id", category.id)
+    .order("published_at", { ascending: false })
+    .range(from, to);
+
+  const allArticles = articles ?? [];
+  const total = count ?? 0;
+  const totalPages = Math.ceil(total / DEFAULT_PAGE_SIZE);
+
+  if (category.slug === "vaahaka") {
+    return <StoriesCategoryPage category={category} articles={allArticles} total={total} totalPages={totalPages} page={page} />;
+  }
+
+  if (category.slug === "raha") {
+    return <ReviewsCategoryPage category={category} articles={allArticles} total={total} totalPages={totalPages} page={page} />;
+  }
+
+  return <DefaultCategoryPage category={category} articles={allArticles} total={total} totalPages={totalPages} page={page} />;
 }
