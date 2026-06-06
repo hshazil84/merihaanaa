@@ -30,7 +30,7 @@ export default function ReelPlayerPage() {
 
   const [reels, setReels] = useState<Reel[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(true);
   const [loading, setLoading] = useState(true);
   const [transitioning, setTransitioning] = useState(false);
 
@@ -76,7 +76,7 @@ export default function ReelPlayerPage() {
   }, [muted, sendMuteCommand]);
 
   const handleIframeLoad = useCallback(() => {
-    if (muted) sendMuteCommand(true);
+    sendMuteCommand(muted);
   }, [muted, sendMuteCommand]);
 
   const goTo = useCallback((index: number) => {
@@ -102,7 +102,7 @@ export default function ReelPlayerPage() {
     return () => window.removeEventListener("keydown", handler);
   }, [currentIndex, goTo, toggleMute]);
 
-  // Touch on the transparent overlay (not the iframe)
+  // Touch swipe handlers
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
     touchStartX.current = e.touches[0].clientX;
@@ -138,58 +138,42 @@ export default function ReelPlayerPage() {
     );
   }
 
-  const embedUrl = `https://iframe.cloudflarestream.com/${currentReel.stream_video_id}?autoplay=true&loop=true&controls=false&preload=auto`;
+  const posterParam = currentReel.thumbnail_url
+    ? `&poster=${encodeURIComponent(currentReel.thumbnail_url)}`
+    : "";
+
+  // muted=true required for autoplay to work in browsers
+  // controls=true so the video actually plays — we hide the controls bar with CSS
+  const embedUrl = `https://iframe.cloudflarestream.com/${currentReel.stream_video_id}?autoplay=true&muted=true&loop=true&controls=true&preload=auto${posterParam}`;
 
   return (
     <div className="fixed inset-0 bg-black z-50 overflow-hidden select-none">
 
-      {/* iframe — full screen, normal pointer events so video plays */}
+      {/* iframe — full screen */}
       <div
         className="absolute inset-0 transition-opacity duration-200"
         style={{ opacity: transitioning ? 0 : 1 }}
       >
-        <iframe
-          ref={iframeRef}
-          key={currentReel.id}
-          src={embedUrl}
-          className="w-full h-full"
-          style={{ border: "none", display: "block" }}
-          allow="autoplay; fullscreen; picture-in-picture"
-          allowFullScreen
-          onLoad={handleIframeLoad}
-        />
+        {/* Clip bottom ~48px to hide Cloudflare controls bar */}
+        <div className="absolute inset-0" style={{ bottom: "-48px" }}>
+          <iframe
+            ref={iframeRef}
+            key={currentReel.id}
+            src={embedUrl}
+            className="w-full h-full"
+            style={{ border: "none", display: "block" }}
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowFullScreen
+            onLoad={handleIframeLoad}
+          />
+        </div>
       </div>
 
-      {/* Transparent swipe overlay — sits on top of iframe edges only,
-          covers left + right strips so swipes are captured without
-          blocking the center video tap-to-play area */}
-      <div
-        className="absolute inset-0 z-10"
-        style={{ pointerEvents: "none" }}
-      />
-
-      {/* Actual swipe capture strips on left and right edges */}
-      <div
-        className="absolute top-0 bottom-0 left-0 w-16 z-20"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      />
-      <div
-        className="absolute top-0 bottom-0 right-0 w-16 z-20"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      />
-      {/* Top and bottom swipe strips */}
-      <div
-        className="absolute top-0 left-16 right-16 h-24 z-20"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      />
-      <div
-        className="absolute bottom-0 left-16 right-16 h-32 z-20"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      />
+      {/* Swipe strips on edges — don't block center of video */}
+      <div className="absolute top-0 bottom-0 left-0 w-16 z-20" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} />
+      <div className="absolute top-0 bottom-0 right-0 w-16 z-20" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} />
+      <div className="absolute top-0 left-16 right-16 h-24 z-20" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} />
+      <div className="absolute bottom-0 left-16 right-16 h-32 z-20" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} />
 
       {/* Gradient overlays */}
       <div className="absolute inset-0 pointer-events-none z-20">
@@ -244,7 +228,7 @@ export default function ReelPlayerPage() {
         )}
       </div>
 
-      {/* Up / Down navigation buttons */}
+      {/* Up / Down navigation */}
       <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-30">
         <button
           onClick={() => goTo(currentIndex - 1)}
