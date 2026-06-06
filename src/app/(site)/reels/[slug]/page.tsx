@@ -33,8 +33,11 @@ export default function ReelPlayerPage() {
   const [muted, setMuted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [transitioning, setTransitioning] = useState(false);
+
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const touchStartY = useRef<number | null>(null);
+  const touchStartX = useRef<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function load() {
@@ -47,7 +50,6 @@ export default function ReelPlayerPage() {
 
       if (!data) return;
       setReels(data as unknown as Reel[]);
-
       const idx = data.findIndex((r: any) => r.slug === slug);
       setCurrentIndex(idx >= 0 ? idx : 0);
       setLoading(false);
@@ -59,6 +61,28 @@ export default function ReelPlayerPage() {
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < reels.length - 1;
 
+  // Send mute command to Cloudflare Stream iframe via postMessage
+  const sendMuteCommand = useCallback((muteState: boolean) => {
+    const iframe = iframeRef.current;
+    if (!iframe?.contentWindow) return;
+    // Cloudflare Stream player API
+    iframe.contentWindow.postMessage(
+      JSON.stringify({ event: "muted", data: muteState }),
+      "https://iframe.cloudflarestream.com"
+    );
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    const newMuted = !muted;
+    setMuted(newMuted);
+    sendMuteCommand(newMuted);
+  }, [muted, sendMuteCommand]);
+
+  // Re-send mute state when iframe loads new video
+  const handleIframeLoad = useCallback(() => {
+    if (muted) sendMuteCommand(true);
+  }, [muted, sendMuteCommand]);
+
   const goTo = useCallback((index: number) => {
     if (index < 0 || index >= reels.length || transitioning) return;
     setTransitioning(true);
@@ -67,7 +91,7 @@ export default function ReelPlayerPage() {
       const newSlug = reels[index]?.slug;
       if (newSlug) window.history.replaceState(null, "", `/reels/${newSlug}`);
       setTransitioning(false);
-    }, 200);
+    }, 180);
   }, [reels, transitioning]);
 
   // Keyboard navigation
@@ -76,29 +100,35 @@ export default function ReelPlayerPage() {
       if (e.key === "ArrowUp") goTo(currentIndex - 1);
       else if (e.key === "ArrowDown") goTo(currentIndex + 1);
       else if (e.key === "Escape") router.back();
-      else if (e.key === "m") setMuted((p) => !p);
+      else if (e.key === "m" || e.key === "M") toggleMute();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [currentIndex, goTo]);
+  }, [currentIndex, goTo, toggleMute]);
 
-  // Touch swipe
-  const handleTouchStart = (e: React.TouchEvent) => {
+  // Touch swipe — attached to container div, not the iframe
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
-  };
-  const handleTouchEnd = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
     if (touchStartY.current === null) return;
-    const delta = touchStartY.current - e.changedTouches[0].clientY;
-    if (Math.abs(delta) > 50) {
-      if (delta > 0) goTo(currentIndex + 1);
-      else goTo(currentIndex - 1);
+    const deltaY = touchStartY.current - e.changedTouches[0].clientY;
+    const deltaX = Math.abs((touchStartX.current ?? 0) - e.changedTouches[0].clientX);
+
+    // Only trigger if vertical swipe is dominant and large enough
+    if (Math.abs(deltaY) > 60 && Math.abs(deltaY) > deltaX * 1.5) {
+      if (deltaY > 0) goTo(currentIndex + 1); // swipe up → next
+      else goTo(currentIndex - 1);             // swipe down → prev
     }
     touchStartY.current = null;
-  };
+    touchStartX.current = null;
+  }, [currentIndex, goTo]);
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center">
+      <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
         <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
       </div>
     );
@@ -106,44 +136,53 @@ export default function ReelPlayerPage() {
 
   if (!currentReel) {
     return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center">
-        <p className="text-white/60 text-sm font-body">ވީޑިއޯ ނުލިބުނު</p>
+      <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
+        <p className="text-white/60 text-sm" style={{ fontFamily: "MVTypewriter, serif" }}>
+          ވީޑިއޯ ނުލިބުނު
+        </p>
       </div>
     );
   }
 
-  const embedUrl = `https://iframe.cloudflarestream.com/${currentReel.stream_video_id}?autoplay=true&loop=true&muted=${muted}&controls=false&preload=auto`;
+  // No muted param — let browser handle autoplay, control via postMessage
+  const embedUrl = `https://iframe.cloudflarestream.com/${currentReel.stream_video_id}?autoplay=true&loop=true&controls=false&preload=auto`;
 
   return (
     <div
-      className="fixed inset-0 bg-black overflow-hidden"
+      ref={containerRef}
+      className="fixed inset-0 bg-black z-50 overflow-hidden select-none"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Video */}
+      {/* Video iframe — pointer-events-none so touches pass through to container */}
       <div
         className="absolute inset-0 transition-opacity duration-200"
-        style={{ opacity: transitioning ? 0 : 1 }}
+        style={{ opacity: transitioning ? 0 : 1, pointerEvents: "none" }}
       >
         <iframe
           ref={iframeRef}
           key={currentReel.id}
           src={embedUrl}
-          className="w-full h-full object-cover"
-          style={{ border: "none" }}
+          className="w-full h-full"
+          style={{ border: "none", display: "block" }}
           allow="autoplay; fullscreen; picture-in-picture"
           allowFullScreen
+          onLoad={handleIframeLoad}
         />
       </div>
 
+      {/* Tap zones for prev/next — left half = nothing, right half = nothing,
+          actual buttons handle navigation. This overlay captures swipes. */}
+      <div className="absolute inset-0 z-10" />
+
       {/* Gradient overlays */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black/60 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-black/80 to-transparent" />
+      <div className="absolute inset-0 pointer-events-none z-20">
+        <div className="absolute top-0 left-0 right-0 h-28 bg-gradient-to-b from-black/70 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-56 bg-gradient-to-t from-black/80 to-transparent" />
       </div>
 
       {/* Top bar */}
-      <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-safe pt-4 z-20">
+      <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-4 z-30">
         <button
           onClick={() => router.back()}
           className="w-9 h-9 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-sm"
@@ -151,11 +190,11 @@ export default function ReelPlayerPage() {
         >
           <X size={18} className="text-white" />
         </button>
-        <p className="text-white/70 text-xs font-body">
+        <p className="text-white/60 text-xs" style={{ fontFamily: "MVTypewriter, serif" }}>
           {currentIndex + 1} / {reels.length}
         </p>
         <button
-          onClick={() => setMuted((p) => !p)}
+          onClick={toggleMute}
           className="w-9 h-9 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-sm"
           aria-label={muted ? "Unmute" : "Mute"}
         >
@@ -167,28 +206,34 @@ export default function ReelPlayerPage() {
       </div>
 
       {/* Bottom info */}
-      <div className="absolute bottom-0 left-0 right-0 px-4 pb-8 z-20" dir="rtl">
+      <div className="absolute bottom-0 left-0 right-0 px-4 pb-10 z-30" dir="rtl">
         {currentReel.category && (
-          <span className="inline-block font-body text-[10px] px-2.5 py-1 rounded-full bg-white/15 text-white/80 mb-2 backdrop-blur-sm">
+          <span
+            className="inline-block text-[10px] px-2.5 py-1 rounded-full bg-white/15 text-white/80 mb-2 backdrop-blur-sm"
+            style={{ fontFamily: "MVTypewriter, serif" }}
+          >
             {currentReel.category.name}
           </span>
         )}
-        <h1 className="font-body text-white text-base font-semibold leading-snug line-clamp-2 mb-1">
+        <h1
+          className="text-white text-base font-semibold leading-snug line-clamp-2 mb-1"
+          style={{ fontFamily: "MVTypewriter, serif" }}
+        >
           {currentReel.title}
         </h1>
         {currentReel.duration_seconds && (
-          <p className="font-body text-white/50 text-xs">
+          <p className="text-white/40 text-xs" style={{ fontFamily: "MVTypewriter, serif" }}>
             {formatDuration(currentReel.duration_seconds)}
           </p>
         )}
       </div>
 
-      {/* Up / Down navigation */}
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-20">
+      {/* Up / Down navigation buttons */}
+      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-30">
         <button
           onClick={() => goTo(currentIndex - 1)}
           disabled={!hasPrev}
-          className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center disabled:opacity-20 transition-opacity hover:bg-black/60"
+          className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center disabled:opacity-20 transition-all hover:bg-black/60 active:scale-95"
           aria-label="Previous reel"
         >
           <ChevronUp size={20} className="text-white" />
@@ -196,7 +241,7 @@ export default function ReelPlayerPage() {
         <button
           onClick={() => goTo(currentIndex + 1)}
           disabled={!hasNext}
-          className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center disabled:opacity-20 transition-opacity hover:bg-black/60"
+          className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center disabled:opacity-20 transition-all hover:bg-black/60 active:scale-95"
           aria-label="Next reel"
         >
           <ChevronDown size={20} className="text-white" />
@@ -204,23 +249,26 @@ export default function ReelPlayerPage() {
       </div>
 
       {/* Progress dots */}
-      <div className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col gap-1.5 z-20">
-        {reels.slice(Math.max(0, currentIndex - 3), Math.min(reels.length, currentIndex + 4)).map((r, i) => {
-          const actualIndex = Math.max(0, currentIndex - 3) + i;
-          return (
-            <button
-              key={r.id}
-              onClick={() => goTo(actualIndex)}
-              className="rounded-full transition-all"
-              style={{
-                width: actualIndex === currentIndex ? "6px" : "4px",
-                height: actualIndex === currentIndex ? "6px" : "4px",
-                background: actualIndex === currentIndex ? "white" : "rgba(255,255,255,0.35)",
-              }}
-              aria-label={`Go to reel ${actualIndex + 1}`}
-            />
-          );
-        })}
+      <div className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col gap-1.5 z-30">
+        {reels
+          .slice(Math.max(0, currentIndex - 3), Math.min(reels.length, currentIndex + 4))
+          .map((r, i) => {
+            const actualIndex = Math.max(0, currentIndex - 3) + i;
+            const isActive = actualIndex === currentIndex;
+            return (
+              <button
+                key={r.id}
+                onClick={() => goTo(actualIndex)}
+                className="rounded-full transition-all"
+                style={{
+                  width: isActive ? "6px" : "4px",
+                  height: isActive ? "6px" : "4px",
+                  background: isActive ? "white" : "rgba(255,255,255,0.35)",
+                }}
+                aria-label={`Go to reel ${actualIndex + 1}`}
+              />
+            );
+          })}
       </div>
     </div>
   );
