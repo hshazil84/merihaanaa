@@ -37,7 +37,6 @@ export default function ReelPlayerPage() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const touchStartY = useRef<number | null>(null);
   const touchStartX = useRef<number | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function load() {
@@ -61,11 +60,9 @@ export default function ReelPlayerPage() {
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < reels.length - 1;
 
-  // Send mute command to Cloudflare Stream iframe via postMessage
   const sendMuteCommand = useCallback((muteState: boolean) => {
     const iframe = iframeRef.current;
     if (!iframe?.contentWindow) return;
-    // Cloudflare Stream player API
     iframe.contentWindow.postMessage(
       JSON.stringify({ event: "muted", data: muteState }),
       "https://iframe.cloudflarestream.com"
@@ -78,7 +75,6 @@ export default function ReelPlayerPage() {
     sendMuteCommand(newMuted);
   }, [muted, sendMuteCommand]);
 
-  // Re-send mute state when iframe loads new video
   const handleIframeLoad = useCallback(() => {
     if (muted) sendMuteCommand(true);
   }, [muted, sendMuteCommand]);
@@ -94,7 +90,7 @@ export default function ReelPlayerPage() {
     }, 180);
   }, [reels, transitioning]);
 
-  // Keyboard navigation
+  // Keyboard
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "ArrowUp") goTo(currentIndex - 1);
@@ -106,7 +102,7 @@ export default function ReelPlayerPage() {
     return () => window.removeEventListener("keydown", handler);
   }, [currentIndex, goTo, toggleMute]);
 
-  // Touch swipe — attached to container div, not the iframe
+  // Touch on the transparent overlay (not the iframe)
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
     touchStartX.current = e.touches[0].clientX;
@@ -116,11 +112,9 @@ export default function ReelPlayerPage() {
     if (touchStartY.current === null) return;
     const deltaY = touchStartY.current - e.changedTouches[0].clientY;
     const deltaX = Math.abs((touchStartX.current ?? 0) - e.changedTouches[0].clientX);
-
-    // Only trigger if vertical swipe is dominant and large enough
     if (Math.abs(deltaY) > 60 && Math.abs(deltaY) > deltaX * 1.5) {
-      if (deltaY > 0) goTo(currentIndex + 1); // swipe up → next
-      else goTo(currentIndex - 1);             // swipe down → prev
+      if (deltaY > 0) goTo(currentIndex + 1);
+      else goTo(currentIndex - 1);
     }
     touchStartY.current = null;
     touchStartX.current = null;
@@ -144,20 +138,15 @@ export default function ReelPlayerPage() {
     );
   }
 
-  // No muted param — let browser handle autoplay, control via postMessage
   const embedUrl = `https://iframe.cloudflarestream.com/${currentReel.stream_video_id}?autoplay=true&loop=true&controls=false&preload=auto`;
 
   return (
-    <div
-      ref={containerRef}
-      className="fixed inset-0 bg-black z-50 overflow-hidden select-none"
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-    >
-      {/* Video iframe — pointer-events-none so touches pass through to container */}
+    <div className="fixed inset-0 bg-black z-50 overflow-hidden select-none">
+
+      {/* iframe — full screen, normal pointer events so video plays */}
       <div
         className="absolute inset-0 transition-opacity duration-200"
-        style={{ opacity: transitioning ? 0 : 1, pointerEvents: "none" }}
+        style={{ opacity: transitioning ? 0 : 1 }}
       >
         <iframe
           ref={iframeRef}
@@ -171,9 +160,36 @@ export default function ReelPlayerPage() {
         />
       </div>
 
-      {/* Tap zones for prev/next — left half = nothing, right half = nothing,
-          actual buttons handle navigation. This overlay captures swipes. */}
-      <div className="absolute inset-0 z-10" />
+      {/* Transparent swipe overlay — sits on top of iframe edges only,
+          covers left + right strips so swipes are captured without
+          blocking the center video tap-to-play area */}
+      <div
+        className="absolute inset-0 z-10"
+        style={{ pointerEvents: "none" }}
+      />
+
+      {/* Actual swipe capture strips on left and right edges */}
+      <div
+        className="absolute top-0 bottom-0 left-0 w-16 z-20"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      />
+      <div
+        className="absolute top-0 bottom-0 right-0 w-16 z-20"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      />
+      {/* Top and bottom swipe strips */}
+      <div
+        className="absolute top-0 left-16 right-16 h-24 z-20"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      />
+      <div
+        className="absolute bottom-0 left-16 right-16 h-32 z-20"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      />
 
       {/* Gradient overlays */}
       <div className="absolute inset-0 pointer-events-none z-20">
