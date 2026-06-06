@@ -143,10 +143,10 @@ export function MeehunCategoryPage({
       `}</style>
 
       {/* Header */}
-      <header style={{ maxWidth: "72rem", margin: "0 auto", padding: "0.75rem 1.5rem 1.25rem", textAlign: "center" }}>
+      <header style={{ maxWidth: "72rem", margin: "0 auto", padding: "0.5rem 1.5rem 1rem", textAlign: "center" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1rem" }}>
           <span style={{ color: "rgba(0,0,0,0.18)", fontSize: "11px" }}>✦</span>
-          <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(1.8rem, 4vw, 2.8rem)", color: CORAL, lineHeight: 1.5, fontWeight: 400, margin: 0 }}>
+          <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(2rem, 5vw, 3.5rem)", color: CORAL, lineHeight: 1.5, fontWeight: 400, margin: 0 }}>
             {category.name}
           </h1>
           <span style={{ color: "rgba(0,0,0,0.18)", fontSize: "11px" }}>✦</span>
