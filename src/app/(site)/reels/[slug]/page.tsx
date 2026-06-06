@@ -71,7 +71,7 @@ export default function ReelPlayerPage() {
       : "";
 
     const iframe = document.createElement("iframe");
-    iframe.src = `https://iframe.cloudflarestream.com/${reel.stream_video_id}?autoplay=true&muted=false&loop=true&controls=true${posterParam}`;
+    iframe.src = `https://iframe.cloudflarestream.com/${reel.stream_video_id}?autoplay=true&muted=false&loop=true&controls=false${posterParam}`;
     iframe.style.cssText = "position:absolute;inset:0;width:100%;height:100%;border:none;display:block;";
     iframe.allow = "autoplay; fullscreen; picture-in-picture";
     iframe.allowFullscreen = true;
