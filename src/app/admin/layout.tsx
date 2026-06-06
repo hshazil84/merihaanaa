@@ -41,7 +41,7 @@ const NAV_GROUPS = [
     { href: "/admin/articles/new", label: "އާ ލިޔުން",       icon: FilePlus,        comingSoon: false },
     { href: "/admin/media",        label: "މީޑިއާ",           icon: ImageIcon,       comingSoon: false },
     { href: "/admin/homepage",     label: "ހޯމްޕޭޖް",        icon: Home,            comingSoon: false },
-    { href: "/admin/charts",       label: "ޗާޓްސް",           icon: BarChart2,       comingSoon: true  },
+    { href: "/admin/charts",       label: "ޗާޓްސް",           icon: BarChart2,       comingSoon: false  },
     { href: "/admin/ads",          label: "އިޝްތިހާރު",      icon: Megaphone,       comingSoon: true  },
   ],
   [
