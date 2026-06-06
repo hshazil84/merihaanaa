@@ -53,7 +53,7 @@ export default function ReelsStrip({ reels }: ReelsStripProps) {
 
         {/* Horizontal scroll strip */}
         <div
-          className="flex gap-3 overflow-x-auto pb-3 snap-x snap-mandatory"
+          className="flex gap-3 overflow-x-auto pb-3 snap-x snap-mandatory md:justify-center"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {reels.map((reel) => (
