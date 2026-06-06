@@ -33,7 +33,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
 
   const { data: category } = await supabase
     .from("categories")
-    .select("id, name, slug")
+    ("id, name, slug")
     .eq("slug", params.category)
     .single();
 
@@ -43,7 +43,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   if (category.slug === "meehun") {
     const { data: featuredArticle } = await supabase
       .from("articles")
-      .select("id, title, slug, featured_image, published_at, tags, author:authors!author_id(full_name)")
+      ("id, title, slug, featured_image, published_at, tags, author:authors!author_id(full_name)")
       .eq("status", "published")
       .eq("category_id", category.id)
       .eq("homepage_featured", true)
@@ -65,7 +65,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
 
     let recentQuery = supabase
       .from("articles")
-      .select("id, title, slug, published_at, tags, author:authors!author_id(full_name)")
+      .select("id, title, slug, featured_image, published_at, tags, author:authors!author_id(full_name)")
       .eq("status", "published")
       .eq("category_id", category.id)
       .order("published_at", { ascending: false })
