@@ -195,9 +195,6 @@ export function MeehunCategoryPage({
 
         {/* CENTER: Featured */}
         <div>
-          <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "10px", fontWeight: 600 }}>
-            ފީޗަރ
-          </p>
           {featuredArticle ? (
             <Link href={`/${category.slug}/${featuredArticle.slug}`} style={{ display: "block", textDecoration: "none" }} className="featured-link">
               <div style={{ width: "100%", aspectRatio: "3/2", borderRadius: "12px", overflow: "hidden", backgroundColor: BG_CARD, marginBottom: "14px" }}>
