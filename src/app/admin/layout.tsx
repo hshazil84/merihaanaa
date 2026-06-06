@@ -28,6 +28,9 @@ import {
   Menu,
   ChevronRight,
   Image as ImageIcon,
+  Home,
+  BarChart2,
+  Megaphone,
 } from "lucide-react";
 import type { UserProfile } from "@/types";
 
@@ -37,6 +40,9 @@ const NAV_GROUPS = [
     { href: "/admin/articles",     label: "ހުރިހާ ލިޔުން",   icon: FileText,        comingSoon: false },
     { href: "/admin/articles/new", label: "އާ ލިޔުން",       icon: FilePlus,        comingSoon: false },
     { href: "/admin/media",        label: "މީޑިއާ",           icon: ImageIcon,       comingSoon: false },
+    { href: "/admin/homepage",     label: "ހޯމްޕޭޖް",        icon: Home,            comingSoon: false },
+    { href: "/admin/charts",       label: "ޗާޓްސް",           icon: BarChart2,       comingSoon: true  },
+    { href: "/admin/ads",          label: "އިޝްތިހާރު",      icon: Megaphone,       comingSoon: true  },
   ],
   [
     { href: "/admin/videos",       label: "ވީޑިއޯތައް",      icon: Video,           comingSoon: false },
@@ -57,6 +63,9 @@ const BREADCRUMB_MAP: Record<string, string> = {
   "/admin/articles":      "ލިޔުންތައް",
   "/admin/articles/new":  "އާ ލިޔުން",
   "/admin/media":         "މީޑިއާ",
+  "/admin/homepage":      "ހޯމްޕޭޖް",
+  "/admin/charts":        "ޗާޓްސް",
+  "/admin/ads":           "އިޝްތިހާރު",
   "/admin/videos":        "ވީޑިއޯ",
   "/admin/originals":     "ވީއޯޑީ",
   "/admin/originals/new": "އާ ވިޑިއޯ",
@@ -148,7 +157,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               {gi > 0 && <div className="mx-2 my-2 border-t border-border" />}
               {group.map((item) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.href || 
+                const isActive = pathname === item.href ||
                   (item.href !== "/admin" && item.href !== "/admin/articles" && pathname.startsWith(item.href + "/"));
 
                 if (item.comingSoon) {
