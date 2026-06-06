@@ -297,7 +297,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
             backgroundColor: "rgb(249,248,245)",
             borderBottom: "1px solid rgb(224,221,214)",
             transform: `translateY(-${COMPACT_HEIGHT}px) ${GPU}`,
-            transition: "transform 0.3s ease",
+            transition: "none",
           }}
         >
           <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between" dir="rtl">
@@ -336,7 +336,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
             backgroundColor: "rgb(249,248,245)",
             borderBottom: "1px solid rgb(224,221,214)",
             transform: `translateY(-${COMPACT_HEIGHT}px) ${GPU}`,
-            transition: "transform 0.3s ease",
+            transition: "none",
           }}
         >
           <div className="px-5 h-full flex items-center justify-between" dir="rtl">
@@ -469,7 +469,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           backgroundColor: "rgb(249,248,245)",
           borderBottom: "1px solid rgb(224,221,214)",
           transform: `translateY(-${COMPACT_HEIGHT}px) ${GPU}`,
-          transition: "transform 0.3s ease",
+          transition: "none",
         }}
       >
         <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between" dir="rtl">
@@ -508,7 +508,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           backgroundColor: "rgb(249,248,245)",
           borderBottom: "1px solid rgb(224,221,214)",
           transform: `translateY(-${COMPACT_HEIGHT}px) ${GPU}`,
-          transition: "transform 0.3s ease",
+          transition: "none",
         }}
       >
         <div className="px-5 h-full flex items-center justify-between" dir="rtl">
