@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { ChevronUp, ChevronDown, X, Volume2, VolumeX, Play } from "lucide-react";
+import { ChevronUp, ChevronDown, X, Volume2, VolumeX } from "lucide-react";
 
 interface Reel {
   id: string;
@@ -28,8 +28,8 @@ function hlsUrl(streamVideoId: string) {
   return `https://${CF_SUBDOMAIN}/${streamVideoId}/manifest/video.m3u8`;
 }
 
-function thumbnailUrl(streamVideoId: string, fallback: string | null) {
-  return fallback || `https://${CF_SUBDOMAIN}/${streamVideoId}/thumbnails/thumbnail.jpg`;
+function thumbUrl(reel: Reel) {
+  return reel.thumbnail_url || `https://${CF_SUBDOMAIN}/${reel.stream_video_id}/thumbnails/thumbnail.jpg`;
 }
 
 export default function ReelPlayerPage() {
@@ -41,7 +41,6 @@ export default function ReelPlayerPage() {
   const [reels, setReels] = useState<Reel[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [muted, setMuted] = useState(false);
-  const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(true);
   const [transitioning, setTransitioning] = useState(false);
 
@@ -59,7 +58,11 @@ export default function ReelPlayerPage() {
         .order("published_at", { ascending: false })
         .limit(50);
 
-      if (!data) return;
+      if (!data || data.length === 0) {
+        setLoading(false);
+        return;
+      }
+
       setReels(data as unknown as Reel[]);
       const idx = data.findIndex((r: any) => r.slug === slug);
       setCurrentIndex(idx >= 0 ? idx : 0);
@@ -68,77 +71,75 @@ export default function ReelPlayerPage() {
     load();
   }, [slug]);
 
-  const currentReel = reels[currentIndex];
-
-  // Load HLS into video element
-  const loadVideo = useCallback(async (reel: Reel, autoplay: boolean) => {
+  // Load and autoplay HLS video
+  const loadVideo = useCallback(async (reel: Reel) => {
     const video = videoRef.current;
     if (!video) return;
 
-    // Destroy previous HLS instance
+    // Destroy previous HLS
     if (hlsRef.current) {
       hlsRef.current.destroy();
       hlsRef.current = null;
     }
+    video.src = "";
+    video.load();
 
     const src = hlsUrl(reel.stream_video_id);
 
-    // Native HLS support (Safari / iOS)
+    // Safari / iOS — native HLS support
     if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = src;
-      if (autoplay) {
-        video.muted = false;
-        try { await video.play(); } catch { video.muted = true; await video.play(); }
+      video.muted = false;
+      try {
+        await video.play();
+      } catch {
+        video.muted = true;
+        try { await video.play(); } catch (e) { console.warn("Play failed:", e); }
       }
       return;
     }
 
-    // HLS.js for Chrome / Firefox
-    const Hls = (await import("hls.js")).default;
-    if (!Hls.isSupported()) return;
-
-    const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
-    hlsRef.current = hls;
-    hls.loadSource(src);
-    hls.attachMedia(video);
-    hls.on(Hls.Events.MANIFEST_PARSED, async () => {
-      if (autoplay) {
-        video.muted = false;
-        try { await video.play(); } catch { video.muted = true; await video.play(); }
+    // Chrome / Firefox — HLS.js
+    try {
+      const Hls = (await import("hls.js")).default;
+      if (!Hls.isSupported()) {
+        video.src = src;
+        return;
       }
-    });
+      const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
+      hlsRef.current = hls;
+      hls.loadSource(src);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, async () => {
+        video.muted = false;
+        try {
+          await video.play();
+        } catch {
+          video.muted = true;
+          try { await video.play(); } catch (e) { console.warn("Play failed:", e); }
+        }
+      });
+    } catch (e) {
+      console.warn("HLS.js failed:", e);
+    }
   }, []);
 
-  // Load video when index changes
+  // Load video whenever current reel changes
   useEffect(() => {
-    if (!currentReel) return;
-    setPlaying(false);
-    loadVideo(currentReel, false);
+    if (!reels.length || !reels[currentIndex]) return;
+    loadVideo(reels[currentIndex]);
     return () => {
-      if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null; }
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
     };
-  }, [currentReel?.id]);
+  }, [currentIndex, reels.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sync muted state to video element
+  // Sync muted state to video
   useEffect(() => {
     if (videoRef.current) videoRef.current.muted = muted;
   }, [muted]);
-
-  const handlePlay = useCallback(async () => {
-    const video = videoRef.current;
-    const reel = currentReel;
-    if (!video || !reel) return;
-
-    // If src not loaded yet, load it
-    if (!video.src && !hlsRef.current) {
-      await loadVideo(reel, true);
-    } else {
-      video.muted = false;
-      try { await video.play(); } catch (e) { console.warn("Play failed", e); }
-    }
-    setPlaying(true);
-    setMuted(false);
-  }, [currentReel, loadVideo]);
 
   const toggleMute = useCallback(() => {
     const video = videoRef.current;
@@ -151,7 +152,6 @@ export default function ReelPlayerPage() {
   const goTo = useCallback((index: number) => {
     if (index < 0 || index >= reels.length || transitioning) return;
     setTransitioning(true);
-    setPlaying(false);
     setTimeout(() => {
       setCurrentIndex(index);
       const newSlug = reels[index]?.slug;
@@ -167,11 +167,10 @@ export default function ReelPlayerPage() {
       else if (e.key === "ArrowDown") goTo(currentIndex + 1);
       else if (e.key === "Escape") router.back();
       else if (e.key === "m" || e.key === "M") toggleMute();
-      else if (e.key === " ") handlePlay();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [currentIndex, goTo, toggleMute, handlePlay]);
+  }, [currentIndex, goTo, toggleMute]);
 
   // Touch swipe
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -199,6 +198,8 @@ export default function ReelPlayerPage() {
     );
   }
 
+  const currentReel = reels[currentIndex];
+
   if (!currentReel) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
@@ -207,37 +208,32 @@ export default function ReelPlayerPage() {
     );
   }
 
-  const thumb = thumbnailUrl(currentReel.stream_video_id, currentReel.thumbnail_url);
-
   return (
     <div
       className="fixed inset-0 bg-black z-50 overflow-hidden select-none"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Native video element */}
-      <div className="absolute inset-0 transition-opacity duration-200" style={{ opacity: transitioning ? 0 : 1 }}>
+      {/* Video — portrait centered with black bars */}
+      <div
+        className="absolute inset-0 flex items-center justify-center transition-opacity duration-200"
+        style={{ opacity: transitioning ? 0 : 1 }}
+      >
         <video
           ref={videoRef}
-          className="w-full h-full object-cover"
           loop
           playsInline
-          poster={thumb}
-          style={{ background: "black" }}
+          poster={thumbUrl(currentReel)}
+          style={{
+            height: "100%",
+            width: "auto",
+            maxWidth: "100%",
+            objectFit: "contain",
+            background: "black",
+            display: "block",
+          }}
         />
       </div>
-
-      {/* Click to play overlay */}
-      {!playing && (
-        <div
-          className="absolute inset-0 z-20 flex items-center justify-center cursor-pointer"
-          onClick={handlePlay}
-        >
-          <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center">
-            <Play size={28} className="text-white ml-1" fill="white" />
-          </div>
-        </div>
-      )}
 
       {/* Gradient overlays */}
       <div className="absolute inset-0 pointer-events-none z-20">
@@ -247,13 +243,21 @@ export default function ReelPlayerPage() {
 
       {/* Top bar */}
       <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-4 z-30">
-        <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-sm" aria-label="Close">
+        <button
+          onClick={() => router.back()}
+          className="w-9 h-9 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-sm"
+          aria-label="Close"
+        >
           <X size={18} className="text-white" />
         </button>
         <p className="text-white/60 text-xs" style={{ fontFamily: "MVTypewriter, serif" }}>
           {currentIndex + 1} / {reels.length}
         </p>
-        <button onClick={toggleMute} className="w-9 h-9 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-sm" aria-label={muted ? "Unmute" : "Mute"}>
+        <button
+          onClick={toggleMute}
+          className="w-9 h-9 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-sm"
+          aria-label={muted ? "Unmute" : "Mute"}
+        >
           {muted ? <VolumeX size={16} className="text-white" /> : <Volume2 size={16} className="text-white" />}
         </button>
       </div>
@@ -261,11 +265,17 @@ export default function ReelPlayerPage() {
       {/* Bottom info */}
       <div className="absolute bottom-0 left-0 right-0 px-4 pb-10 z-30" dir="rtl">
         {currentReel.category && (
-          <span className="inline-block text-[10px] px-2.5 py-1 rounded-full bg-white/15 text-white/80 mb-2 backdrop-blur-sm" style={{ fontFamily: "MVTypewriter, serif" }}>
+          <span
+            className="inline-block text-[10px] px-2.5 py-1 rounded-full bg-white/15 text-white/80 mb-2 backdrop-blur-sm"
+            style={{ fontFamily: "MVTypewriter, serif" }}
+          >
             {currentReel.category.name}
           </span>
         )}
-        <h1 className="text-white text-base font-semibold leading-snug line-clamp-2 mb-1" style={{ fontFamily: "MVTypewriter, serif" }}>
+        <h1
+          className="text-white text-base font-semibold leading-snug line-clamp-2 mb-1"
+          style={{ fontFamily: "MVTypewriter, serif" }}
+        >
           {currentReel.title}
         </h1>
         {currentReel.duration_seconds && (
@@ -277,27 +287,45 @@ export default function ReelPlayerPage() {
 
       {/* Up / Down navigation */}
       <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-30">
-        <button onClick={() => goTo(currentIndex - 1)} disabled={currentIndex === 0}
-          className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center disabled:opacity-20 transition-all hover:bg-black/60 active:scale-95" aria-label="Previous">
+        <button
+          onClick={() => goTo(currentIndex - 1)}
+          disabled={currentIndex === 0}
+          className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center disabled:opacity-20 transition-all hover:bg-black/60 active:scale-95"
+          aria-label="Previous"
+        >
           <ChevronUp size={20} className="text-white" />
         </button>
-        <button onClick={() => goTo(currentIndex + 1)} disabled={currentIndex === reels.length - 1}
-          className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center disabled:opacity-20 transition-all hover:bg-black/60 active:scale-95" aria-label="Next">
+        <button
+          onClick={() => goTo(currentIndex + 1)}
+          disabled={currentIndex === reels.length - 1}
+          className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center disabled:opacity-20 transition-all hover:bg-black/60 active:scale-95"
+          aria-label="Next"
+        >
           <ChevronDown size={20} className="text-white" />
         </button>
       </div>
 
       {/* Progress dots */}
       <div className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col gap-1.5 z-30">
-        {reels.slice(Math.max(0, currentIndex - 3), Math.min(reels.length, currentIndex + 4)).map((r, i) => {
-          const actualIndex = Math.max(0, currentIndex - 3) + i;
-          const isActive = actualIndex === currentIndex;
-          return (
-            <button key={r.id} onClick={() => goTo(actualIndex)} className="rounded-full transition-all"
-              style={{ width: isActive ? "6px" : "4px", height: isActive ? "6px" : "4px", background: isActive ? "white" : "rgba(255,255,255,0.35)" }}
-              aria-label={`Reel ${actualIndex + 1}`} />
-          );
-        })}
+        {reels
+          .slice(Math.max(0, currentIndex - 3), Math.min(reels.length, currentIndex + 4))
+          .map((r, i) => {
+            const actualIndex = Math.max(0, currentIndex - 3) + i;
+            const isActive = actualIndex === currentIndex;
+            return (
+              <button
+                key={r.id}
+                onClick={() => goTo(actualIndex)}
+                className="rounded-full transition-all"
+                style={{
+                  width: isActive ? "6px" : "4px",
+                  height: isActive ? "6px" : "4px",
+                  background: isActive ? "white" : "rgba(255,255,255,0.35)",
+                }}
+                aria-label={`Reel ${actualIndex + 1}`}
+              />
+            );
+          })}
       </div>
     </div>
   );
