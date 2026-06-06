@@ -11,7 +11,6 @@ const BG_PAGE = "#F5F3EF";
 const BG_CARD = "#EBE8E1";
 const DIVIDER = "rgba(0,0,0,0.08)";
 const RED_TAG = "#9B2020";
-const CORAL_NUM = "rgba(210,100,80,0.35)";
 
 function getAuthorName(author: any): string {
   if (!author) return "";
@@ -35,6 +34,29 @@ function TagLabel({ tags }: { tags?: any }) {
       marginBottom: "3px",
     }}>
       {tag}
+    </span>
+  );
+}
+
+function MostReadPill({ rank }: { rank: number }) {
+  return (
+    <span style={{
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: "22px",
+      height: "22px",
+      borderRadius: "999px",
+      background: "rgba(210,100,80,0.12)",
+      border: "0.5px solid rgba(210,100,80,0.25)",
+      fontFamily: "Georgia, serif",
+      fontSize: "12px",
+      fontWeight: 400,
+      color: "rgba(190,80,60,0.7)",
+      flexShrink: 0,
+      marginTop: "2px",
+    }}>
+      {rank}
     </span>
   );
 }
@@ -64,21 +86,13 @@ export function MeehunCategoryPage({
       <style>{`
         .meehun-grid {
           display: grid;
-          grid-template-columns: 220px 1fr 220px;
-          gap: 0;
+          grid-template-columns: 200px 1fr 200px;
+          gap: 2.5rem;
           align-items: start;
         }
         .meehun-col-left,
         .meehun-col-right {
-          padding: 0 1.5rem 0 0;
-        }
-        .meehun-col-right {
-          padding: 0 0 0 1.5rem;
-        }
-        .meehun-col-center {
-          border-right: 0.5px solid rgba(0,0,0,0.08);
-          border-left: 0.5px solid rgba(0,0,0,0.08);
-          padding: 0 2rem;
+          display: block;
         }
         .most-read-mobile {
           display: none;
@@ -91,14 +105,11 @@ export function MeehunCategoryPage({
         @media (max-width: 1024px) {
           .meehun-grid {
             grid-template-columns: 1fr;
+            gap: 0;
           }
           .meehun-col-left,
           .meehun-col-right {
             display: none;
-          }
-          .meehun-col-center {
-            border: none;
-            padding: 0;
           }
           .most-read-mobile {
             display: block;
@@ -114,22 +125,22 @@ export function MeehunCategoryPage({
         }
         .most-read-scroll {
           display: flex;
-          gap: 0;
           overflow-x: auto;
           -webkit-overflow-scrolling: touch;
           scrollbar-width: none;
+          gap: 12px;
           padding-bottom: 4px;
         }
         .most-read-scroll::-webkit-scrollbar { display: none; }
         .most-read-scroll-item {
           flex-shrink: 0;
-          width: 160px;
-          padding: 0 12px 0 0;
-          border-right: 0.5px solid rgba(0,0,0,0.08);
-          margin-left: 12px;
+          width: 150px;
+          padding-left: 12px;
+          border-left: 0.5px solid rgba(0,0,0,0.08);
         }
-        .most-read-scroll-item:last-child {
-          border-right: none;
+        .most-read-scroll-item:first-child {
+          border-left: none;
+          padding-left: 0;
         }
         .recent-link:hover p { opacity: 0.65; }
         .card-link:hover img { transform: scale(1.05); }
@@ -137,12 +148,12 @@ export function MeehunCategoryPage({
       `}</style>
 
       {/* Page header */}
-      <header style={{ maxWidth: "72rem", margin: "0 auto", padding: "2rem 1.5rem 1.75rem", textAlign: "center" }}>
+      <header style={{ maxWidth: "72rem", margin: "0 auto", padding: "1.25rem 1.5rem 1.5rem", textAlign: "center" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1rem" }}>
-          <span style={{ color: "rgba(0,0,0,0.2)", fontSize: "13px", letterSpacing: "0.2em" }}>✦ ✦</span>
+          <span style={{ color: "rgba(0,0,0,0.18)", fontSize: "12px", letterSpacing: "0.25em" }}>✦ ✦</span>
           <h1 style={{
             fontFamily: FONT_DISPLAY,
-            fontSize: "clamp(2rem, 5vw, 3.2rem)",
+            fontSize: "clamp(1.8rem, 4vw, 2.8rem)",
             color: TEXT_PRIMARY,
             lineHeight: 1.5,
             fontWeight: 400,
@@ -150,12 +161,11 @@ export function MeehunCategoryPage({
           }}>
             {category.name}
           </h1>
-          <span style={{ color: "rgba(0,0,0,0.2)", fontSize: "13px", letterSpacing: "0.2em" }}>✦ ✦</span>
+          <span style={{ color: "rgba(0,0,0,0.18)", fontSize: "12px", letterSpacing: "0.25em" }}>✦ ✦</span>
         </div>
-        <div style={{ width: "40px", height: "0.5px", background: "rgba(0,0,0,0.15)", margin: "0.75rem auto 0" }} />
       </header>
 
-      {/* 3-col strip — desktop */}
+      {/* 3-col strip */}
       <div style={{ maxWidth: "72rem", margin: "0 auto", padding: "0 1.5rem" }} className="meehun-grid">
 
         {/* LEFT: Recent */}
@@ -184,7 +194,7 @@ export function MeehunCategoryPage({
         </div>
 
         {/* CENTER: Featured */}
-        <div className="meehun-col-center">
+        <div>
           <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "10px", fontWeight: 600 }}>
             ފީޗަރ
           </p>
@@ -228,10 +238,10 @@ export function MeehunCategoryPage({
             <p style={{ fontFamily: FONT_THAANA, fontSize: "13px", color: TEXT_MUTED }}>ފީޗަރ ލިޔުމެއް ނެތް</p>
           )}
 
-          {/* Most read — mobile horizontal scroll (inside center col, shown only on mobile) */}
+          {/* Most read — mobile horizontal scroll */}
           {mostRead.length > 0 && (
             <div className="most-read-mobile" style={{ marginTop: "1.5rem", paddingTop: "1.25rem", borderTop: `0.5px solid ${DIVIDER}` }}>
-              <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "10px", fontWeight: 600 }}>
+              <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "12px", fontWeight: 600 }}>
                 އެންމެ ގިނައިން ކިޔާ
               </p>
               <div className="most-read-scroll">
@@ -242,17 +252,9 @@ export function MeehunCategoryPage({
                     className="most-read-scroll-item"
                     style={{ textDecoration: "none" }}
                   >
-                    <span style={{
-                      fontFamily: "Georgia, serif",
-                      fontSize: "24px",
-                      fontWeight: 400,
-                      color: CORAL_NUM,
-                      lineHeight: 1,
-                      display: "block",
-                      marginBottom: "5px",
-                    }}>
-                      {i + 1}
-                    </span>
+                    <div style={{ marginBottom: "6px" }}>
+                      <MostReadPill rank={i + 1} />
+                    </div>
                     <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: "0 0 3px" }}
                       className="line-clamp-3">
                       {article.title}
@@ -281,18 +283,7 @@ export function MeehunCategoryPage({
               className="recent-link"
               style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "9px 0", borderBottom: i < mostRead.length - 1 ? `0.5px solid ${DIVIDER}` : "none", textDecoration: "none" }}
             >
-              <span style={{
-                fontFamily: "Georgia, serif",
-                fontSize: "22px",
-                fontWeight: 400,
-                color: CORAL_NUM,
-                lineHeight: 1,
-                minWidth: "22px",
-                flexShrink: 0,
-                marginTop: "2px",
-              }}>
-                {i + 1}
-              </span>
+              <MostReadPill rank={i + 1} />
               <div>
                 <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: "0 0 2px", transition: "opacity 0.2s" }}
                   className="line-clamp-2">
