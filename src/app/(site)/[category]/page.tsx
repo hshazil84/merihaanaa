@@ -144,7 +144,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
 
     return (
       <FilmCategoryPage
-        articles={articles ?? []}
+        articles={(articles ?? []) as any[]}
         cinemaEntries={cinemaRaw ?? []}
         videoClubEntries={videoClubRaw ?? []}
         categorySlug={category.slug}
