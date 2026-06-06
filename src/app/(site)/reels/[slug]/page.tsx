@@ -250,9 +250,7 @@ export default function ReelPlayerPage() {
         >
           <X size={18} className="text-white" />
         </button>
-        <p className="text-white/60 text-xs" style={{ fontFamily: "MVTypewriter, serif" }}>
-          {currentIndex + 1} / {reels.length}
-        </p>
+
         <button
           onClick={toggleMute}
           className="w-9 h-9 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-sm"
