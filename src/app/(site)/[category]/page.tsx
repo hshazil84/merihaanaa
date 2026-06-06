@@ -46,7 +46,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
       .select("id, title, slug, excerpt, featured_image, reading_time_minutes, published_at, view_count, tags, author:authors!author_id(full_name)")
       .eq("status", "published")
       .eq("category_id", category.id)
-      .eq("is_featured", true)
+      .eq("homepage_featured", true)
       .order("published_at", { ascending: false })
       .limit(1)
       .maybeSingle();
