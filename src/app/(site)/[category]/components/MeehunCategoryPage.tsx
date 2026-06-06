@@ -93,14 +93,13 @@ function RecentArticleCard({ article, categorySlug, isLast }: { article: any; ca
     >
       {/* Circle image */}
       <div style={{
-        width: "72px",
-        height: "72px",
+        width: "88px",
+        height: "88px",
         borderRadius: "999px",
         overflow: "hidden",
         backgroundColor: BG_CARD,
         margin: "0 auto 10px",
         flexShrink: 0,
-        border: `2px solid rgba(232,112,96,0.15)`,
       }}>
         {article.featured_image ? (
           <img
@@ -333,13 +332,12 @@ export function MeehunCategoryPage({
                     style={{ textDecoration: "none" }}
                   >
                     <div style={{
-                      width: "60px",
-                      height: "60px",
+                      width: "72px",
+                      height: "72px",
                       borderRadius: "999px",
                       overflow: "hidden",
                       backgroundColor: BG_CARD,
                       margin: "0 auto 8px",
-                      border: `2px solid rgba(232,112,96,0.15)`,
                     }}>
                       {article.featured_image ? (
                         <img src={article.featured_image} alt={article.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
