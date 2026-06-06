@@ -154,7 +154,7 @@ export function MeehunCategoryPage({
           <h1 style={{
             fontFamily: FONT_DISPLAY,
             fontSize: "clamp(1.8rem, 4vw, 2.8rem)",
-            color: TEXT_PRIMARY,
+            color: "#E87060",
             lineHeight: 1.5,
             fontWeight: 400,
             margin: 0,
