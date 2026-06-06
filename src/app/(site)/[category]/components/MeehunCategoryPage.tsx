@@ -90,8 +90,8 @@ function RecentArticleCard({ article, categorySlug, isLast }: { article: any; ca
         borderBottom: isLast ? "none" : `0.5px solid ${DIVIDER}`,
         textAlign: "center",
       }}
+      className="recent-card"
     >
-      {/* Circle image */}
       <div style={{
         width: "88px",
         height: "88px",
@@ -111,20 +111,16 @@ function RecentArticleCard({ article, categorySlug, isLast }: { article: any; ca
           <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
         )}
       </div>
-      <TagLabel tags={article.tags} />
       <p style={{
         fontFamily: FONT_THAANA,
-        fontSize: "12px",
+        fontSize: "11px",
         color: TEXT_PRIMARY,
         lineHeight: 1.7,
-        margin: "0 0 4px",
+        margin: 0,
+        transition: "opacity 0.2s",
       }}
         className="line-clamp-2">
         {article.title}
-      </p>
-      <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_MUTED, margin: 0, lineHeight: 2 }}>
-        {getAuthorName(article.author)}
-        {article.published_at && <> · {formatDhivehiDate(article.published_at)}</>}
       </p>
     </Link>
   );
@@ -155,7 +151,7 @@ export function MeehunCategoryPage({
       <style>{`
         .meehun-grid {
           display: grid;
-          grid-template-columns: 160px 1fr 200px;
+          grid-template-columns: 140px 1fr 200px;
           gap: 2.5rem;
           align-items: start;
         }
@@ -222,25 +218,25 @@ export function MeehunCategoryPage({
           overflow-x: auto;
           -webkit-overflow-scrolling: touch;
           scrollbar-width: none;
-          gap: 12px;
+          gap: 0;
           padding-bottom: 4px;
         }
         .recent-scroll::-webkit-scrollbar { display: none; }
         .recent-scroll-item {
           flex-shrink: 0;
-          width: 120px;
+          width: 110px;
           text-align: center;
           text-decoration: none;
-          padding-left: 12px;
+          padding: 0 10px;
           border-left: 0.5px solid rgba(0,0,0,0.08);
         }
         .recent-scroll-item:first-child {
           border-left: none;
-          padding-left: 0;
+          padding-right: 0;
         }
         .card-link:hover img { transform: scale(1.05); }
         .featured-link:hover h2 { opacity: 0.7; }
-        .recent-card:hover p { opacity: 0.7; }
+        .recent-card:hover p { opacity: 0.65; }
       `}</style>
 
       {/* Page header */}
@@ -261,12 +257,11 @@ export function MeehunCategoryPage({
         </div>
       </header>
 
-      {/* 3-col strip — desktop */}
+      {/* 3-col strip */}
       <div style={{ maxWidth: "72rem", margin: "0 auto", padding: "0 1.5rem" }} className="meehun-grid">
 
-        {/* LEFT: Recent — desktop circles */}
+        {/* LEFT: Recent circles — desktop */}
         <div className="meehun-col-left">
-          <ColLabel>ފަހުގެ ލިޔުންތައް</ColLabel>
           {recentArticles.map((article, i) => (
             <RecentArticleCard
               key={article.id}
@@ -319,10 +314,9 @@ export function MeehunCategoryPage({
             <p style={{ fontFamily: FONT_THAANA, fontSize: "13px", color: TEXT_MUTED }}>ފީޗަރ ލިޔުމެއް ނެތް</p>
           )}
 
-          {/* Recent — mobile horizontal scroll circles */}
+          {/* Recent — mobile horizontal scroll */}
           {recentArticles.length > 0 && (
             <div className="recent-mobile" style={{ marginTop: "1.5rem", paddingTop: "1.25rem", borderTop: `0.5px solid ${DIVIDER}` }}>
-              <ColLabel>ފަހުގެ ލިޔުންތައް</ColLabel>
               <div className="recent-scroll">
                 {recentArticles.map((article) => (
                   <Link
@@ -332,8 +326,8 @@ export function MeehunCategoryPage({
                     style={{ textDecoration: "none" }}
                   >
                     <div style={{
-                      width: "72px",
-                      height: "72px",
+                      width: "68px",
+                      height: "68px",
                       borderRadius: "999px",
                       overflow: "hidden",
                       backgroundColor: BG_CARD,
@@ -346,7 +340,7 @@ export function MeehunCategoryPage({
                       )}
                     </div>
                     <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_PRIMARY, lineHeight: 1.6, margin: 0, transition: "opacity 0.2s" }}
-                      className="line-clamp-3">
+                      className="line-clamp-2">
                       {article.title}
                     </p>
                   </Link>
