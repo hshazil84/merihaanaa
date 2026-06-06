@@ -4,6 +4,7 @@ import { DefaultCategoryPage } from "./components/DefaultCategoryPage";
 import { ReviewsCategoryPage } from "./components/ReviewsCategoryPage";
 import { StoriesCategoryPage } from "./components/StoriesCategoryPage";
 import { MeehunCategoryPage } from "./components/MeehunCategoryPage";
+import FilmCategoryPage from "./components/FilmCategoryPage";
 
 interface PageProps {
   params: { category: string };
@@ -41,7 +42,6 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
 
   // ── MEEHUN ──────────────────────────────────────────
   if (category.slug === "meehun") {
-    // 1. Featured
     const { data: featuredArticle } = await supabase
       .from("articles")
       .select("id, title, slug, excerpt, featured_image, reading_time_minutes, published_at, view_count, tags, author:authors!author_id(full_name)")
@@ -54,7 +54,6 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
 
     const featuredId = featuredArticle?.id ?? null;
 
-    // 2. Most read (exclude featured)
     let mostReadQuery = supabase
       .from("articles")
       .select("id, title, slug, view_count, author:authors!author_id(full_name)")
@@ -65,7 +64,6 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
     if (featuredId) mostReadQuery = mostReadQuery.neq("id", featuredId);
     const { data: mostReadRaw } = await mostReadQuery;
 
-    // 3. Recent (exclude featured)
     let recentQuery = supabase
       .from("articles")
       .select("id, title, slug, featured_image, published_at, tags, author:authors!author_id(full_name)")
@@ -76,7 +74,6 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
     if (featuredId) recentQuery = recentQuery.neq("id", featuredId);
     const { data: recentRaw } = await recentQuery;
 
-    // 4. Grid — exclude featured + recent IDs
     const excludeIds = [
       featuredId,
       ...(recentRaw ?? []).map((a: any) => a.id),
@@ -99,19 +96,59 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
 
     const { data: gridRaw, count } = await gridQuery;
 
-    const mostRead: any[] = mostReadRaw ?? [];
-    const recentArticles: any[] = recentRaw ?? [];
-    const articles: any[] = gridRaw ?? [];
-
     return (
       <MeehunCategoryPage
         category={category}
         featuredArticle={featuredArticle ?? null}
-        mostRead={mostRead}
-        recentArticles={recentArticles}
-        articles={articles}
+        mostRead={mostReadRaw ?? []}
+        recentArticles={recentRaw ?? []}
+        articles={gridRaw ?? []}
         total={count ?? 0}
         totalPages={Math.ceil((count ?? 0) / PAGE_SIZE)}
+        page={page}
+      />
+    );
+  }
+
+  // ── FILM ─────────────────────────────────────────────
+  if (category.slug === "film") {
+    const from = (page - 1) * DEFAULT_PAGE_SIZE;
+    const to = from + DEFAULT_PAGE_SIZE - 1;
+
+    const [
+      { data: articles, count },
+      { data: cinemaRaw },
+      { data: videoClubRaw },
+    ] = await Promise.all([
+      supabase
+        .from("articles")
+        .select(
+          "id, title, slug, excerpt, featured_image, reading_time_minutes, published_at, author:authors!author_id(full_name), category:categories!category_id(name, slug)",
+          { count: "exact" }
+        )
+        .eq("status", "published")
+        .eq("category_id", category.id)
+        .order("published_at", { ascending: false })
+        .range(from, to),
+      supabase
+        .from("charts")
+        .select("*")
+        .in("chart_type", ["cinema_now", "cinema_upcoming"])
+        .order("rank", { ascending: true }),
+      supabase
+        .from("charts")
+        .select("*")
+        .eq("chart_type", "video_club")
+        .order("rank", { ascending: true }),
+    ]);
+
+    return (
+      <FilmCategoryPage
+        articles={articles ?? []}
+        cinemaEntries={cinemaRaw ?? []}
+        videoClubEntries={videoClubRaw ?? []}
+        categorySlug={category.slug}
+        totalCount={count ?? 0}
         page={page}
       />
     );
