@@ -27,15 +27,11 @@ const GPU             = "translateZ(0)";
 export default function PublicNav({ categories, static: isStatic = false }: Props) {
   const router = useRouter();
 
-  // Home page refs
+  const navWrapperRef     = useRef<HTMLDivElement>(null);
   const logoBarRef        = useRef<HTMLDivElement>(null);
   const catBarRef         = useRef<HTMLDivElement>(null);
-  const catLogoRef        = useRef<HTMLDivElement>(null);  // logo inside cat bar
-  const catSearchRef      = useRef<HTMLDivElement>(null);  // search inside cat bar
   const compactDesktopRef = useRef<HTMLDivElement>(null);
   const compactMobileRef  = useRef<HTMLDivElement>(null);
-
-  // Static page refs
   const staticWrapperRef  = useRef<HTMLDivElement>(null);
 
   const phaseRef          = useRef<"rising" | "merged">("rising");
@@ -57,7 +53,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   useEffect(() => {
     if (isStatic) return;
 
-    // Cache icon nodes once
+    // Cache icon nodes once on mount
     if (logoBarRef.current) {
       iconNodesRef.current = Array.from(
         logoBarRef.current.querySelectorAll<HTMLElement>(".nav-icon")
@@ -66,24 +62,12 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
 
     const heroHeight = window.innerHeight;
 
-    // Initial positions
+    // Set initial cat bar position
     if (catBarRef.current) {
       const naturalY = Math.round(heroHeight - CAT_BAR_HEIGHT);
       catBarRef.current.style.transform = `translateY(${naturalY}px) ${GPU}`;
       catBarRef.current.style.visibility = "visible";
       catBarRef.current.style.opacity = "1";
-    }
-    if (logoBarRef.current) {
-      logoBarRef.current.style.transform = `translateY(0px) ${GPU}`;
-    }
-    // Cat bar logo + search hidden initially
-    if (catLogoRef.current) {
-      catLogoRef.current.style.opacity = "0";
-      catLogoRef.current.style.transform = `scale(0) ${GPU}`;
-    }
-    if (catSearchRef.current) {
-      catSearchRef.current.style.opacity = "0";
-      catSearchRef.current.style.transform = `scale(0) ${GPU}`;
     }
 
     let ticking = false;
@@ -92,58 +76,37 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
       const scrollY  = window.scrollY;
       const vh       = window.innerHeight;
       const naturalY = vh - CAT_BAR_HEIGHT - scrollY;
-      const clampedY = Math.round(Math.max(0, naturalY));
-      const merged   = naturalY <= 0;
-
-      // Progress from hero bottom to top (0 = at bottom, 1 = at top)
-      const riseProgress = Math.min(1, Math.max(0, (vh - CAT_BAR_HEIGHT - scrollY) / (vh - CAT_BAR_HEIGHT - LOGO_BAR_HEIGHT)));
+      // Round to nearest pixel to prevent subpixel jitter
+      const clampedY = Math.round(Math.max(LOGO_BAR_HEIGHT, naturalY));
+      const merged   = naturalY <= LOGO_BAR_HEIGHT;
+      const offset   = LOGO_BAR_HEIGHT + CAT_BAR_HEIGHT;
 
       if (phaseRef.current === "rising") {
-        // Cat bar rises
         if (catBarRef.current) {
           catBarRef.current.style.transform = `translateY(${clampedY}px) ${GPU}`;
         }
-
-        // Logo bar slides UP as cat bar rises — slides out when cat bar reaches top
-        const logoSlideProgress = Math.max(0, Math.min(1, 1 - riseProgress));
-        const logoSlideY = Math.round(-LOGO_BAR_HEIGHT * logoSlideProgress);
         if (logoBarRef.current) {
-          logoBarRef.current.style.transform = `translateY(${logoSlideY}px) ${GPU}`;
+          logoBarRef.current.style.backgroundColor = merged
+            ? "rgb(249,248,245)"
+            : "transparent";
+          const color = merged ? "rgb(26,26,26)" : "rgb(255,255,255)";
+          iconNodesRef.current.forEach((el) => { el.style.color = color; });
         }
-
         if (merged) {
           phaseRef.current = "merged";
-          // Snap cat bar to top
           if (catBarRef.current) {
-            catBarRef.current.style.transform = `translateY(0px) ${GPU}`;
-          }
-          // Fully slide logo bar off screen
-          if (logoBarRef.current) {
-            logoBarRef.current.style.transform = `translateY(-${LOGO_BAR_HEIGHT}px) ${GPU}`;
-          }
-          // Animate logo + search into cat bar
-          if (catLogoRef.current) {
-            catLogoRef.current.style.transition = "opacity 0.3s ease, transform 0.35s cubic-bezier(0.34,1.56,0.64,1)";
-            catLogoRef.current.style.opacity = "1";
-            catLogoRef.current.style.transform = `scale(1) ${GPU}`;
-          }
-          if (catSearchRef.current) {
-            catSearchRef.current.style.transition = "opacity 0.3s ease 0.05s, transform 0.35s cubic-bezier(0.34,1.56,0.64,1) 0.05s";
-            catSearchRef.current.style.opacity = "1";
-            catSearchRef.current.style.transform = `scale(1) ${GPU}`;
+            // Exactly at LOGO_BAR_HEIGHT — no subpixel gap
+            catBarRef.current.style.transform = `translateY(${LOGO_BAR_HEIGHT}px) ${GPU}`;
           }
         }
       }
 
       if (phaseRef.current === "merged") {
         const shouldCompact = scrollY > lastScrollY.current;
-
         if (shouldCompact !== homeCompactRef.current) {
           homeCompactRef.current = shouldCompact;
-
-          const offset = CAT_BAR_HEIGHT;
-          if (catBarRef.current) {
-            catBarRef.current.style.transform = shouldCompact
+          if (navWrapperRef.current) {
+            navWrapperRef.current.style.transform = shouldCompact
               ? `translateY(-${offset}px) ${GPU}`
               : `translateY(0px) ${GPU}`;
           }
@@ -154,29 +117,18 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           if (compactMobileRef.current)  compactMobileRef.current.style.transform  = co;
         }
 
-        // Return to rising phase
-        if (naturalY > 0) {
+        if (naturalY > LOGO_BAR_HEIGHT) {
           phaseRef.current = "rising";
           homeCompactRef.current = false;
-
-          if (catBarRef.current)         catBarRef.current.style.transform         = `translateY(${clampedY}px) ${GPU}`;
+          if (navWrapperRef.current)     navWrapperRef.current.style.transform     = `translateY(0px) ${GPU}`;
           if (compactDesktopRef.current) compactDesktopRef.current.style.transform = `translateY(-${COMPACT_HEIGHT}px) ${GPU}`;
           if (compactMobileRef.current)  compactMobileRef.current.style.transform  = `translateY(-${COMPACT_HEIGHT}px) ${GPU}`;
-
-          // Hide logo + search from cat bar instantly
-          if (catLogoRef.current) {
-            catLogoRef.current.style.transition = "none";
-            catLogoRef.current.style.opacity = "0";
-            catLogoRef.current.style.transform = `scale(0) ${GPU}`;
-          }
-          if (catSearchRef.current) {
-            catSearchRef.current.style.transition = "none";
-            catSearchRef.current.style.opacity = "0";
-            catSearchRef.current.style.transform = `scale(0) ${GPU}`;
-          }
-          // Slide logo bar back in
           if (logoBarRef.current) {
-            logoBarRef.current.style.transform = `translateY(0px) ${GPU}`;
+            logoBarRef.current.style.backgroundColor = "transparent";
+            iconNodesRef.current.forEach((el) => { el.style.color = "rgb(255,255,255)"; });
+          }
+          if (catBarRef.current) {
+            catBarRef.current.style.transform = `translateY(${clampedY}px) ${GPU}`;
           }
         }
       }
@@ -206,7 +158,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
     let ticking = false;
 
     const update = () => {
-      const scrollY       = window.scrollY;
+      const scrollY      = window.scrollY;
       const shouldCompact = scrollY > 80 && scrollY > lastScrollYStatic.current;
 
       if (shouldCompact !== staticCompactRef.current) {
@@ -272,6 +224,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
     }
   };
 
+  // Shared style for GPU-composited elements
   const gpuBase: React.CSSProperties = {
     backfaceVisibility: "hidden",
     WebkitBackfaceVisibility: "hidden" as any,
@@ -284,7 +237,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         <div
           ref={staticWrapperRef}
           className="fixed top-0 right-0 left-0 z-50 will-change-transform"
-          style={{ ...gpuBase, transform: `translateY(0px) ${GPU}`, transition: "none" }}
+          style={{ ...gpuBase, transform: `translateY(0px) ${GPU}`, transition: "transform 0.3s ease" }}
         >
           <header style={{ height: `${LOGO_BAR_HEIGHT}px`, backgroundColor: "rgb(249,248,245)" }}>
             <div className="max-w-7xl mx-auto px-5 md:px-6 h-full flex items-center justify-center relative">
@@ -426,101 +379,83 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   // ── Home page render ──────────────────────────────────────────────────────
   return (
     <>
-      {/* Logo bar — slides up as cat bar rises */}
       <div
-        ref={logoBarRef}
+        ref={navWrapperRef}
         className="fixed top-0 right-0 left-0 z-50 will-change-transform"
-        style={{ ...gpuBase, height: `${LOGO_BAR_HEIGHT}px`, transform: `translateY(0px) ${GPU}`, transition: "none" }}
+        style={{ ...gpuBase, transform: `translateY(0px) ${GPU}`, transition: "none" }}
       >
-        <div className="max-w-7xl mx-auto px-5 md:px-6 h-full flex items-center justify-center relative">
-          <Link href="/" className="flex items-center">
-            <Image src="/logo.svg" alt="މެރިހާنaa" width={60} height={60} priority className="object-contain" />
-          </Link>
-          <div className="absolute right-5 md:hidden">
-            <button type="button" onClick={() => setMobileMenuOpen(true)}
-              className="nav-icon p-2 rounded-full hover:bg-white/10 transition-colors"
-              style={{ color: "rgb(255,255,255)" }}>
-              <Menu className="w-5 h-5" />
-            </button>
-          </div>
-          <div className="absolute left-5 md:hidden">
-            <button type="button" aria-label="ހޯދާ" onClick={openSearch}
-              className="nav-icon p-2 rounded-full hover:bg-white/10 transition-colors"
-              style={{ color: "rgb(255,255,255)" }}>
-              <Search className="w-[18px] h-[18px]" />
-            </button>
-          </div>
-          <div className="absolute left-5 md:left-6 hidden md:flex items-center gap-3">
-            <button type="button" aria-label="ހޯދާ" onClick={openSearch}
-              className="nav-icon p-2 rounded-full hover:bg-white/10 transition-colors"
-              style={{ color: "rgb(255,255,255)" }}>
-              <Search className="w-[18px] h-[18px]" />
-            </button>
-            <Link href="/login"
-              className="nav-icon p-2 rounded-full hover:bg-white/10 transition-colors"
-              style={{ color: "rgb(255,255,255)" }}>
-              <User className="w-[18px] h-[18px]" />
+        {/* Logo bar */}
+        <div
+          ref={logoBarRef}
+          style={{
+            ...gpuBase,
+            height: `${LOGO_BAR_HEIGHT}px`,
+            backgroundColor: "transparent",
+            transition: "background-color 0.25s ease",
+          }}
+        >
+          <div className="max-w-7xl mx-auto px-5 md:px-6 h-full flex items-center justify-center relative">
+            <Link href="/" className="flex items-center">
+              <Image src="/logo.svg" alt="މެރިހާنaa" width={60} height={60} priority className="object-contain" />
             </Link>
+            <div className="absolute right-5 md:hidden">
+              <button type="button" onClick={() => setMobileMenuOpen(true)}
+                className="nav-icon p-2 rounded-full hover:bg-white/10 transition-colors"
+                style={{ color: "rgb(255,255,255)" }}>
+                <Menu className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="absolute left-5 md:hidden">
+              <button type="button" aria-label="ހޯދާ" onClick={openSearch}
+                className="nav-icon p-2 rounded-full hover:bg-white/10 transition-colors"
+                style={{ color: "rgb(255,255,255)" }}>
+                <Search className="w-[18px] h-[18px]" />
+              </button>
+            </div>
+            <div className="absolute left-5 md:left-6 hidden md:flex items-center gap-3">
+              <button type="button" aria-label="ހޯދާ" onClick={openSearch}
+                className="nav-icon p-2 rounded-full hover:bg-black/5 transition-colors"
+                style={{ color: "rgb(255,255,255)" }}>
+                <Search className="w-[18px] h-[18px]" />
+              </button>
+              <Link href="/login"
+                className="nav-icon p-2 rounded-full hover:bg-black/5 transition-colors"
+                style={{ color: "rgb(255,255,255)" }}>
+                <User className="w-[18px] h-[18px]" />
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Cat bar — rises from bottom of hero, gains logo+search on lock */}
-      <div
-        ref={catBarRef}
-        className="fixed left-0 right-0 z-50 will-change-transform hidden md:block"
-        style={{
-          ...gpuBase,
-          top: 0,
-          height: `${CAT_BAR_HEIGHT + 1}px`,
-          marginTop: "-1px",
-          backgroundColor: "rgb(249,248,245)",
-          borderBottom: "1px solid rgb(224,221,214)",
-          transform: `translateY(110vh) ${GPU}`,
-          visibility: "hidden",
-          opacity: 0,
-          transition: "none",
-        }}
-      >
-        <div className="max-w-7xl mx-auto px-6 h-full flex items-center relative">
-
-          {/* Search — scales in from left on lock */}
-          <div
-            ref={catSearchRef}
-            className="absolute left-6 flex items-center"
-            style={{ opacity: 0, transform: `scale(0) ${GPU}`, transformOrigin: "left center" }}
-          >
-            <button type="button" aria-label="ހޯދާ" onClick={openSearch}
-              className="p-2 rounded-full hover:bg-black/5 transition-colors"
-              style={{ color: "rgb(26,26,26)" }}>
-              <Search className="w-[18px] h-[18px]" />
-            </button>
+        {/* Cat bar — extra 1px height + negative margin to prevent subpixel gap */}
+        <div
+          ref={catBarRef}
+          className="hidden md:block will-change-transform"
+          style={{
+            ...gpuBase,
+            position: "absolute", top: 0, left: 0, right: 0,
+            height: `${CAT_BAR_HEIGHT + 1}px`,
+            marginTop: "-1px",
+            backgroundColor: "rgb(249,248,245)",
+            borderBottom: "1px solid rgb(224,221,214)",
+            transform: `translateY(110vh) ${GPU}`,
+            visibility: "hidden",
+            opacity: 0,
+          }}
+        >
+          <div className="max-w-7xl mx-auto px-6 h-full">
+            <div className="flex items-center justify-center gap-1 h-full">
+              {categories.map((cat) => (
+                <Link key={cat.id} href={`/${cat.slug}`}
+                  target={cat.slug === "originals" ? "_blank" : undefined}
+                  rel={cat.slug === "originals" ? "noopener noreferrer" : undefined}
+                  className="whitespace-nowrap px-4 py-2 transition-colors hover:text-[rgb(26,26,26)]"
+                  style={{ fontFamily: "'MVTypewriter','MV Boli',sans-serif", fontSize: "13px", color: "rgb(153,153,153)" }}>
+                  {cat.name}
+                </Link>
+              ))}
+            </div>
           </div>
-
-          {/* Categories — centered */}
-          <div className="flex items-center justify-center gap-1 w-full">
-            {categories.map((cat) => (
-              <Link key={cat.id} href={`/${cat.slug}`}
-                target={cat.slug === "originals" ? "_blank" : undefined}
-                rel={cat.slug === "originals" ? "noopener noreferrer" : undefined}
-                className="whitespace-nowrap px-4 py-2 transition-colors hover:text-[rgb(26,26,26)]"
-                style={{ fontFamily: "'MVTypewriter','MV Boli',sans-serif", fontSize: "13px", color: "rgb(153,153,153)" }}>
-                {cat.name}
-              </Link>
-            ))}
-          </div>
-
-          {/* Logo — scales in from right on lock */}
-          <div
-            ref={catLogoRef}
-            className="absolute right-6 flex items-center"
-            style={{ opacity: 0, transform: `scale(0) ${GPU}`, transformOrigin: "right center" }}
-          >
-            <Link href="/" className="flex items-center">
-              <Image src="/logo.svg" alt="މެރިހާنaa" width={36} height={36} className="object-contain" />
-            </Link>
-          </div>
-
         </div>
       </div>
 
@@ -600,7 +535,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           searchRef={searchRef} searchQuery={searchQuery} searchResults={searchResults}
           searchLoading={searchLoading} onInput={handleSearchInput} onKeyDown={handleKeyDown}
           onClose={closeSearch}
-          topOffset={homeCompactRef.current ? COMPACT_HEIGHT : CAT_BAR_HEIGHT}
+          topOffset={homeCompactRef.current ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT}
         />
       )}
       {searchOpen && <div className="fixed inset-0 z-[55]" onClick={closeSearch} />}
