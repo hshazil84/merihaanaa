@@ -65,7 +65,7 @@ function RecentArticleCard({ article, categorySlug, isLast }: { article: any; ca
           : <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
         }
       </div>
-      <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: 0, transition: "opacity 0.2s" }} className="line-clamp-2">
+      <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: 0 }} className="line-clamp-2">
         {article.title}
       </p>
     </Link>
@@ -101,40 +101,47 @@ export function MeehunCategoryPage({
           .card-grid { grid-template-columns: 1fr; }
         }
 
+        .recent-scroll {
+          display: flex;
+          flex-direction: row;
+          overflow-x: auto;
+          overflow-y: hidden;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+          padding-bottom: 4px;
+          gap: 0;
+        }
+        .recent-scroll::-webkit-scrollbar { display: none; }
+
         .recent-scroll-item {
-          flex-shrink: 0;
+          flex: 0 0 calc(65vw - 24px);
           width: calc(65vw - 24px);
           text-align: center;
           text-decoration: none;
-          padding: 0 10px;
+          padding: 0 12px;
         }
         .recent-scroll-item:first-child { padding-right: 0; }
-        .recent-scroll-item {
-          flex-shrink: 0;
-          width: calc(50vw - 24px);
-          text-align: center;
-          text-decoration: none;
-          padding: 0 10px;
-          border-left: 0.5px solid rgba(0,0,0,0.08);
-        }
-        .recent-scroll-item:first-child { border-left: none; padding-right: 0; }
+        .recent-scroll-item:last-child { border-left: none; }
 
         .most-read-scroll {
           display: flex;
+          flex-direction: row;
           overflow-x: auto;
           -webkit-overflow-scrolling: touch;
           scrollbar-width: none;
-          gap: 12px;
+          gap: 0;
           padding-bottom: 4px;
         }
         .most-read-scroll::-webkit-scrollbar { display: none; }
+
         .most-read-scroll-item {
-          flex-shrink: 0;
+          flex: 0 0 150px;
           width: 150px;
-          padding-left: 12px;
+          padding: 0 12px;
           border-left: 0.5px solid rgba(0,0,0,0.08);
         }
-        .most-read-scroll-item:first-child { border-left: none; padding-left: 0; }
+        .most-read-scroll-item:first-child { border-left: none; padding-right: 0; }
+        .most-read-scroll-item:last-child { border-left: none; }
 
         .card-link:hover img { transform: scale(1.05); }
         .featured-link:hover h2 { opacity: 0.7; }
@@ -142,7 +149,7 @@ export function MeehunCategoryPage({
       `}</style>
 
       {/* Header */}
-      <header style={{ maxWidth: "72rem", margin: "0 auto", padding: "0.5rem 1.5rem 1rem", textAlign: "center" }}>
+      <header style={{ maxWidth: "72rem", margin: "0 auto", padding: "2rem 1.5rem 1.5rem", textAlign: "center" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1rem" }}>
           <span style={{ color: "rgba(0,0,0,0.18)", fontSize: "11px" }}>✦</span>
           <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(2rem, 5vw, 3.5rem)", color: CORAL, lineHeight: 1.5, fontWeight: 400, margin: 0 }}>
@@ -193,10 +200,23 @@ export function MeehunCategoryPage({
           {/* Recent — mobile scroll */}
           {recentArticles.length > 0 && (
             <div className="recent-mobile" style={{ marginTop: "1.5rem", paddingTop: "1.25rem", borderTop: `0.5px solid ${DIVIDER}` }}>
-              <div className="recent-scroll">
-                {recentArticles.map((article) => (
-                  <Link key={article.id} href={`/${category.slug}/${article.slug}`} className="recent-scroll-item recent-card" style={{ textDecoration: "none" }}>
-                    <div style={{ width: "68px", height: "68px", borderRadius: "999px", overflow: "hidden", backgroundColor: BG_CARD, margin: "0 auto 8px" }}>
+              <ColLabel>ފަހުގެ ލިޔުންތައް</ColLabel>
+              <div style={{ display: "flex", flexDirection: "row", overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch" as any, scrollbarWidth: "none" as any, paddingBottom: "4px" }}>
+                {recentArticles.map((article, i) => (
+                  <Link
+                    key={article.id}
+                    href={`/${category.slug}/${article.slug}`}
+                    style={{
+                      flex: "0 0 calc(65vw - 24px)",
+                      width: "calc(65vw - 24px)",
+                      textAlign: "center",
+                      textDecoration: "none",
+                      padding: i === 0 ? "0 12px 0 0" : "0 12px",
+                      borderLeft: i === 0 ? "none" : `0.5px solid ${DIVIDER}`,
+                    }}
+                    className="recent-card"
+                  >
+                    <div style={{ width: "72px", height: "72px", borderRadius: "999px", overflow: "hidden", backgroundColor: BG_CARD, margin: "0 auto 8px" }}>
                       {article.featured_image
                         ? <img src={article.featured_image} alt={article.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                         : <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
@@ -215,9 +235,19 @@ export function MeehunCategoryPage({
           {mostRead.length > 0 && (
             <div className="most-read-mobile" style={{ marginTop: "1.5rem", paddingTop: "1.25rem", borderTop: `0.5px solid ${DIVIDER}` }}>
               <ColLabel>އެންމެ ގިނައިން ކިޔާ</ColLabel>
-              <div className="most-read-scroll">
+              <div style={{ display: "flex", flexDirection: "row", overflowX: "auto", WebkitOverflowScrolling: "touch" as any, scrollbarWidth: "none" as any, paddingBottom: "4px" }}>
                 {mostRead.map((article, i) => (
-                  <Link key={article.id} href={`/${category.slug}/${article.slug}`} className="most-read-scroll-item" style={{ textDecoration: "none" }}>
+                  <Link
+                    key={article.id}
+                    href={`/${category.slug}/${article.slug}`}
+                    style={{
+                      flex: "0 0 150px",
+                      width: "150px",
+                      textDecoration: "none",
+                      padding: i === 0 ? "0 12px 0 0" : "0 12px",
+                      borderLeft: i === 0 || i === mostRead.length - 1 ? "none" : `0.5px solid ${DIVIDER}`,
+                    }}
+                  >
                     <div style={{ marginBottom: "6px" }}><MostReadPill rank={i + 1} /></div>
                     <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: "0 0 3px" }} className="line-clamp-3">
                       {article.title}
@@ -242,7 +272,7 @@ export function MeehunCategoryPage({
               style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "9px 0", borderBottom: i < mostRead.length - 1 ? `0.5px solid ${DIVIDER}` : "none", textDecoration: "none" }}>
               <MostReadPill rank={i + 1} />
               <div>
-                <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: "0 0 2px", transition: "opacity 0.2s" }} className="line-clamp-2">
+                <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: "0 0 2px" }} className="line-clamp-2">
                   {article.title}
                 </p>
                 {article.view_count != null && (
