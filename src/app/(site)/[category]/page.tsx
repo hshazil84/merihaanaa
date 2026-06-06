@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Pagination } from "./Pagination";
 import { formatDhivehiDate } from "@/lib/formatDhivehiDate";
 
 const FONT_THAANA = '"MVTypewriter", "Noto Sans Thaana", sans-serif';
