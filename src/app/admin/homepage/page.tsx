@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Search, X, Plus, Check, RefreshCw, Replace } from "lucide-react";
+import { Search, X, Plus, Check, RefreshCw } from "lucide-react";
 
 interface Article {
   id: string;
@@ -36,7 +36,7 @@ function Slot({
 }) {
   return (
     <div
-      className={`relative rounded-lg overflow-hidden border transition-colors cursor-pointer group ${
+      className={`relative rounded-lg overflow-hidden border transition-colors cursor-pointer ${
         article
           ? "border-border hover:border-foreground"
           : "border-dashed border-border hover:border-foreground hover:bg-muted/30"
@@ -69,25 +69,14 @@ function Slot({
               {index + 1}
             </span>
           )}
-          {/* Action buttons — always visible on filled slots */}
-          <div className="absolute top-1.5 left-1.5 flex gap-1">
-            <button
-              onClick={(e) => { e.stopPropagation(); onRemove(); }}
-              className="w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 flex items-center justify-center transition-colors"
-              title="Remove"
-              aria-label="Remove"
-            >
-              <X size={11} className="text-white" />
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); onPick(); }}
-              className="w-6 h-6 rounded-full bg-black/60 hover:bg-blue-600 flex items-center justify-center transition-colors"
-              title="Replace"
-              aria-label="Replace"
-            >
-              <Replace size={10} className="text-white" />
-            </button>
-          </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); onRemove(); }}
+            className="absolute top-1.5 left-1.5 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 flex items-center justify-center transition-colors"
+            title="Remove"
+            aria-label="Remove"
+          >
+            <X size={11} className="text-white" />
+          </button>
         </>
       ) : (
         <div className="w-full h-full flex flex-col items-center justify-center gap-1">
@@ -412,6 +401,17 @@ export default function HomepageAdminPage() {
   const filledEC = sections.editors_choice.filter(Boolean).length;
   const filledReview = sections.review.filter(Boolean).length;
 
+  // Helper to render a reversed grid for RTL (slot 1 on right, last on left)
+  function renderGrid<T>(
+    arr: (T | null)[],
+    renderSlot: (item: T | null, realIndex: number) => React.ReactNode
+  ) {
+    return [...arr].reverse().map((item, reversedI) => {
+      const realIndex = arr.length - 1 - reversedI;
+      return renderSlot(item, realIndex);
+    });
+  }
+
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-5">
 
@@ -459,8 +459,8 @@ export default function HomepageAdminPage() {
         <div className="px-4 py-3 border-b border-border bg-muted/20">
           <SectionHeader title="އެޑިޓަރ ޗޮއިސް" slots={4} filled={filledEC} description="4-grid · ordered" />
         </div>
-        <div className="p-4 grid grid-cols-4 gap-3" dir="ltr">
-          {sections.editors_choice.map((a, i) => (
+        <div className="p-4 grid grid-cols-4 gap-3">
+          {renderGrid(sections.editors_choice, (a, i) => (
             <Slot
               key={i}
               article={a}
@@ -492,8 +492,8 @@ export default function HomepageAdminPage() {
           <div className="px-4 py-3 border-b border-border bg-muted/20">
             <SectionHeader title="ރިވިއު" slots={3} filled={filledReview} description="3-grid · portrait" />
           </div>
-          <div className="p-4 grid grid-cols-3 gap-2" dir="ltr">
-            {sections.review.map((a, i) => (
+          <div className="p-4 grid grid-cols-3 gap-2">
+            {renderGrid(sections.review, (a, i) => (
               <Slot
                 key={i}
                 article={a}
@@ -512,8 +512,8 @@ export default function HomepageAdminPage() {
         <div className="px-4 py-3 border-b border-border bg-muted/20">
           <SectionHeader title="ލެޓެސްޓް ގްރިޑް" slots={8} filled={filledLatest} description="4×2 grid · homepage bottom" />
         </div>
-        <div className="p-4 grid grid-cols-4 gap-3" dir="ltr">
-          {sections.latest.map((a, i) => (
+        <div className="p-4 grid grid-cols-4 gap-3">
+          {renderGrid(sections.latest, (a, i) => (
             <Slot
               key={i}
               article={a}
