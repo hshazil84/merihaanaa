@@ -1,16 +1,16 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Search, X, Plus, Check, RefreshCw } from "lucide-react";
+import { Search, X, Plus, Check, RefreshCw, Replace } from "lucide-react";
 
-// ── Types ──────────────────────────────────────────────────────────────────
 interface Article {
   id: string;
   title: string;
+  slug: string;
   featured_image: string | null;
-  category: { name: string; slug: string } | null;
   status: string;
+  category: { name: string; slug: string } | null;
 }
 
 interface SectionState {
@@ -21,7 +21,6 @@ interface SectionState {
   latest: (Article | null)[];
 }
 
-// ── Slot component ──────────────────────────────────────────────────────────
 function Slot({
   article,
   index,
@@ -37,22 +36,18 @@ function Slot({
 }) {
   return (
     <div
-      onClick={() => !article && onPick()}
-      className={`relative rounded-lg overflow-hidden border transition-colors cursor-pointer ${
+      className={`relative rounded-lg overflow-hidden border transition-colors cursor-pointer group ${
         article
-          ? "border-border"
+          ? "border-border hover:border-foreground"
           : "border-dashed border-border hover:border-foreground hover:bg-muted/30"
       }`}
       style={{ aspectRatio: aspect, background: article ? undefined : "var(--muted)" }}
+      onClick={onPick}
     >
       {article ? (
         <>
           {article.featured_image ? (
-            <img
-              src={article.featured_image}
-              alt={article.title}
-              className="w-full h-full object-cover"
-            />
+            <img src={article.featured_image} alt={article.title} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full bg-muted flex items-center justify-center">
               <span className="font-body text-[10px] text-muted-foreground">No image</span>
@@ -74,13 +69,25 @@ function Slot({
               {index + 1}
             </span>
           )}
-          <button
-            onClick={(e) => { e.stopPropagation(); onRemove(); }}
-            className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
-            aria-label="Remove"
-          >
-            <X size={10} className="text-white" />
-          </button>
+          {/* Action buttons — always visible on filled slots */}
+          <div className="absolute top-1.5 left-1.5 flex gap-1">
+            <button
+              onClick={(e) => { e.stopPropagation(); onRemove(); }}
+              className="w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 flex items-center justify-center transition-colors"
+              title="Remove"
+              aria-label="Remove"
+            >
+              <X size={11} className="text-white" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onPick(); }}
+              className="w-6 h-6 rounded-full bg-black/60 hover:bg-blue-600 flex items-center justify-center transition-colors"
+              title="Replace"
+              aria-label="Replace"
+            >
+              <Replace size={10} className="text-white" />
+            </button>
+          </div>
         </>
       ) : (
         <div className="w-full h-full flex flex-col items-center justify-center gap-1">
@@ -94,7 +101,6 @@ function Slot({
   );
 }
 
-// ── Section header ──────────────────────────────────────────────────────────
 function SectionHeader({
   title,
   slots,
@@ -123,7 +129,6 @@ function SectionHeader({
   );
 }
 
-// ── Picker modal ────────────────────────────────────────────────────────────
 function PickerModal({
   label,
   allArticles,
@@ -147,12 +152,13 @@ function PickerModal({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-background border border-border rounded-xl w-full max-w-sm flex flex-col overflow-hidden shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+      <div
+        className="bg-background border border-border rounded-xl w-full max-w-sm flex flex-col overflow-hidden shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <p className="font-body text-sm font-semibold text-foreground">
-            Pick article — {label}
-          </p>
+          <p className="font-body text-sm font-semibold text-foreground">Pick article — {label}</p>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
             <X size={16} />
           </button>
@@ -170,7 +176,7 @@ function PickerModal({
             />
           </div>
         </div>
-        <div className="overflow-y-auto max-h-72">
+        <div className="overflow-y-auto max-h-80">
           {filtered.length === 0 ? (
             <p className="font-body text-sm text-muted-foreground text-center py-8">No articles found</p>
           ) : (
@@ -207,7 +213,6 @@ function PickerModal({
   );
 }
 
-// ── Main page ───────────────────────────────────────────────────────────────
 export default function HomepageAdminPage() {
   const supabase = createClient();
 
@@ -228,7 +233,6 @@ export default function HomepageAdminPage() {
     label: string;
   } | null>(null);
 
-  // Load all published articles + current placements
   useEffect(() => {
     async function load() {
       const { data: arts } = await supabase
@@ -269,13 +273,19 @@ export default function HomepageAdminPage() {
 
   const markUnsaved = () => setSaved(false);
 
-  const getUsedIds = () => {
+  const getUsedIds = (excludeSection?: keyof SectionState, excludeIndex?: number) => {
     const ids: string[] = [];
-    if (sections.hero) ids.push(sections.hero.id);
-    sections.editors_choice.forEach((a) => a && ids.push(a.id));
-    if (sections.people) ids.push(sections.people.id);
-    sections.review.forEach((a) => a && ids.push(a.id));
-    sections.latest.forEach((a) => a && ids.push(a.id));
+    if (sections.hero && !(excludeSection === "hero")) ids.push(sections.hero.id);
+    sections.editors_choice.forEach((a, i) => {
+      if (a && !(excludeSection === "editors_choice" && excludeIndex === i)) ids.push(a.id);
+    });
+    if (sections.people && !(excludeSection === "people")) ids.push(sections.people.id);
+    sections.review.forEach((a, i) => {
+      if (a && !(excludeSection === "review" && excludeIndex === i)) ids.push(a.id);
+    });
+    sections.latest.forEach((a, i) => {
+      if (a && !(excludeSection === "latest" && excludeIndex === i)) ids.push(a.id);
+    });
     return ids;
   };
 
@@ -330,10 +340,7 @@ export default function HomepageAdminPage() {
   const handleSave = async () => {
     setSaving(true);
 
-    // Collect all updates
     const updates: { id: string; homepage_placement: string | null; homepage_slot: number | null; homepage_latest_slot: number | null }[] = [];
-
-    // First clear all current placements for articles that are no longer placed
     const currentlyPlacedIds = new Set<string>();
 
     if (sections.hero) {
@@ -358,7 +365,6 @@ export default function HomepageAdminPage() {
     });
     sections.latest.forEach((a, i) => {
       if (a) {
-        // latest slot articles keep their homepage_placement if they have one
         const existing = updates.find((u) => u.id === a.id);
         if (existing) {
           existing.homepage_latest_slot = i + 1;
@@ -369,29 +375,25 @@ export default function HomepageAdminPage() {
       }
     });
 
-    // Execute updates
     for (const u of updates) {
-      await supabase
-        .from("articles")
-        .update({
-          homepage_placement: u.homepage_placement,
-          homepage_slot: u.homepage_slot,
-          homepage_latest_slot: u.homepage_latest_slot,
-        })
-        .eq("id", u.id);
+      await supabase.from("articles").update({
+        homepage_placement: u.homepage_placement,
+        homepage_slot: u.homepage_slot,
+        homepage_latest_slot: u.homepage_latest_slot,
+      }).eq("id", u.id);
     }
 
-    // Clear placement from articles that were previously placed but no longer are
     const previouslyPlaced = allArticles.filter(
       (a: any) =>
         (a.homepage_placement || a.homepage_latest_slot) &&
         !currentlyPlacedIds.has(a.id)
     );
     for (const a of previouslyPlaced) {
-      await supabase
-        .from("articles")
-        .update({ homepage_placement: null, homepage_slot: null, homepage_latest_slot: null })
-        .eq("id", a.id);
+      await supabase.from("articles").update({
+        homepage_placement: null,
+        homepage_slot: null,
+        homepage_latest_slot: null,
+      }).eq("id", a.id);
     }
 
     setSaving(false);
@@ -457,7 +459,7 @@ export default function HomepageAdminPage() {
         <div className="px-4 py-3 border-b border-border bg-muted/20">
           <SectionHeader title="އެޑިޓަރ ޗޮއިސް" slots={4} filled={filledEC} description="4-grid · ordered" />
         </div>
-        <div className="p-4 grid grid-cols-4 gap-3">
+        <div className="p-4 grid grid-cols-4 gap-3" dir="ltr">
           {sections.editors_choice.map((a, i) => (
             <Slot
               key={i}
@@ -488,14 +490,15 @@ export default function HomepageAdminPage() {
 
         <div className="border border-border rounded-xl overflow-hidden bg-background">
           <div className="px-4 py-3 border-b border-border bg-muted/20">
-            <SectionHeader title="ރިވިއު" slots={3} filled={filledReview} description="3-grid · ordered" />
+            <SectionHeader title="ރިވިއު" slots={3} filled={filledReview} description="3-grid · portrait" />
           </div>
-          <div className="p-4 grid grid-cols-3 gap-2">
+          <div className="p-4 grid grid-cols-3 gap-2" dir="ltr">
             {sections.review.map((a, i) => (
               <Slot
                 key={i}
                 article={a}
                 index={i}
+                aspect="3/4"
                 onPick={() => setPicker({ section: "review", index: i, label: `Review ${i + 1}` })}
                 onRemove={() => handleRemove("review", i)}
               />
@@ -509,7 +512,7 @@ export default function HomepageAdminPage() {
         <div className="px-4 py-3 border-b border-border bg-muted/20">
           <SectionHeader title="ލެޓެސްޓް ގްރިޑް" slots={8} filled={filledLatest} description="4×2 grid · homepage bottom" />
         </div>
-        <div className="p-4 grid grid-cols-4 gap-3">
+        <div className="p-4 grid grid-cols-4 gap-3" dir="ltr">
           {sections.latest.map((a, i) => (
             <Slot
               key={i}
@@ -527,7 +530,7 @@ export default function HomepageAdminPage() {
         <PickerModal
           label={picker.label}
           allArticles={allArticles}
-          usedIds={getUsedIds()}
+          usedIds={getUsedIds(picker.section, picker.index)}
           onPick={handlePick}
           onClose={() => setPicker(null)}
         />
