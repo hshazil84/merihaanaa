@@ -33,7 +33,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
 
   const { data: category } = await supabase
     .from("categories")
-    ("id, name, slug")
+    .select("id, name, slug")
     .eq("slug", params.category)
     .single();
 
