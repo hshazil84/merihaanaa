@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { ChevronUp, ChevronDown, X, Volume2, VolumeX } from "lucide-react";
+import { ChevronUp, ChevronDown, X, Play } from "lucide-react";
 
 interface Reel {
   id: string;
@@ -30,11 +30,11 @@ export default function ReelPlayerPage() {
 
   const [reels, setReels] = useState<Reel[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [muted, setMuted] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [played, setPlayed] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
 
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef<number | null>(null);
   const touchStartX = useRef<number | null>(null);
 
@@ -60,14 +60,33 @@ export default function ReelPlayerPage() {
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < reels.length - 1;
 
-  // Simply toggle muted state — iframe key includes muted so it remounts with new URL
-  const toggleMute = useCallback(() => {
-    setMuted(prev => !prev);
-  }, []);
+  // Inject iframe directly in click handler — preserves user gesture for sound
+  const handlePlay = useCallback(() => {
+    const container = videoContainerRef.current;
+    const reel = reels[currentIndex];
+    if (!container || !reel) return;
+
+    const posterParam = reel.thumbnail_url
+      ? `&poster=${encodeURIComponent(reel.thumbnail_url)}`
+      : "";
+
+    const iframe = document.createElement("iframe");
+    iframe.src = `https://iframe.cloudflarestream.com/${reel.stream_video_id}?autoplay=true&muted=false&loop=true&controls=true${posterParam}`;
+    iframe.style.cssText = "position:absolute;inset:0;width:100%;height:100%;border:none;display:block;";
+    iframe.allow = "autoplay; fullscreen; picture-in-picture";
+    iframe.allowFullscreen = true;
+
+    container.innerHTML = "";
+    container.appendChild(iframe);
+    setPlayed(true);
+  }, [reels, currentIndex]);
 
   const goTo = useCallback((index: number) => {
     if (index < 0 || index >= reels.length || transitioning) return;
     setTransitioning(true);
+    setPlayed(false);
+    // Clear iframe immediately
+    if (videoContainerRef.current) videoContainerRef.current.innerHTML = "";
     setTimeout(() => {
       setCurrentIndex(index);
       const newSlug = reels[index]?.slug;
@@ -82,13 +101,13 @@ export default function ReelPlayerPage() {
       if (e.key === "ArrowUp") goTo(currentIndex - 1);
       else if (e.key === "ArrowDown") goTo(currentIndex + 1);
       else if (e.key === "Escape") router.back();
-      else if (e.key === "m" || e.key === "M") toggleMute();
+      else if (e.key === " " || e.key === "Enter") handlePlay();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [currentIndex, goTo, toggleMute]);
+  }, [currentIndex, goTo, handlePlay]);
 
-  // Touch swipe handlers
+  // Touch swipe
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
     touchStartX.current = e.touches[0].clientX;
@@ -124,39 +143,59 @@ export default function ReelPlayerPage() {
     );
   }
 
-  const posterParam = currentReel.thumbnail_url
-    ? `&poster=${encodeURIComponent(currentReel.thumbnail_url)}`
-    : "";
-
-  // muted is in URL + key so toggling remounts iframe with correct muted state
-  const embedUrl = `https://iframe.cloudflarestream.com/${currentReel.stream_video_id}?autoplay=true&muted=${muted}&loop=true&controls=true&preload=auto${posterParam}`;
-
   return (
     <div className="fixed inset-0 bg-black z-50 overflow-hidden select-none">
 
-      {/* iframe — full screen, controls=true but clipped off bottom */}
+      {/* Video container — thumbnail + click to play, then iframe injected here */}
       <div
+        ref={videoContainerRef}
         className="absolute inset-0 transition-opacity duration-200"
         style={{ opacity: transitioning ? 0 : 1 }}
       >
-        <div className="absolute inset-0" style={{ bottom: "-48px" }}>
-          <iframe
-            ref={iframeRef}
-            key={`${currentReel.id}-${muted}`}
-            src={embedUrl}
-            className="w-full h-full"
-            style={{ border: "none", display: "block" }}
-            allow="autoplay; fullscreen; picture-in-picture"
-            allowFullScreen
+        {/* Thumbnail shown until user clicks play */}
+        {currentReel.thumbnail_url && (
+          <img
+            src={currentReel.thumbnail_url}
+            alt={currentReel.title}
+            className="absolute inset-0 w-full h-full object-cover"
           />
-        </div>
+        )}
       </div>
 
-      {/* Swipe strips on edges */}
-      <div className="absolute top-0 bottom-0 left-0 w-16 z-20" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} />
-      <div className="absolute top-0 bottom-0 right-0 w-16 z-20" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} />
-      <div className="absolute top-0 left-16 right-16 h-24 z-20" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} />
-      <div className="absolute bottom-0 left-16 right-16 h-32 z-20" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} />
+      {/* Click to play overlay — full screen tap area */}
+      {!played && (
+        <div
+          className="absolute inset-0 z-20 flex items-center justify-center cursor-pointer"
+          onClick={handlePlay}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={(e) => {
+            // If it was a tap (not a swipe), play
+            if (touchStartY.current !== null) {
+              const deltaY = Math.abs(touchStartY.current - e.changedTouches[0].clientY);
+              const deltaX = Math.abs((touchStartX.current ?? 0) - e.changedTouches[0].clientX);
+              if (deltaY < 10 && deltaX < 10) {
+                handlePlay();
+                return;
+              }
+            }
+            handleTouchEnd(e);
+          }}
+        >
+          <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center">
+            <Play size={28} className="text-white ml-1" fill="white" />
+          </div>
+        </div>
+      )}
+
+      {/* Swipe strips when video is playing */}
+      {played && (
+        <>
+          <div className="absolute top-0 bottom-0 left-0 w-16 z-20" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} />
+          <div className="absolute top-0 bottom-0 right-0 w-16 z-20" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} />
+          <div className="absolute top-0 left-16 right-16 h-24 z-20" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} />
+          <div className="absolute bottom-0 left-16 right-16 h-32 z-20" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} />
+        </>
+      )}
 
       {/* Gradient overlays */}
       <div className="absolute inset-0 pointer-events-none z-20">
@@ -176,16 +215,7 @@ export default function ReelPlayerPage() {
         <p className="text-white/60 text-xs" style={{ fontFamily: "MVTypewriter, serif" }}>
           {currentIndex + 1} / {reels.length}
         </p>
-        <button
-          onClick={toggleMute}
-          className="w-9 h-9 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-sm"
-          aria-label={muted ? "Unmute" : "Mute"}
-        >
-          {muted
-            ? <VolumeX size={16} className="text-white" />
-            : <Volume2 size={16} className="text-white" />
-          }
-        </button>
+        <div className="w-9 h-9" />
       </div>
 
       {/* Bottom info */}
