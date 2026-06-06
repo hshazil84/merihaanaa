@@ -49,11 +49,13 @@ export default function EditArticlePage() {
   const placementRef = useRef<string | null>(null);
   const categoryRef  = useRef<string | null>(null);
   const isPremiumRef = useRef(false);
+  const isDirtyRef   = useRef(false);
 
   useEffect(() => { placementRef.current = placement; }, [placement]);
   useEffect(() => { categoryRef.current = categoryId; }, [categoryId]);
   useEffect(() => { isPremiumRef.current = isPremium; }, [isPremium]);
 
+  // Load article
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -113,9 +115,20 @@ export default function EditArticlePage() {
       }
 
       setLoading(false);
+      // Not dirty on initial load
+      isDirtyRef.current = false;
     };
     load();
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Mark dirty whenever any editable field changes (after initial load)
+  useEffect(() => {
+    if (!loading) isDirtyRef.current = true;
+  }, [
+    title, excerpt, body, categoryId, placement, homepageSlot, homepageFeatured,
+    isPremium, allowComments, ogTitle, ogDesc, ogImageUrl, coverMedia,
+    coverPortraitUrl, authorId, tags, seriesId, chapterNumber,
+  ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const editorScrollRef = useRef<HTMLDivElement>(null);
 
@@ -143,12 +156,6 @@ export default function EditArticlePage() {
       }
     }, []
   );
-
-  useEffect(() => {
-    if (!title.trim() || loading) return;
-    const interval = setInterval(() => { handleSave("draft", true); }, 60000);
-    return () => clearInterval(interval);
-  }, [title, body, excerpt, loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const buildPayload = (publishStatus: "draft" | "published" | "scheduled") => {
     const coverFields =
@@ -197,11 +204,23 @@ export default function EditArticlePage() {
 
     setLastSaved(new Date());
     setStatus(publishStatus);
+    isDirtyRef.current = false;
 
     if (!silent && publishStatus === "published") {
       router.push("/admin/articles");
     }
   };
+
+  // Autosave: only fires when dirty, preserves current publish status
+  useEffect(() => {
+    if (!title.trim() || loading) return;
+    const interval = setInterval(() => {
+      if (!isDirtyRef.current) return;
+      const currentStatus = status === "published" ? "published" : "draft";
+      handleSave(currentStatus, true);
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [title, body, excerpt, loading, status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handlePreview = () => { window.open(`/preview/${slug}`, "_blank"); };
 
