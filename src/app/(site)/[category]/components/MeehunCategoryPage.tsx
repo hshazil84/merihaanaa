@@ -9,8 +9,9 @@ const TEXT_MUTED = "rgb(160,158,152)";
 const TEXT_SECONDARY = "rgb(100,98,92)";
 const BG_PAGE = "#F5F3EF";
 const BG_CARD = "#EBE8E1";
-const DIVIDER = "rgba(0,0,0,0.1)";
+const DIVIDER = "rgba(0,0,0,0.08)";
 const RED_TAG = "#9B2020";
+const CORAL_NUM = "rgba(210,100,80,0.35)";
 
 function getAuthorName(author: any): string {
   if (!author) return "";
@@ -60,37 +61,75 @@ export function MeehunCategoryPage({
   return (
     <div style={{ backgroundColor: BG_PAGE, minHeight: "100vh" }} dir="rtl">
 
+      <style>{`
+        .meehun-grid {
+          display: grid;
+          grid-template-columns: 220px 1fr 220px;
+          gap: 2rem;
+          align-items: start;
+        }
+        .meehun-col-divider {
+          border-right: 0.5px solid rgba(0,0,0,0.08);
+          border-left: 0.5px solid rgba(0,0,0,0.08);
+          padding: 0 2rem;
+        }
+        .card-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 1rem;
+        }
+        @media (max-width: 1024px) {
+          .meehun-grid {
+            grid-template-columns: 1fr;
+            gap: 0;
+          }
+          .meehun-col-left,
+          .meehun-col-right {
+            display: none;
+          }
+          .meehun-col-divider {
+            border: none;
+            padding: 0;
+          }
+          .card-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+        @media (max-width: 480px) {
+          .card-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+        .recent-link:hover p { opacity: 0.65; }
+        .card-link:hover img { transform: scale(1.05); }
+        .featured-link:hover h2 { opacity: 0.7; }
+      `}</style>
+
       {/* Page header */}
-      <header style={{ maxWidth: "64rem", margin: "0 auto", padding: "3rem 1.5rem 2.5rem", textAlign: "center" }}>
-        <h1 style={{
-          fontFamily: FONT_DISPLAY,
-          fontSize: "clamp(2.5rem, 6vw, 4rem)",
-          color: TEXT_PRIMARY,
-          lineHeight: 1.6,
-          fontWeight: 400,
-          margin: 0,
-        }}>
-          {category.name}
-        </h1>
-        <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_MUTED, lineHeight: 2, marginTop: "4px" }}>
-          {total} ލިޔުން
-        </p>
+      <header style={{ maxWidth: "72rem", margin: "0 auto", padding: "2rem 1.5rem 1.75rem", textAlign: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1rem" }}>
+          <span style={{ color: "rgba(0,0,0,0.2)", fontSize: "14px", letterSpacing: "0.2em" }}>✦ ✦</span>
+          <h1 style={{
+            fontFamily: FONT_DISPLAY,
+            fontSize: "clamp(2rem, 5vw, 3.2rem)",
+            color: TEXT_PRIMARY,
+            lineHeight: 1.5,
+            fontWeight: 400,
+            margin: 0,
+          }}>
+            {category.name}
+          </h1>
+          <span style={{ color: "rgba(0,0,0,0.2)", fontSize: "14px", letterSpacing: "0.2em" }}>✦ ✦</span>
+        </div>
+        <div style={{ width: "40px", height: "0.5px", background: "rgba(0,0,0,0.15)", margin: "0.75rem auto 0" }} />
       </header>
 
       {/* 3-col strip */}
-      <div style={{
-        maxWidth: "72rem",
-        margin: "0 auto",
-        padding: "0 1.5rem",
-        display: "grid",
-        gridTemplateColumns: "200px 1fr 200px",
-        gap: "2rem",
-        alignItems: "start",
-      }}>
+      <div style={{ maxWidth: "72rem", margin: "0 auto", padding: "0 1.5rem" }} className="meehun-grid">
 
         {/* LEFT: Recent articles */}
-        <div>
-          <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "8px", fontWeight: 600 }}>
+        <div className="meehun-col-left">
+          <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "10px", fontWeight: 600, textTransform: "uppercase" }}>
             ފަހުގެ ލިޔުންތައް
           </p>
           <div>
@@ -98,18 +137,17 @@ export function MeehunCategoryPage({
               <Link
                 key={article.id}
                 href={`/${category.slug}/${article.slug}`}
-                style={{ display: "block", padding: "8px 0", borderBottom: i < recentArticles.length - 1 ? `0.5px solid ${DIVIDER}` : "none", textDecoration: "none" }}
+                className="recent-link"
+                style={{ display: "block", padding: "9px 0", borderBottom: i < recentArticles.length - 1 ? `0.5px solid ${DIVIDER}` : "none", textDecoration: "none" }}
               >
                 <TagLabel tags={article.tags} />
-                <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: "0 0 2px" }}
+                <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: "0 0 3px", transition: "opacity 0.2s" }}
                   className="line-clamp-2">
                   {article.title}
                 </p>
                 <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_MUTED, margin: 0, lineHeight: 2 }}>
                   {getAuthorName(article.author)}
-                  {article.published_at && (
-                    <> · {formatDhivehiDate(article.published_at)}</>
-                  )}
+                  {article.published_at && <> · {formatDhivehiDate(article.published_at)}</>}
                 </p>
               </Link>
             ))}
@@ -117,19 +155,19 @@ export function MeehunCategoryPage({
         </div>
 
         {/* CENTER: Featured */}
-        <div>
-          <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "8px", fontWeight: 600 }}>
+        <div className="meehun-col-divider">
+          <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "10px", fontWeight: 600, textTransform: "uppercase" }}>
             ފީޗަރ
           </p>
           {featuredArticle ? (
-            <Link href={`/${category.slug}/${featuredArticle.slug}`} style={{ display: "block", textDecoration: "none" }} className="group">
-              <div style={{ width: "100%", aspectRatio: "3/2", borderRadius: "12px", overflow: "hidden", backgroundColor: BG_CARD, marginBottom: "12px" }}>
+            <Link href={`/${category.slug}/${featuredArticle.slug}`} style={{ display: "block", textDecoration: "none" }} className="featured-link">
+              <div style={{ width: "100%", aspectRatio: "3/2", borderRadius: "12px", overflow: "hidden", backgroundColor: BG_CARD, marginBottom: "14px" }}>
                 {featuredArticle.featured_image ? (
                   <img
                     src={featuredArticle.featured_image}
                     alt={featuredArticle.title}
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    className="group-hover:scale-105 transition-transform duration-700"
+                    style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.7s ease" }}
+                    className="group-hover:scale-105"
                   />
                 ) : (
                   <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
@@ -137,14 +175,14 @@ export function MeehunCategoryPage({
               </div>
               <TagLabel tags={featuredArticle.tags} />
               <h2
-                className="group-hover:opacity-70 transition-opacity"
                 style={{
                   fontFamily: FONT_THAANA,
-                  fontSize: "clamp(1.1rem, 2.5vw, 1.4rem)",
+                  fontSize: "clamp(1.1rem, 2.5vw, 1.45rem)",
                   fontWeight: 700,
                   color: TEXT_PRIMARY,
                   lineHeight: 1.9,
                   margin: "0 0 8px",
+                  transition: "opacity 0.2s",
                 }}
               >
                 {featuredArticle.title}
@@ -157,9 +195,7 @@ export function MeehunCategoryPage({
               )}
               <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_MUTED, margin: 0, lineHeight: 2 }}>
                 {getAuthorName(featuredArticle.author)}
-                {featuredArticle.reading_time_minutes && (
-                  <> · {featuredArticle.reading_time_minutes} މިނެޓު</>
-                )}
+                {featuredArticle.reading_time_minutes && <> · {featuredArticle.reading_time_minutes} މިނެޓު</>}
               </p>
             </Link>
           ) : (
@@ -168,8 +204,8 @@ export function MeehunCategoryPage({
         </div>
 
         {/* RIGHT: Most read */}
-        <div>
-          <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "8px", fontWeight: 600 }}>
+        <div className="meehun-col-right">
+          <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "10px", fontWeight: 600, textTransform: "uppercase" }}>
             އެންމެ ގިނައިން ކިޔާ
           </p>
           <div>
@@ -177,21 +213,23 @@ export function MeehunCategoryPage({
               <Link
                 key={article.id}
                 href={`/${category.slug}/${article.slug}`}
-                style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "8px 0", borderBottom: i < mostRead.length - 1 ? `0.5px solid ${DIVIDER}` : "none", textDecoration: "none" }}
+                className="recent-link"
+                style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "9px 0", borderBottom: i < mostRead.length - 1 ? `0.5px solid ${DIVIDER}` : "none", textDecoration: "none" }}
               >
                 <span style={{
-                  fontFamily: FONT_THAANA,
-                  fontSize: "20px",
-                  fontWeight: 500,
-                  color: "rgba(0,0,0,0.15)",
+                  fontFamily: "Georgia, serif",
+                  fontSize: "22px",
+                  fontWeight: 400,
+                  color: CORAL_NUM,
                   lineHeight: 1,
-                  minWidth: "20px",
+                  minWidth: "22px",
                   flexShrink: 0,
+                  marginTop: "2px",
                 }}>
                   {i + 1}
                 </span>
                 <div>
-                  <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: "0 0 2px" }}
+                  <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: "0 0 2px", transition: "opacity 0.2s" }}
                     className="line-clamp-2">
                     {article.title}
                   </p>
@@ -209,31 +247,30 @@ export function MeehunCategoryPage({
       </div>
 
       {/* Divider */}
-      <div style={{ maxWidth: "72rem", margin: "2rem auto", padding: "0 1.5rem" }}>
+      <div style={{ maxWidth: "72rem", margin: "2rem auto 1.5rem", padding: "0 1.5rem" }}>
         <div style={{ borderTop: `0.5px solid ${DIVIDER}` }} />
       </div>
 
-      {/* Card grid 4x2 */}
+      {/* Card grid */}
       {articles.length > 0 && (
         <div style={{ maxWidth: "72rem", margin: "0 auto", padding: "0 1.5rem 4rem" }}>
-          <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "16px", fontWeight: 600 }}>
+          <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "16px", fontWeight: 600, textTransform: "uppercase" }}>
             ހުރިހާ ލިޔުންތައް
           </p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
+          <div className="card-grid">
             {articles.map((article) => (
               <Link
                 key={article.id}
                 href={`/${category.slug}/${article.slug}`}
-                style={{ textDecoration: "none" }}
-                className="group block"
+                style={{ textDecoration: "none", display: "block" }}
+                className="card-link"
               >
                 <div style={{ aspectRatio: "4/3", overflow: "hidden", borderRadius: "8px", backgroundColor: BG_CARD, marginBottom: "10px" }}>
                   {article.featured_image ? (
                     <img
                       src={article.featured_image}
                       alt={article.title}
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      className="group-hover:scale-105 transition-transform duration-500"
+                      style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.5s ease" }}
                     />
                   ) : (
                     <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
@@ -241,7 +278,7 @@ export function MeehunCategoryPage({
                 </div>
                 <TagLabel tags={article.tags} />
                 <h3
-                  className="line-clamp-2 group-hover:opacity-70 transition-opacity"
+                  className="line-clamp-2"
                   style={{
                     fontFamily: FONT_THAANA,
                     fontWeight: 700,
@@ -255,9 +292,7 @@ export function MeehunCategoryPage({
                 </h3>
                 <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_MUTED, margin: 0, lineHeight: 2 }}>
                   {getAuthorName(article.author)}
-                  {article.reading_time_minutes && (
-                    <> · {article.reading_time_minutes} މިނެޓު</>
-                  )}
+                  {article.reading_time_minutes && <> · {article.reading_time_minutes} މިނެޓު</>}
                 </p>
               </Link>
             ))}
