@@ -1,0 +1,227 @@
+"use client";
+
+import { useEffect, useState, useRef, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { ChevronUp, ChevronDown, X, Volume2, VolumeX } from "lucide-react";
+
+interface Reel {
+  id: string;
+  title: string;
+  slug: string;
+  stream_video_id: string;
+  thumbnail_url: string | null;
+  duration_seconds: number | null;
+  category: { name: string; slug: string } | null;
+}
+
+function formatDuration(secs: number | null) {
+  if (!secs) return "";
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+export default function ReelPlayerPage() {
+  const params = useParams();
+  const router = useRouter();
+  const supabase = createClient();
+  const slug = params.slug as string;
+
+  const [reels, setReels] = useState<Reel[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [muted, setMuted] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [transitioning, setTransitioning] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const touchStartY = useRef<number | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      const { data } = await supabase
+        .from("reels")
+        .select("id, title, slug, stream_video_id, thumbnail_url, duration_seconds, category:categories!category_id(name, slug)")
+        .eq("status", "published")
+        .order("published_at", { ascending: false })
+        .limit(50);
+
+      if (!data) return;
+      setReels(data as unknown as Reel[]);
+
+      const idx = data.findIndex((r: any) => r.slug === slug);
+      setCurrentIndex(idx >= 0 ? idx : 0);
+      setLoading(false);
+    }
+    load();
+  }, [slug]);
+
+  const currentReel = reels[currentIndex];
+  const hasPrev = currentIndex > 0;
+  const hasNext = currentIndex < reels.length - 1;
+
+  const goTo = useCallback((index: number) => {
+    if (index < 0 || index >= reels.length || transitioning) return;
+    setTransitioning(true);
+    setTimeout(() => {
+      setCurrentIndex(index);
+      const newSlug = reels[index]?.slug;
+      if (newSlug) window.history.replaceState(null, "", `/reels/${newSlug}`);
+      setTransitioning(false);
+    }, 200);
+  }, [reels, transitioning]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "ArrowUp") goTo(currentIndex - 1);
+      else if (e.key === "ArrowDown") goTo(currentIndex + 1);
+      else if (e.key === "Escape") router.back();
+      else if (e.key === "m") setMuted((p) => !p);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [currentIndex, goTo]);
+
+  // Touch swipe
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartY.current === null) return;
+    const delta = touchStartY.current - e.changedTouches[0].clientY;
+    if (Math.abs(delta) > 50) {
+      if (delta > 0) goTo(currentIndex + 1);
+      else goTo(currentIndex - 1);
+    }
+    touchStartY.current = null;
+  };
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-black flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!currentReel) {
+    return (
+      <div className="fixed inset-0 bg-black flex items-center justify-center">
+        <p className="text-white/60 text-sm font-body">ވީޑިއޯ ނުލިބުނު</p>
+      </div>
+    );
+  }
+
+  const embedUrl = `https://iframe.cloudflarestream.com/${currentReel.stream_video_id}?autoplay=true&loop=true&muted=${muted}&controls=false&preload=auto`;
+
+  return (
+    <div
+      className="fixed inset-0 bg-black overflow-hidden"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Video */}
+      <div
+        className="absolute inset-0 transition-opacity duration-200"
+        style={{ opacity: transitioning ? 0 : 1 }}
+      >
+        <iframe
+          ref={iframeRef}
+          key={currentReel.id}
+          src={embedUrl}
+          className="w-full h-full object-cover"
+          style={{ border: "none" }}
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+        />
+      </div>
+
+      {/* Gradient overlays */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black/60 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-black/80 to-transparent" />
+      </div>
+
+      {/* Top bar */}
+      <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-safe pt-4 z-20">
+        <button
+          onClick={() => router.back()}
+          className="w-9 h-9 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-sm"
+          aria-label="Close"
+        >
+          <X size={18} className="text-white" />
+        </button>
+        <p className="text-white/70 text-xs font-body">
+          {currentIndex + 1} / {reels.length}
+        </p>
+        <button
+          onClick={() => setMuted((p) => !p)}
+          className="w-9 h-9 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-sm"
+          aria-label={muted ? "Unmute" : "Mute"}
+        >
+          {muted
+            ? <VolumeX size={16} className="text-white" />
+            : <Volume2 size={16} className="text-white" />
+          }
+        </button>
+      </div>
+
+      {/* Bottom info */}
+      <div className="absolute bottom-0 left-0 right-0 px-4 pb-8 z-20" dir="rtl">
+        {currentReel.category && (
+          <span className="inline-block font-body text-[10px] px-2.5 py-1 rounded-full bg-white/15 text-white/80 mb-2 backdrop-blur-sm">
+            {currentReel.category.name}
+          </span>
+        )}
+        <h1 className="font-body text-white text-base font-semibold leading-snug line-clamp-2 mb-1">
+          {currentReel.title}
+        </h1>
+        {currentReel.duration_seconds && (
+          <p className="font-body text-white/50 text-xs">
+            {formatDuration(currentReel.duration_seconds)}
+          </p>
+        )}
+      </div>
+
+      {/* Up / Down navigation */}
+      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-20">
+        <button
+          onClick={() => goTo(currentIndex - 1)}
+          disabled={!hasPrev}
+          className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center disabled:opacity-20 transition-opacity hover:bg-black/60"
+          aria-label="Previous reel"
+        >
+          <ChevronUp size={20} className="text-white" />
+        </button>
+        <button
+          onClick={() => goTo(currentIndex + 1)}
+          disabled={!hasNext}
+          className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center disabled:opacity-20 transition-opacity hover:bg-black/60"
+          aria-label="Next reel"
+        >
+          <ChevronDown size={20} className="text-white" />
+        </button>
+      </div>
+
+      {/* Progress dots */}
+      <div className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col gap-1.5 z-20">
+        {reels.slice(Math.max(0, currentIndex - 3), Math.min(reels.length, currentIndex + 4)).map((r, i) => {
+          const actualIndex = Math.max(0, currentIndex - 3) + i;
+          return (
+            <button
+              key={r.id}
+              onClick={() => goTo(actualIndex)}
+              className="rounded-full transition-all"
+              style={{
+                width: actualIndex === currentIndex ? "6px" : "4px",
+                height: actualIndex === currentIndex ? "6px" : "4px",
+                background: actualIndex === currentIndex ? "white" : "rgba(255,255,255,0.35)",
+              }}
+              aria-label={`Go to reel ${actualIndex + 1}`}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
