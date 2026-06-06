@@ -34,17 +34,12 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   const compactMobileRef  = useRef<HTMLDivElement>(null);
   const staticWrapperRef  = useRef<HTMLDivElement>(null);
 
-  // Home page scroll state — all via refs, zero setState
-  const phaseRef         = useRef<"rising" | "merged">("rising");
-  const homeCompactRef   = useRef(false);
-  const lastScrollY      = useRef(0);
-
-  // Static page scroll state — all via refs, zero setState
-  const staticCompactRef    = useRef(false);
-  const lastScrollYStatic   = useRef(0);
-
-  // Icon nodes cached once on mount — no querySelectorAll on every scroll
-  const iconNodesRef = useRef<HTMLElement[]>([]);
+  const phaseRef          = useRef<"rising" | "merged">("rising");
+  const homeCompactRef    = useRef(false);
+  const lastScrollY       = useRef(0);
+  const staticCompactRef  = useRef(false);
+  const lastScrollYStatic = useRef(0);
+  const iconNodesRef      = useRef<HTMLElement[]>([]);
 
   const [searchOpen, setSearchOpen]         = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -58,17 +53,18 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   useEffect(() => {
     if (isStatic) return;
 
-    // Cache icon nodes once
+    // Cache icon nodes once on mount
     if (logoBarRef.current) {
       iconNodesRef.current = Array.from(
         logoBarRef.current.querySelectorAll<HTMLElement>(".nav-icon")
       );
     }
 
-    // Set initial cat bar position
     const heroHeight = window.innerHeight;
+
+    // Set initial cat bar position
     if (catBarRef.current) {
-      const naturalY = heroHeight - CAT_BAR_HEIGHT;
+      const naturalY = Math.round(heroHeight - CAT_BAR_HEIGHT);
       catBarRef.current.style.transform = `translateY(${naturalY}px) ${GPU}`;
       catBarRef.current.style.visibility = "visible";
       catBarRef.current.style.opacity = "1";
@@ -80,7 +76,8 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
       const scrollY  = window.scrollY;
       const vh       = window.innerHeight;
       const naturalY = vh - CAT_BAR_HEIGHT - scrollY;
-      const clampedY = Math.max(LOGO_BAR_HEIGHT, naturalY);
+      // Round to nearest pixel to prevent subpixel jitter
+      const clampedY = Math.round(Math.max(LOGO_BAR_HEIGHT, naturalY));
       const merged   = naturalY <= LOGO_BAR_HEIGHT;
       const offset   = LOGO_BAR_HEIGHT + CAT_BAR_HEIGHT;
 
@@ -98,6 +95,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         if (merged) {
           phaseRef.current = "merged";
           if (catBarRef.current) {
+            // Exactly at LOGO_BAR_HEIGHT — no subpixel gap
             catBarRef.current.style.transform = `translateY(${LOGO_BAR_HEIGHT}px) ${GPU}`;
           }
         }
@@ -110,20 +108,19 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           if (navWrapperRef.current) {
             navWrapperRef.current.style.transform = shouldCompact
               ? `translateY(-${offset}px) ${GPU}`
-              : `translateY(0) ${GPU}`;
+              : `translateY(0px) ${GPU}`;
           }
           const co = shouldCompact
-            ? `translateY(0) ${GPU}`
+            ? `translateY(0px) ${GPU}`
             : `translateY(-${COMPACT_HEIGHT}px) ${GPU}`;
           if (compactDesktopRef.current) compactDesktopRef.current.style.transform = co;
           if (compactMobileRef.current)  compactMobileRef.current.style.transform  = co;
         }
 
-        // Scroll back past merge point — return to rising phase
         if (naturalY > LOGO_BAR_HEIGHT) {
           phaseRef.current = "rising";
           homeCompactRef.current = false;
-          if (navWrapperRef.current)     navWrapperRef.current.style.transform     = `translateY(0) ${GPU}`;
+          if (navWrapperRef.current)     navWrapperRef.current.style.transform     = `translateY(0px) ${GPU}`;
           if (compactDesktopRef.current) compactDesktopRef.current.style.transform = `translateY(-${COMPACT_HEIGHT}px) ${GPU}`;
           if (compactMobileRef.current)  compactMobileRef.current.style.transform  = `translateY(-${COMPACT_HEIGHT}px) ${GPU}`;
           if (logoBarRef.current) {
@@ -153,7 +150,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
     };
   }, [isStatic]);
 
-  // ── Static page scroll handler — pure DOM, zero setState ─────────────────
+  // ── Static page scroll handler ────────────────────────────────────────────
   useEffect(() => {
     if (!isStatic) return;
 
@@ -166,14 +163,13 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
 
       if (shouldCompact !== staticCompactRef.current) {
         staticCompactRef.current = shouldCompact;
-
         if (staticWrapperRef.current) {
           staticWrapperRef.current.style.transform = shouldCompact
             ? `translateY(-${offset}px) ${GPU}`
-            : `translateY(0) ${GPU}`;
+            : `translateY(0px) ${GPU}`;
         }
         const co = shouldCompact
-          ? `translateY(0) ${GPU}`
+          ? `translateY(0px) ${GPU}`
           : `translateY(-${COMPACT_HEIGHT}px) ${GPU}`;
         if (compactDesktopRef.current) compactDesktopRef.current.style.transform = co;
         if (compactMobileRef.current)  compactMobileRef.current.style.transform  = co;
@@ -228,15 +224,20 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
     }
   };
 
+  // Shared style for GPU-composited elements
+  const gpuBase: React.CSSProperties = {
+    backfaceVisibility: "hidden",
+    WebkitBackfaceVisibility: "hidden" as any,
+  };
+
   // ── Static pages render ───────────────────────────────────────────────────
   if (isStatic) {
     return (
       <>
-        {/* Static nav wrapper — controlled via DOM ref, no state */}
         <div
           ref={staticWrapperRef}
           className="fixed top-0 right-0 left-0 z-50 will-change-transform"
-          style={{ transform: `translateY(0) ${GPU}`, transition: "transform 0.3s ease" }}
+          style={{ ...gpuBase, transform: `translateY(0px) ${GPU}`, transition: "transform 0.3s ease" }}
         >
           <header style={{ height: `${LOGO_BAR_HEIGHT}px`, backgroundColor: "rgb(249,248,245)" }}>
             <div className="max-w-7xl mx-auto px-5 md:px-6 h-full flex items-center justify-center relative">
@@ -286,11 +287,12 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           </div>
         </div>
 
-        {/* Desktop compact — DOM ref controlled */}
+        {/* Desktop compact */}
         <div
           ref={compactDesktopRef}
           className="fixed top-0 right-0 left-0 z-50 hidden md:block will-change-transform"
           style={{
+            ...gpuBase,
             height: `${COMPACT_HEIGHT}px`,
             backgroundColor: "rgb(249,248,245)",
             borderBottom: "1px solid rgb(224,221,214)",
@@ -300,7 +302,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         >
           <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between" dir="rtl">
             <Link href="/" className="flex items-center flex-shrink-0">
-              <Image src="/logo.svg" alt="މެރިހާނaa" width={32} height={32} className="object-contain" />
+              <Image src="/logo.svg" alt="މެރިހާنaa" width={32} height={32} className="object-contain" />
             </Link>
             <div className="flex items-center overflow-x-auto no-scrollbar">
               {categories.map((cat, i) => (
@@ -324,11 +326,12 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           </div>
         </div>
 
-        {/* Mobile compact — DOM ref controlled */}
+        {/* Mobile compact */}
         <div
           ref={compactMobileRef}
           className="fixed top-0 right-0 left-0 z-50 md:hidden will-change-transform"
           style={{
+            ...gpuBase,
             height: `${COMPACT_HEIGHT}px`,
             backgroundColor: "rgb(249,248,245)",
             borderBottom: "1px solid rgb(224,221,214)",
@@ -338,7 +341,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         >
           <div className="px-5 h-full flex items-center justify-between" dir="rtl">
             <Link href="/" className="flex items-center flex-shrink-0">
-              <Image src="/logo.svg" alt="މެރިހާނaa" width={32} height={32} className="object-contain" />
+              <Image src="/logo.svg" alt="މެރިހާنaa" width={32} height={32} className="object-contain" />
             </Link>
             <div className="flex items-center gap-1">
               <button type="button" aria-label="ހޯދާ" onClick={openSearch}
@@ -379,21 +382,21 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
       <div
         ref={navWrapperRef}
         className="fixed top-0 right-0 left-0 z-50 will-change-transform"
-        style={{ transform: `translateY(0) ${GPU}`, transition: "none" }}
+        style={{ ...gpuBase, transform: `translateY(0px) ${GPU}`, transition: "none" }}
       >
         {/* Logo bar */}
         <div
           ref={logoBarRef}
           style={{
+            ...gpuBase,
             height: `${LOGO_BAR_HEIGHT}px`,
             backgroundColor: "transparent",
             transition: "background-color 0.25s ease",
-            transform: GPU,
           }}
         >
           <div className="max-w-7xl mx-auto px-5 md:px-6 h-full flex items-center justify-center relative">
             <Link href="/" className="flex items-center">
-              <Image src="/logo.svg" alt="މެރިހާނaa" width={60} height={60} priority className="object-contain" />
+              <Image src="/logo.svg" alt="މެރިހާنaa" width={60} height={60} priority className="object-contain" />
             </Link>
             <div className="absolute right-5 md:hidden">
               <button type="button" onClick={() => setMobileMenuOpen(true)}
@@ -424,13 +427,15 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           </div>
         </div>
 
-        {/* Cat bar */}
+        {/* Cat bar — extra 1px height + negative margin to prevent subpixel gap */}
         <div
           ref={catBarRef}
           className="hidden md:block will-change-transform"
           style={{
+            ...gpuBase,
             position: "absolute", top: 0, left: 0, right: 0,
-            height: `${CAT_BAR_HEIGHT}px`,
+            height: `${CAT_BAR_HEIGHT + 1}px`,
+            marginTop: "-1px",
             backgroundColor: "rgb(249,248,245)",
             borderBottom: "1px solid rgb(224,221,214)",
             transform: `translateY(110vh) ${GPU}`,
@@ -459,6 +464,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         ref={compactDesktopRef}
         className="fixed top-0 right-0 left-0 z-50 hidden md:block will-change-transform"
         style={{
+          ...gpuBase,
           height: `${COMPACT_HEIGHT}px`,
           backgroundColor: "rgb(249,248,245)",
           borderBottom: "1px solid rgb(224,221,214)",
@@ -497,6 +503,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         ref={compactMobileRef}
         className="fixed top-0 right-0 left-0 z-50 md:hidden will-change-transform"
         style={{
+          ...gpuBase,
           height: `${COMPACT_HEIGHT}px`,
           backgroundColor: "rgb(249,248,245)",
           borderBottom: "1px solid rgb(224,221,214)",
