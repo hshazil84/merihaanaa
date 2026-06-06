@@ -233,14 +233,14 @@ export default function HomepageAdminPage() {
     async function load() {
       const { data: arts } = await supabase
         .from("articles")
-        .select("id, title, featured_image, homepage_placement, homepage_slot, homepage_latest_slot, category:categories!category_id(name, slug)")
+        .select("id, title, slug, featured_image, status, homepage_placement, homepage_slot, homepage_latest_slot, category:categories!category_id(name, slug)")
         .eq("status", "published")
         .order("published_at", { ascending: false })
         .limit(200);
 
       if (!arts) return;
 
-      setAllArticles(arts as Article[]);
+      setAllArticles(arts as unknown as Article[]);
 
       const state: SectionState = {
         hero: null,
