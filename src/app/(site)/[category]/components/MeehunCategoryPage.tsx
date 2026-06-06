@@ -10,7 +10,7 @@ const TEXT_SECONDARY = "rgb(100,98,92)";
 const BG_PAGE = "#F5F3EF";
 const BG_CARD = "#EBE8E1";
 const DIVIDER = "rgba(0,0,0,0.08)";
-const RED_TAG = "#9B2020";
+const RED_TAG = "#E87060";
 
 function getAuthorName(author: any): string {
   if (!author) return "";
@@ -47,12 +47,12 @@ function MostReadPill({ rank }: { rank: number }) {
       width: "22px",
       height: "22px",
       borderRadius: "999px",
-      background: "rgba(210,100,80,0.12)",
-      border: "0.5px solid rgba(210,100,80,0.25)",
+      background: "rgba(232,112,96,0.12)",
+      border: "0.5px solid rgba(232,112,96,0.25)",
       fontFamily: "Georgia, serif",
       fontSize: "12px",
       fontWeight: 400,
-      color: "rgba(190,80,60,0.7)",
+      color: "rgba(232,112,96,0.85)",
       flexShrink: 0,
       marginTop: "2px",
     }}>
@@ -148,9 +148,9 @@ export function MeehunCategoryPage({
       `}</style>
 
       {/* Page header */}
-      <header style={{ maxWidth: "72rem", margin: "0 auto", padding: "1.25rem 1.5rem 1.5rem", textAlign: "center" }}>
+      <header style={{ maxWidth: "72rem", margin: "0 auto", padding: "0.75rem 1.5rem 1.25rem", textAlign: "center" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1rem" }}>
-          <span style={{ color: "rgba(0,0,0,0.18)", fontSize: "12px", letterSpacing: "0.25em" }}>✦ ✦</span>
+          <span style={{ color: "rgba(0,0,0,0.18)", fontSize: "11px", letterSpacing: "0.15em" }}>✦</span>
           <h1 style={{
             fontFamily: FONT_DISPLAY,
             fontSize: "clamp(1.8rem, 4vw, 2.8rem)",
