@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Search, X, Plus, Check, RefreshCw } from "lucide-react";
 
+// ── Types ──────────────────────────────────────────────────────────────────
+
 interface Article {
   id: string;
   title: string;
@@ -21,6 +23,8 @@ interface SectionState {
   latest: (Article | null)[];
 }
 
+// ── Slot ───────────────────────────────────────────────────────────────────
+
 function Slot({
   article,
   index,
@@ -36,27 +40,49 @@ function Slot({
 }) {
   return (
     <div
-      className={`relative rounded-lg overflow-hidden border transition-colors cursor-pointer ${
-        article
-          ? "border-border hover:border-foreground"
-          : "border-dashed border-border hover:border-foreground hover:bg-muted/30"
-      }`}
-      style={{ aspectRatio: aspect, background: article ? undefined : "var(--muted)" }}
       onClick={onPick}
+      className={`relative rounded-lg overflow-hidden border transition-all cursor-pointer ${
+        article
+          ? "border-border hover:border-foreground/40"
+          : "border-dashed border-border hover:border-foreground/40 bg-muted/30 hover:bg-muted/50"
+      }`}
+      style={{ aspectRatio: aspect }}
     >
       {article ? (
         <>
           {article.featured_image ? (
-            <img src={article.featured_image} alt={article.title} className="w-full h-full object-cover" />
+            <img
+              src={article.featured_image}
+              alt={article.title}
+              className="w-full h-full object-cover"
+            />
           ) : (
-            <div className="w-full h-full bg-muted flex items-center justify-center">
-              <span className="font-body text-[10px] text-muted-foreground">No image</span>
-            </div>
+            <div className="w-full h-full bg-muted" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 p-2">
+
+          {/* Gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
+
+          {/* Slot number */}
+          {index !== undefined && (
+            <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-black/50 flex items-center justify-center font-body text-[10px] text-white font-semibold leading-none">
+              {index + 1}
+            </span>
+          )}
+
+          {/* Remove button */}
+          <button
+            onClick={(e) => { e.stopPropagation(); onRemove(); }}
+            className="absolute top-2 left-2 w-6 h-6 rounded-full bg-black/50 hover:bg-red-500 flex items-center justify-center transition-colors"
+            aria-label="Remove"
+          >
+            <X size={11} className="text-white" />
+          </button>
+
+          {/* Article info */}
+          <div className="absolute bottom-0 left-0 right-0 p-2.5">
             {article.category && (
-              <span className="inline-block font-body text-[9px] px-1.5 py-0.5 rounded-full bg-white/20 text-white mb-1">
+              <span className="inline-block font-body text-[9px] px-1.5 py-0.5 rounded-full bg-white/15 text-white/90 mb-1 leading-none">
                 {article.category.name}
               </span>
             )}
@@ -64,31 +90,20 @@ function Slot({
               {article.title}
             </p>
           </div>
-          {index !== undefined && (
-            <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/50 flex items-center justify-center font-body text-[10px] text-white font-semibold">
-              {index + 1}
-            </span>
-          )}
-          <button
-            onClick={(e) => { e.stopPropagation(); onRemove(); }}
-            className="absolute top-1.5 left-1.5 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 flex items-center justify-center transition-colors"
-            title="Remove"
-            aria-label="Remove"
-          >
-            <X size={11} className="text-white" />
-          </button>
         </>
       ) : (
-        <div className="w-full h-full flex flex-col items-center justify-center gap-1">
-          <Plus size={16} className="text-muted-foreground" />
+        <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 text-muted-foreground/50">
+          <Plus size={15} strokeWidth={1.5} />
           {index !== undefined && (
-            <span className="font-body text-[9px] text-muted-foreground">{index + 1}</span>
+            <span className="font-body text-[10px]">{index + 1}</span>
           )}
         </div>
       )}
     </div>
   );
 }
+
+// ── Section header ─────────────────────────────────────────────────────────
 
 function SectionHeader({
   title,
@@ -101,12 +116,13 @@ function SectionHeader({
   filled: number;
   description: string;
 }) {
+  const complete = filled === slots;
   return (
-    <div className="flex items-center justify-between mb-3">
+    <div className="flex items-center justify-between">
       <div className="flex items-center gap-2">
         <p className="font-body text-sm font-semibold text-foreground">{title}</p>
         <span className={`font-body text-[10px] px-2 py-0.5 rounded-full font-semibold ${
-          filled === slots
+          complete
             ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
             : "bg-muted text-muted-foreground"
         }`}>
@@ -117,6 +133,8 @@ function SectionHeader({
     </div>
   );
 }
+
+// ── Picker modal ───────────────────────────────────────────────────────────
 
 function PickerModal({
   label,
@@ -132,42 +150,58 @@ function PickerModal({
   onClose: () => void;
 }) {
   const [query, setQuery] = useState("");
+
   const filtered = allArticles.filter(
     (a) =>
       !usedIds.includes(a.id) &&
       (a.title.toLowerCase().includes(query.toLowerCase()) ||
-        a.category?.name.toLowerCase().includes(query.toLowerCase()) ||
-        a.category?.slug.toLowerCase().includes(query.toLowerCase()))
+        (a.category?.name ?? "").toLowerCase().includes(query.toLowerCase()))
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onClick={onClose}
+    >
       <div
-        className="bg-background border border-border rounded-xl w-full max-w-sm flex flex-col overflow-hidden shadow-xl"
+        className="bg-background border border-border rounded-xl w-full max-w-sm flex flex-col shadow-xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <p className="font-body text-sm font-semibold text-foreground">Pick article — {label}</p>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
-            <X size={16} />
+        {/* Modal header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
+          <p className="font-body text-sm font-semibold text-foreground">
+            Pick article
+            <span className="text-muted-foreground font-normal"> — {label}</span>
+          </p>
+          <button
+            onClick={onClose}
+            className="w-6 h-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          >
+            <X size={14} />
           </button>
         </div>
-        <div className="px-4 py-2.5 border-b border-border">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50">
-            <Search size={13} className="text-muted-foreground flex-shrink-0" />
+
+        {/* Search */}
+        <div className="px-4 py-2.5 border-b border-border flex-shrink-0">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/60 border border-border">
+            <Search size={12} className="text-muted-foreground flex-shrink-0" />
             <input
               autoFocus
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search articles..."
-              className="flex-1 bg-transparent font-body text-sm outline-none placeholder:text-muted-foreground"
+              placeholder="Search by title or category..."
+              className="flex-1 bg-transparent font-body text-xs outline-none placeholder:text-muted-foreground/60 text-foreground"
             />
           </div>
         </div>
-        <div className="overflow-y-auto max-h-80">
+
+        {/* List */}
+        <div className="overflow-y-auto max-h-72 flex-1">
           {filtered.length === 0 ? (
-            <p className="font-body text-sm text-muted-foreground text-center py-8">No articles found</p>
+            <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+              <p className="font-body text-sm">No articles found</p>
+            </div>
           ) : (
             filtered.map((a) => (
               <button
@@ -175,7 +209,7 @@ function PickerModal({
                 onClick={() => onPick(a)}
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors border-b border-border last:border-0 text-left"
               >
-                <div className="w-10 h-10 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                <div className="w-9 h-9 rounded-md overflow-hidden bg-muted flex-shrink-0">
                   {a.featured_image ? (
                     <img src={a.featured_image} alt="" className="w-full h-full object-cover" />
                   ) : (
@@ -188,11 +222,11 @@ function PickerModal({
                       {a.category.name}
                     </span>
                   )}
-                  <p className="font-body text-xs text-foreground line-clamp-2 leading-snug" dir="rtl">
+                  <p className="font-body text-xs text-foreground line-clamp-1 leading-snug" dir="rtl">
                     {a.title}
                   </p>
                 </div>
-                <Plus size={14} className="text-muted-foreground flex-shrink-0" />
+                <Plus size={13} className="text-muted-foreground flex-shrink-0" />
               </button>
             ))
           )}
@@ -201,6 +235,8 @@ function PickerModal({
     </div>
   );
 }
+
+// ── Main page ──────────────────────────────────────────────────────────────
 
 export default function HomepageAdminPage() {
   const supabase = createClient();
@@ -222,6 +258,7 @@ export default function HomepageAdminPage() {
     label: string;
   } | null>(null);
 
+  // Load current placements
   useEffect(() => {
     async function load() {
       const { data: arts } = await supabase
@@ -244,14 +281,18 @@ export default function HomepageAdminPage() {
       };
 
       for (const a of arts as any[]) {
-        if (a.homepage_placement === "hero") state.hero = a;
-        else if (a.homepage_placement === "editors_choice" && a.homepage_slot >= 1 && a.homepage_slot <= 4)
+        if (a.homepage_placement === "hero") {
+          state.hero = a;
+        } else if (a.homepage_placement === "editors_choice" && a.homepage_slot >= 1 && a.homepage_slot <= 4) {
           state.editors_choice[a.homepage_slot - 1] = a;
-        else if (a.homepage_placement === "people") state.people = a;
-        else if (a.homepage_placement === "review" && a.homepage_slot >= 1 && a.homepage_slot <= 3)
+        } else if (a.homepage_placement === "people") {
+          state.people = a;
+        } else if (a.homepage_placement === "review" && a.homepage_slot >= 1 && a.homepage_slot <= 3) {
           state.review[a.homepage_slot - 1] = a;
-        if (a.homepage_latest_slot >= 1 && a.homepage_latest_slot <= 8)
+        }
+        if (a.homepage_latest_slot >= 1 && a.homepage_latest_slot <= 8) {
           state.latest[a.homepage_latest_slot - 1] = a;
+        }
       }
 
       setSections(state);
@@ -262,13 +303,13 @@ export default function HomepageAdminPage() {
 
   const markUnsaved = () => setSaved(false);
 
-  const getUsedIds = (excludeSection?: keyof SectionState, excludeIndex?: number) => {
+  const getUsedIds = (excludeSection?: keyof SectionState, excludeIndex?: number): string[] => {
     const ids: string[] = [];
-    if (sections.hero && !(excludeSection === "hero")) ids.push(sections.hero.id);
+    if (sections.hero && excludeSection !== "hero") ids.push(sections.hero.id);
     sections.editors_choice.forEach((a, i) => {
       if (a && !(excludeSection === "editors_choice" && excludeIndex === i)) ids.push(a.id);
     });
-    if (sections.people && !(excludeSection === "people")) ids.push(sections.people.id);
+    if (sections.people && excludeSection !== "people") ids.push(sections.people.id);
     sections.review.forEach((a, i) => {
       if (a && !(excludeSection === "review" && excludeIndex === i)) ids.push(a.id);
     });
@@ -282,9 +323,11 @@ export default function HomepageAdminPage() {
     if (!picker) return;
     setSections((prev) => {
       const next = { ...prev };
-      if (picker.section === "hero") next.hero = article;
-      else if (picker.section === "people") next.people = article;
-      else if (picker.section === "editors_choice") {
+      if (picker.section === "hero") {
+        next.hero = article;
+      } else if (picker.section === "people") {
+        next.people = article;
+      } else if (picker.section === "editors_choice") {
         const arr = [...prev.editors_choice];
         arr[picker.index] = article;
         next.editors_choice = arr;
@@ -309,17 +352,11 @@ export default function HomepageAdminPage() {
       if (section === "hero") next.hero = null;
       else if (section === "people") next.people = null;
       else if (section === "editors_choice") {
-        const arr = [...prev.editors_choice];
-        arr[index] = null;
-        next.editors_choice = arr;
+        const arr = [...prev.editors_choice]; arr[index] = null; next.editors_choice = arr;
       } else if (section === "review") {
-        const arr = [...prev.review];
-        arr[index] = null;
-        next.review = arr;
+        const arr = [...prev.review]; arr[index] = null; next.review = arr;
       } else if (section === "latest") {
-        const arr = [...prev.latest];
-        arr[index] = null;
-        next.latest = arr;
+        const arr = [...prev.latest]; arr[index] = null; next.latest = arr;
       }
       return next;
     });
@@ -330,25 +367,25 @@ export default function HomepageAdminPage() {
     setSaving(true);
 
     const updates: { id: string; homepage_placement: string | null; homepage_slot: number | null; homepage_latest_slot: number | null }[] = [];
-    const currentlyPlacedIds = new Set<string>();
+    const placedIds = new Set<string>();
 
     if (sections.hero) {
-      currentlyPlacedIds.add(sections.hero.id);
+      placedIds.add(sections.hero.id);
       updates.push({ id: sections.hero.id, homepage_placement: "hero", homepage_slot: null, homepage_latest_slot: null });
     }
     sections.editors_choice.forEach((a, i) => {
       if (a) {
-        currentlyPlacedIds.add(a.id);
+        placedIds.add(a.id);
         updates.push({ id: a.id, homepage_placement: "editors_choice", homepage_slot: i + 1, homepage_latest_slot: null });
       }
     });
     if (sections.people) {
-      currentlyPlacedIds.add(sections.people.id);
+      placedIds.add(sections.people.id);
       updates.push({ id: sections.people.id, homepage_placement: "people", homepage_slot: null, homepage_latest_slot: null });
     }
     sections.review.forEach((a, i) => {
       if (a) {
-        currentlyPlacedIds.add(a.id);
+        placedIds.add(a.id);
         updates.push({ id: a.id, homepage_placement: "review", homepage_slot: i + 1, homepage_latest_slot: null });
       }
     });
@@ -358,7 +395,7 @@ export default function HomepageAdminPage() {
         if (existing) {
           existing.homepage_latest_slot = i + 1;
         } else {
-          currentlyPlacedIds.add(a.id);
+          placedIds.add(a.id);
           updates.push({ id: a.id, homepage_placement: null, homepage_slot: null, homepage_latest_slot: i + 1 });
         }
       }
@@ -372,16 +409,13 @@ export default function HomepageAdminPage() {
       }).eq("id", u.id);
     }
 
-    const previouslyPlaced = allArticles.filter(
-      (a: any) =>
-        (a.homepage_placement || a.homepage_latest_slot) &&
-        !currentlyPlacedIds.has(a.id)
+    // Clear removed articles
+    const toRemove = allArticles.filter(
+      (a: any) => (a.homepage_placement || a.homepage_latest_slot) && !placedIds.has(a.id)
     );
-    for (const a of previouslyPlaced) {
+    for (const a of toRemove) {
       await supabase.from("articles").update({
-        homepage_placement: null,
-        homepage_slot: null,
-        homepage_latest_slot: null,
+        homepage_placement: null, homepage_slot: null, homepage_latest_slot: null,
       }).eq("id", a.id);
     }
 
@@ -391,58 +425,46 @@ export default function HomepageAdminPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground font-body text-sm">
-        ލޯޑްވަނީ...
+      <div className="flex items-center justify-center h-64">
+        <p className="font-body text-sm text-muted-foreground">ލޯޑްވަނީ...</p>
       </div>
     );
   }
 
-  const filledLatest = sections.latest.filter(Boolean).length;
   const filledEC = sections.editors_choice.filter(Boolean).length;
   const filledReview = sections.review.filter(Boolean).length;
-
-  // Helper to render a reversed grid for RTL (slot 1 on right, last on left)
-  function renderGrid<T>(
-    arr: (T | null)[],
-    renderSlot: (item: T | null, realIndex: number) => React.ReactNode
-  ) {
-    return [...arr].reverse().map((item, reversedI) => {
-      const realIndex = arr.length - 1 - reversedI;
-      return renderSlot(item, realIndex);
-    });
-  }
+  const filledLatest = sections.latest.filter(Boolean).length;
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-5">
+    <div className="p-6 max-w-5xl mx-auto space-y-5 pb-16">
 
-      {/* Header */}
+      {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-body text-xl font-semibold text-foreground" dir="rtl">ހޯމްޕޭޖް</h1>
-          <p className="font-body text-xs text-muted-foreground mt-0.5">merihaanaa.com</p>
+          <h1 className="font-body text-lg font-semibold text-foreground" dir="rtl">ހޯމްޕޭޖް</h1>
+          <p className="font-body text-xs text-muted-foreground mt-0.5">merihaanaa.com · control what appears on the homepage</p>
         </div>
         <div className="flex items-center gap-3">
-          <p className="font-body text-xs text-muted-foreground flex items-center gap-1.5">
-            {saved ? (
-              <><Check size={13} className="text-green-600" />Published</>
-            ) : (
-              <><RefreshCw size={12} className="text-amber-500" />Unsaved changes</>
-            )}
-          </p>
+          <span className="font-body text-xs text-muted-foreground flex items-center gap-1.5">
+            {saved
+              ? <><Check size={12} className="text-green-600" />All changes saved</>
+              : <><RefreshCw size={12} className="text-amber-500" />Unsaved changes</>
+            }
+          </span>
           <button
             onClick={handleSave}
             disabled={saving || saved}
-            className="flex items-center gap-1.5 h-8 px-4 rounded-lg bg-foreground text-background font-body text-xs font-semibold hover:opacity-80 transition-opacity disabled:opacity-40"
+            className="h-8 px-4 rounded-lg bg-foreground text-background font-body text-xs font-semibold hover:opacity-80 transition-opacity disabled:opacity-40 flex items-center gap-1.5"
           >
             {saving ? <><RefreshCw size={12} className="animate-spin" />Saving...</> : "Publish all"}
           </button>
         </div>
       </div>
 
-      {/* HERO */}
-      <div className="border border-border rounded-xl overflow-hidden bg-background">
+      {/* ── Hero ── */}
+      <div className="rounded-xl border border-border bg-background overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-muted/20">
-          <SectionHeader title="ހީރޯ" slots={1} filled={sections.hero ? 1 : 0} description="Full cover · 1 slot" />
+          <SectionHeader title="ހީރޯ" slots={1} filled={sections.hero ? 1 : 0} description="Full-width cover · 1 slot" />
         </div>
         <div className="p-4">
           <Slot
@@ -454,78 +476,80 @@ export default function HomepageAdminPage() {
         </div>
       </div>
 
-      {/* EDITORS CHOICE */}
-      <div className="border border-border rounded-xl overflow-hidden bg-background">
+      {/* ── Editor's Choice ── */}
+      <div className="rounded-xl border border-border bg-background overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-muted/20">
-          <SectionHeader title="އެޑިޓަރ ޗޮއިސް" slots={4} filled={filledEC} description="4-grid · ordered" />
+          <SectionHeader title="އެޑިޓަރ ޗޮއިސް" slots={4} filled={filledEC} description="4-column grid · ordered right to left" />
         </div>
         <div className="p-4 grid grid-cols-4 gap-3">
-          {renderGrid(sections.editors_choice, (a, i) => (
+          {sections.editors_choice.map((a, i) => (
             <Slot
               key={i}
               article={a}
               index={i}
-              onPick={() => setPicker({ section: "editors_choice", index: i, label: `Editor's choice ${i + 1}` })}
+              onPick={() => setPicker({ section: "editors_choice", index: i, label: `Editor's choice · slot ${i + 1}` })}
               onRemove={() => handleRemove("editors_choice", i)}
             />
           ))}
         </div>
       </div>
 
-      {/* PEOPLE + REVIEW */}
+      {/* ── People + Review ── */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="border border-border rounded-xl overflow-hidden bg-background">
+
+        <div className="rounded-xl border border-border bg-background overflow-hidden">
           <div className="px-4 py-3 border-b border-border bg-muted/20">
-            <SectionHeader title="މީހުން" slots={1} filled={sections.people ? 1 : 0} description="Split · 1 slot" />
+            <SectionHeader title="މީހުން" slots={1} filled={sections.people ? 1 : 0} description="Feature split · 1 slot" />
           </div>
           <div className="p-4">
             <Slot
               article={sections.people}
               aspect="16/9"
-              onPick={() => setPicker({ section: "people", index: 0, label: "People" })}
+              onPick={() => setPicker({ section: "people", index: 0, label: "People feature" })}
               onRemove={() => handleRemove("people", 0)}
             />
           </div>
         </div>
 
-        <div className="border border-border rounded-xl overflow-hidden bg-background">
+        <div className="rounded-xl border border-border bg-background overflow-hidden">
           <div className="px-4 py-3 border-b border-border bg-muted/20">
-            <SectionHeader title="ރިވިއު" slots={3} filled={filledReview} description="3-grid · portrait" />
+            <SectionHeader title="ރިވިއު" slots={3} filled={filledReview} description="3-column portrait grid · ordered right to left" />
           </div>
           <div className="p-4 grid grid-cols-3 gap-2">
-            {renderGrid(sections.review, (a, i) => (
+            {sections.review.map((a, i) => (
               <Slot
                 key={i}
                 article={a}
                 index={i}
                 aspect="3/4"
-                onPick={() => setPicker({ section: "review", index: i, label: `Review ${i + 1}` })}
+                onPick={() => setPicker({ section: "review", index: i, label: `Review · slot ${i + 1}` })}
                 onRemove={() => handleRemove("review", i)}
               />
             ))}
           </div>
         </div>
+
       </div>
 
-      {/* LATEST GRID */}
-      <div className="border border-border rounded-xl overflow-hidden bg-background">
+      {/* ── Latest Grid ── */}
+      <div className="rounded-xl border border-border bg-background overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-muted/20">
-          <SectionHeader title="ލެޓެސްޓް ގްރިޑް" slots={8} filled={filledLatest} description="4×2 grid · homepage bottom" />
+          <SectionHeader title="ލެޓެސްޓް ގްރިޑް" slots={8} filled={filledLatest} description="4×2 homepage grid · ordered right to left" />
         </div>
         <div className="p-4 grid grid-cols-4 gap-3">
-          {renderGrid(sections.latest, (a, i) => (
+          {sections.latest.map((a, i) => (
             <Slot
               key={i}
               article={a}
               index={i}
-              onPick={() => setPicker({ section: "latest", index: i, label: `Latest ${i + 1}` })}
+              onPick={() => setPicker({ section: "latest", index: i, label: `Latest grid · slot ${i + 1}` })}
               onRemove={() => handleRemove("latest", i)}
             />
           ))}
         </div>
       </div>
 
-      {/* Picker modal */}
+      {/* ── Picker modal ── */}
       {picker && (
         <PickerModal
           label={picker.label}
@@ -535,6 +559,7 @@ export default function HomepageAdminPage() {
           onClose={() => setPicker(null)}
         />
       )}
+
     </div>
   );
 }
