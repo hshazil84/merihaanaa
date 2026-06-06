@@ -65,13 +65,23 @@ export function MeehunCategoryPage({
         .meehun-grid {
           display: grid;
           grid-template-columns: 220px 1fr 220px;
-          gap: 2rem;
+          gap: 0;
           align-items: start;
         }
-        .meehun-col-divider {
+        .meehun-col-left,
+        .meehun-col-right {
+          padding: 0 1.5rem 0 0;
+        }
+        .meehun-col-right {
+          padding: 0 0 0 1.5rem;
+        }
+        .meehun-col-center {
           border-right: 0.5px solid rgba(0,0,0,0.08);
           border-left: 0.5px solid rgba(0,0,0,0.08);
           padding: 0 2rem;
+        }
+        .most-read-mobile {
+          display: none;
         }
         .card-grid {
           display: grid;
@@ -81,15 +91,17 @@ export function MeehunCategoryPage({
         @media (max-width: 1024px) {
           .meehun-grid {
             grid-template-columns: 1fr;
-            gap: 0;
           }
           .meehun-col-left,
           .meehun-col-right {
             display: none;
           }
-          .meehun-col-divider {
+          .meehun-col-center {
             border: none;
             padding: 0;
+          }
+          .most-read-mobile {
+            display: block;
           }
           .card-grid {
             grid-template-columns: repeat(2, 1fr);
@@ -100,6 +112,25 @@ export function MeehunCategoryPage({
             grid-template-columns: 1fr;
           }
         }
+        .most-read-scroll {
+          display: flex;
+          gap: 0;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+          padding-bottom: 4px;
+        }
+        .most-read-scroll::-webkit-scrollbar { display: none; }
+        .most-read-scroll-item {
+          flex-shrink: 0;
+          width: 160px;
+          padding: 0 12px 0 0;
+          border-right: 0.5px solid rgba(0,0,0,0.08);
+          margin-left: 12px;
+        }
+        .most-read-scroll-item:last-child {
+          border-right: none;
+        }
         .recent-link:hover p { opacity: 0.65; }
         .card-link:hover img { transform: scale(1.05); }
         .featured-link:hover h2 { opacity: 0.7; }
@@ -108,7 +139,7 @@ export function MeehunCategoryPage({
       {/* Page header */}
       <header style={{ maxWidth: "72rem", margin: "0 auto", padding: "2rem 1.5rem 1.75rem", textAlign: "center" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1rem" }}>
-          <span style={{ color: "rgba(0,0,0,0.2)", fontSize: "14px", letterSpacing: "0.2em" }}>✦ ✦</span>
+          <span style={{ color: "rgba(0,0,0,0.2)", fontSize: "13px", letterSpacing: "0.2em" }}>✦ ✦</span>
           <h1 style={{
             fontFamily: FONT_DISPLAY,
             fontSize: "clamp(2rem, 5vw, 3.2rem)",
@@ -119,44 +150,42 @@ export function MeehunCategoryPage({
           }}>
             {category.name}
           </h1>
-          <span style={{ color: "rgba(0,0,0,0.2)", fontSize: "14px", letterSpacing: "0.2em" }}>✦ ✦</span>
+          <span style={{ color: "rgba(0,0,0,0.2)", fontSize: "13px", letterSpacing: "0.2em" }}>✦ ✦</span>
         </div>
         <div style={{ width: "40px", height: "0.5px", background: "rgba(0,0,0,0.15)", margin: "0.75rem auto 0" }} />
       </header>
 
-      {/* 3-col strip */}
+      {/* 3-col strip — desktop */}
       <div style={{ maxWidth: "72rem", margin: "0 auto", padding: "0 1.5rem" }} className="meehun-grid">
 
-        {/* LEFT: Recent articles */}
+        {/* LEFT: Recent */}
         <div className="meehun-col-left">
-          <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "10px", fontWeight: 600, textTransform: "uppercase" }}>
+          <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "10px", fontWeight: 600 }}>
             ފަހުގެ ލިޔުންތައް
           </p>
-          <div>
-            {recentArticles.map((article, i) => (
-              <Link
-                key={article.id}
-                href={`/${category.slug}/${article.slug}`}
-                className="recent-link"
-                style={{ display: "block", padding: "9px 0", borderBottom: i < recentArticles.length - 1 ? `0.5px solid ${DIVIDER}` : "none", textDecoration: "none" }}
-              >
-                <TagLabel tags={article.tags} />
-                <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: "0 0 3px", transition: "opacity 0.2s" }}
-                  className="line-clamp-2">
-                  {article.title}
-                </p>
-                <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_MUTED, margin: 0, lineHeight: 2 }}>
-                  {getAuthorName(article.author)}
-                  {article.published_at && <> · {formatDhivehiDate(article.published_at)}</>}
-                </p>
-              </Link>
-            ))}
-          </div>
+          {recentArticles.map((article, i) => (
+            <Link
+              key={article.id}
+              href={`/${category.slug}/${article.slug}`}
+              className="recent-link"
+              style={{ display: "block", padding: "9px 0", borderBottom: i < recentArticles.length - 1 ? `0.5px solid ${DIVIDER}` : "none", textDecoration: "none" }}
+            >
+              <TagLabel tags={article.tags} />
+              <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: "0 0 3px", transition: "opacity 0.2s" }}
+                className="line-clamp-2">
+                {article.title}
+              </p>
+              <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_MUTED, margin: 0, lineHeight: 2 }}>
+                {getAuthorName(article.author)}
+                {article.published_at && <> · {formatDhivehiDate(article.published_at)}</>}
+              </p>
+            </Link>
+          ))}
         </div>
 
         {/* CENTER: Featured */}
-        <div className="meehun-col-divider">
-          <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "10px", fontWeight: 600, textTransform: "uppercase" }}>
+        <div className="meehun-col-center">
+          <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "10px", fontWeight: 600 }}>
             ފީޗަރ
           </p>
           {featuredArticle ? (
@@ -167,24 +196,21 @@ export function MeehunCategoryPage({
                     src={featuredArticle.featured_image}
                     alt={featuredArticle.title}
                     style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.7s ease" }}
-                    className="group-hover:scale-105"
                   />
                 ) : (
                   <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
                 )}
               </div>
               <TagLabel tags={featuredArticle.tags} />
-              <h2
-                style={{
-                  fontFamily: FONT_THAANA,
-                  fontSize: "clamp(1.1rem, 2.5vw, 1.45rem)",
-                  fontWeight: 700,
-                  color: TEXT_PRIMARY,
-                  lineHeight: 1.9,
-                  margin: "0 0 8px",
-                  transition: "opacity 0.2s",
-                }}
-              >
+              <h2 style={{
+                fontFamily: FONT_THAANA,
+                fontSize: "clamp(1.1rem, 2.5vw, 1.45rem)",
+                fontWeight: 700,
+                color: TEXT_PRIMARY,
+                lineHeight: 1.9,
+                margin: "0 0 8px",
+                transition: "opacity 0.2s",
+              }}>
                 {featuredArticle.title}
               </h2>
               {featuredArticle.excerpt && (
@@ -201,47 +227,85 @@ export function MeehunCategoryPage({
           ) : (
             <p style={{ fontFamily: FONT_THAANA, fontSize: "13px", color: TEXT_MUTED }}>ފީޗަރ ލިޔުމެއް ނެތް</p>
           )}
+
+          {/* Most read — mobile horizontal scroll (inside center col, shown only on mobile) */}
+          {mostRead.length > 0 && (
+            <div className="most-read-mobile" style={{ marginTop: "1.5rem", paddingTop: "1.25rem", borderTop: `0.5px solid ${DIVIDER}` }}>
+              <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "10px", fontWeight: 600 }}>
+                އެންމެ ގިނައިން ކިޔާ
+              </p>
+              <div className="most-read-scroll">
+                {mostRead.map((article, i) => (
+                  <Link
+                    key={article.id}
+                    href={`/${category.slug}/${article.slug}`}
+                    className="most-read-scroll-item"
+                    style={{ textDecoration: "none" }}
+                  >
+                    <span style={{
+                      fontFamily: "Georgia, serif",
+                      fontSize: "24px",
+                      fontWeight: 400,
+                      color: CORAL_NUM,
+                      lineHeight: 1,
+                      display: "block",
+                      marginBottom: "5px",
+                    }}>
+                      {i + 1}
+                    </span>
+                    <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: "0 0 3px" }}
+                      className="line-clamp-3">
+                      {article.title}
+                    </p>
+                    {article.view_count != null && (
+                      <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_MUTED, margin: 0, lineHeight: 2 }}>
+                        {article.view_count.toLocaleString()} ކިޔާ
+                      </p>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* RIGHT: Most read */}
+        {/* RIGHT: Most read — desktop */}
         <div className="meehun-col-right">
-          <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "10px", fontWeight: 600, textTransform: "uppercase" }}>
+          <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "10px", fontWeight: 600 }}>
             އެންމެ ގިނައިން ކިޔާ
           </p>
-          <div>
-            {mostRead.map((article, i) => (
-              <Link
-                key={article.id}
-                href={`/${category.slug}/${article.slug}`}
-                className="recent-link"
-                style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "9px 0", borderBottom: i < mostRead.length - 1 ? `0.5px solid ${DIVIDER}` : "none", textDecoration: "none" }}
-              >
-                <span style={{
-                  fontFamily: "Georgia, serif",
-                  fontSize: "22px",
-                  fontWeight: 400,
-                  color: CORAL_NUM,
-                  lineHeight: 1,
-                  minWidth: "22px",
-                  flexShrink: 0,
-                  marginTop: "2px",
-                }}>
-                  {i + 1}
-                </span>
-                <div>
-                  <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: "0 0 2px", transition: "opacity 0.2s" }}
-                    className="line-clamp-2">
-                    {article.title}
+          {mostRead.map((article, i) => (
+            <Link
+              key={article.id}
+              href={`/${category.slug}/${article.slug}`}
+              className="recent-link"
+              style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "9px 0", borderBottom: i < mostRead.length - 1 ? `0.5px solid ${DIVIDER}` : "none", textDecoration: "none" }}
+            >
+              <span style={{
+                fontFamily: "Georgia, serif",
+                fontSize: "22px",
+                fontWeight: 400,
+                color: CORAL_NUM,
+                lineHeight: 1,
+                minWidth: "22px",
+                flexShrink: 0,
+                marginTop: "2px",
+              }}>
+                {i + 1}
+              </span>
+              <div>
+                <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: "0 0 2px", transition: "opacity 0.2s" }}
+                  className="line-clamp-2">
+                  {article.title}
+                </p>
+                {article.view_count != null && (
+                  <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_MUTED, margin: 0, lineHeight: 2 }}>
+                    {article.view_count.toLocaleString()} ކިޔާ
                   </p>
-                  {article.view_count != null && (
-                    <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_MUTED, margin: 0, lineHeight: 2 }}>
-                      {article.view_count.toLocaleString()} ކިޔާ
-                    </p>
-                  )}
-                </div>
-              </Link>
-            ))}
-          </div>
+                )}
+              </div>
+            </Link>
+          ))}
         </div>
 
       </div>
@@ -254,7 +318,7 @@ export function MeehunCategoryPage({
       {/* Card grid */}
       {articles.length > 0 && (
         <div style={{ maxWidth: "72rem", margin: "0 auto", padding: "0 1.5rem 4rem" }}>
-          <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "16px", fontWeight: 600, textTransform: "uppercase" }}>
+          <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "16px", fontWeight: 600 }}>
             ހުރިހާ ލިޔުންތައް
           </p>
           <div className="card-grid">
