@@ -124,13 +124,15 @@ function Collapsible({ label, icon, children, defaultOpen = false }: {
   );
 }
 
-// ── Portrait Uploader ──
+// ── Portrait Uploader ──────────────────────────────────────────────────────
 function PortraitUploader({
   value,
   onChange,
+  label = "ވާހަކަ ކަވަރ",
 }: {
   value: string | null;
   onChange: (v: string | null) => void;
+  label?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -140,11 +142,7 @@ function PortraitUploader({
     setError(null);
     setUploading(true);
     try {
-      const blob = await processImage(file, {
-        targetW: 900,
-        targetH: 1200,
-        watermark: false,
-      });
+      const blob = await processImage(file, { targetW: 900, targetH: 1200, watermark: false });
       const formData = new FormData();
       formData.append("file", new File([blob], `portrait-${Date.now()}.jpg`, { type: "image/jpeg" }));
       const res = await fetch("/api/upload-image", { method: "POST", body: formData });
@@ -170,7 +168,7 @@ function PortraitUploader({
           <X size={10} className="text-white" />
         </button>
         <div className="absolute bottom-0 left-0 right-0 px-2 py-1 bg-black/40">
-          <p className="font-body text-[9px] text-white/70 text-center">3:4 · ވާހަކަ ކަވަރ</p>
+          <p className="font-body text-[9px] text-white/70 text-center">3:4 · {label}</p>
         </div>
       </div>
     );
@@ -203,18 +201,16 @@ function PortraitUploader({
               <ImageIcon size={18} />
             </div>
             <p className="font-body text-[11px] font-semibold text-foreground">ޕޯޓްރެއިޓް ލޯޑްކޮށްލާ</p>
-            <p className="font-body text-[9px] text-muted-foreground">3:4 · ވާހަކަ ކަވަރ</p>
+            <p className="font-body text-[9px] text-muted-foreground">3:4 · {label}</p>
           </>
         )}
       </div>
-      {error && (
-        <p className="font-body text-[10px] text-destructive">{error}</p>
-      )}
+      {error && <p className="font-body text-[10px] text-destructive">{error}</p>}
     </div>
   );
 }
 
-// ── Create Series Modal ──
+// ── Create Series Modal ────────────────────────────────────────────────────
 function CreateSeriesModal({ onClose, onCreate }: { onClose: () => void; onCreate: (s: SeriesItem) => void; }) {
   const supabase = createClient();
   const [title, setTitle] = useState("");
@@ -262,6 +258,7 @@ function CreateSeriesModal({ onClose, onCreate }: { onClose: () => void; onCreat
   );
 }
 
+// ── Main component ─────────────────────────────────────────────────────────
 export default function ArticleSidebar({
   title, excerpt, body, categories, categoryId, placement, homepageSlot, homepageFeatured,
   isPremium, allowComments, ogTitle, ogDesc, ogImageUrl, coverMedia, coverPortraitUrl,
@@ -296,7 +293,8 @@ export default function ArticleSidebar({
   const currentPlacement = PLACEMENTS.find(p => p.value === placement);
   const slotCount = currentPlacement?.slots ?? 0;
 
-  const isStoryCategory = categories.find(c => c.id === categoryId)?.name === STORY_CATEGORY_NAME;
+  const isStoryCategory  = categories.find(c => c.id === categoryId)?.name === STORY_CATEGORY_NAME;
+  const isReviewPlacement = placement === "review";
 
   useEffect(() => {
     supabase.from("user_profiles").select("id, full_name, role")
@@ -373,7 +371,7 @@ export default function ArticleSidebar({
       <aside className="w-60 flex-shrink-0 border-1 border-border bg-background flex flex-col h-full overflow-hidden">
         <div className="flex-1 overflow-y-auto no-scrollbar">
 
-          {/* Actions */}
+          {/* ── Actions ── */}
           <Section>
             <div className="flex gap-2 mb-3">
               <button type="button" onClick={onPreview}
@@ -419,7 +417,7 @@ export default function ArticleSidebar({
 
           <Divider />
 
-          {/* Author */}
+          {/* ── Author ── */}
           <Section>
             <SectionLabel icon={<User size={11} />}>ލިޔުންތެރިޔާ</SectionLabel>
             <div className="relative">
@@ -434,7 +432,7 @@ export default function ArticleSidebar({
 
           <Divider />
 
-          {/* Story Series + Portrait — only for ވާހަކަ */}
+          {/* ── ވާހަކަ: Series + Portrait ── */}
           {isStoryCategory && (
             <>
               <Section>
@@ -468,14 +466,26 @@ export default function ArticleSidebar({
 
               <Section>
                 <SectionLabel icon={<ImageIcon size={11} />}>ވާހަކަ ކަވަރ</SectionLabel>
-                <PortraitUploader value={coverPortraitUrl} onChange={onCoverPortraitUrlChange} />
+                <PortraitUploader value={coverPortraitUrl} onChange={onCoverPortraitUrlChange} label="ވާހަކަ ކަވަރ" />
               </Section>
 
               <Divider />
             </>
           )}
 
-          {/* Homepage placement */}
+          {/* ── ރިވިއު portrait — shown when placement = review ── */}
+          {isReviewPlacement && (
+            <>
+              <Section>
+                <SectionLabel icon={<ImageIcon size={11} />}>ރިވިއު ކަވަރ</SectionLabel>
+                <PortraitUploader value={coverPortraitUrl} onChange={onCoverPortraitUrlChange} label="ރިވިއު ކަވަރ" />
+              </Section>
+
+              <Divider />
+            </>
+          )}
+
+          {/* ── Homepage placement ── */}
           <Section>
             <SectionLabel icon={<Home size={11} />}>ހޯމްޕޭޖް</SectionLabel>
             <div className="space-y-0.5">
@@ -536,7 +546,7 @@ export default function ArticleSidebar({
 
           <Divider />
 
-          {/* Tags */}
+          {/* ── Tags ── */}
           <Section>
             <div className="flex items-center justify-between mb-2.5">
               <div className="flex items-center gap-1.5">
@@ -580,7 +590,7 @@ export default function ArticleSidebar({
               className="w-full font-body text-[11px] px-3 py-2 rounded-lg border border-border bg-muted/40 outline-none focus:border-foreground focus:bg-background transition-all placeholder:text-muted-foreground/50" />
           </Section>
 
-          {/* Settings */}
+          {/* ── Settings ── */}
           <Collapsible label="Settings">
             <div className="space-y-1">
               <div className="mb-3">
@@ -626,7 +636,7 @@ export default function ArticleSidebar({
             </div>
           </Collapsible>
 
-          {/* Open Graph */}
+          {/* ── Open Graph ── */}
           <Collapsible label="Open Graph" icon={<Globe size={11} />}>
             <div className="space-y-3">
               <div className="rounded-lg overflow-hidden border border-border">
