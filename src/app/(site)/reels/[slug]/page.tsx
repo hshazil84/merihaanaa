@@ -60,24 +60,10 @@ export default function ReelPlayerPage() {
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < reels.length - 1;
 
-  const sendMuteCommand = useCallback((muteState: boolean) => {
-    const iframe = iframeRef.current;
-    if (!iframe?.contentWindow) return;
-    iframe.contentWindow.postMessage(
-      JSON.stringify({ event: "muted", data: muteState }),
-      "https://iframe.cloudflarestream.com"
-    );
-  }, []);
-
+  // Simply toggle muted state — iframe key includes muted so it remounts with new URL
   const toggleMute = useCallback(() => {
-    const newMuted = !muted;
-    setMuted(newMuted);
-    sendMuteCommand(newMuted);
-  }, [muted, sendMuteCommand]);
-
-  const handleIframeLoad = useCallback(() => {
-    sendMuteCommand(muted);
-  }, [muted, sendMuteCommand]);
+    setMuted(prev => !prev);
+  }, []);
 
   const goTo = useCallback((index: number) => {
     if (index < 0 || index >= reels.length || transitioning) return;
@@ -142,34 +128,31 @@ export default function ReelPlayerPage() {
     ? `&poster=${encodeURIComponent(currentReel.thumbnail_url)}`
     : "";
 
-  // muted=true required for autoplay to work in browsers
-  // controls=true so the video actually plays — we hide the controls bar with CSS
-  const embedUrl = `https://iframe.cloudflarestream.com/${currentReel.stream_video_id}?autoplay=true&muted=true&loop=true&controls=true&preload=auto${posterParam}`;
+  // muted is in URL + key so toggling remounts iframe with correct muted state
+  const embedUrl = `https://iframe.cloudflarestream.com/${currentReel.stream_video_id}?autoplay=true&muted=${muted}&loop=true&controls=true&preload=auto${posterParam}`;
 
   return (
     <div className="fixed inset-0 bg-black z-50 overflow-hidden select-none">
 
-      {/* iframe — full screen */}
+      {/* iframe — full screen, controls=true but clipped off bottom */}
       <div
         className="absolute inset-0 transition-opacity duration-200"
         style={{ opacity: transitioning ? 0 : 1 }}
       >
-        {/* Clip bottom ~48px to hide Cloudflare controls bar */}
         <div className="absolute inset-0" style={{ bottom: "-48px" }}>
           <iframe
             ref={iframeRef}
-            key={currentReel.id}
+            key={`${currentReel.id}-${muted}`}
             src={embedUrl}
             className="w-full h-full"
             style={{ border: "none", display: "block" }}
             allow="autoplay; fullscreen; picture-in-picture"
             allowFullScreen
-            onLoad={handleIframeLoad}
           />
         </div>
       </div>
 
-      {/* Swipe strips on edges — don't block center of video */}
+      {/* Swipe strips on edges */}
       <div className="absolute top-0 bottom-0 left-0 w-16 z-20" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} />
       <div className="absolute top-0 bottom-0 right-0 w-16 z-20" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} />
       <div className="absolute top-0 left-16 right-16 h-24 z-20" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} />
