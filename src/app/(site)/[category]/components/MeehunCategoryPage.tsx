@@ -101,15 +101,14 @@ export function MeehunCategoryPage({
           .card-grid { grid-template-columns: 1fr; }
         }
 
-        .recent-scroll {
-          display: flex;
-          overflow-x: auto;
-          overflow-y: hidden;
-          -webkit-overflow-scrolling: touch;
-          scrollbar-width: none;
-          padding-bottom: 4px;
+        .recent-scroll-item {
+          flex-shrink: 0;
+          width: calc(65vw - 24px);
+          text-align: center;
+          text-decoration: none;
+          padding: 0 10px;
         }
-        .recent-scroll::-webkit-scrollbar { display: none; }
+        .recent-scroll-item:first-child { padding-right: 0; }
         .recent-scroll-item {
           flex-shrink: 0;
           width: calc(50vw - 24px);
