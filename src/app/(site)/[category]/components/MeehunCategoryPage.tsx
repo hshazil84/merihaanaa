@@ -88,61 +88,18 @@ export function MeehunCategoryPage({
           align-items: start;
         }
         .meehun-col-left, .meehun-col-right { display: block; }
-        .most-read-mobile, .recent-mobile { display: none; }
+        .meehun-mobile-only { display: none; }
         .card-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
 
         @media (max-width: 1024px) {
-          .meehun-grid { grid-template-columns: 1fr; gap: 0; }
+          .meehun-grid { display: block; }
           .meehun-col-left, .meehun-col-right { display: none; }
-          .most-read-mobile, .recent-mobile { display: block; }
+          .meehun-mobile-only { display: block; }
           .card-grid { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 480px) {
           .card-grid { grid-template-columns: 1fr; }
         }
-
-        .recent-scroll {
-          display: flex;
-          flex-direction: row;
-          overflow-x: auto;
-          overflow-y: hidden;
-          -webkit-overflow-scrolling: touch;
-          scrollbar-width: none;
-          padding-bottom: 4px;
-          gap: 0;
-        }
-        .recent-scroll::-webkit-scrollbar { display: none; }
-
-        .recent-scroll-item {
-          flex: 0 0 calc(65vw - 24px);
-          width: calc(65vw - 24px);
-          text-align: center;
-          text-decoration: none;
-          padding: 0 12px;
-        }
-        .recent-scroll-item:first-child { padding-right: 0; }
-        .recent-scroll-item:last-child { border-left: none; }
-
-        .most-read-scroll {
-          display: flex;
-          flex-direction: row;
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
-          scrollbar-width: none;
-          gap: 0;
-          padding-bottom: 4px;
-        }
-        .most-read-scroll::-webkit-scrollbar { display: none; }
-
-        .most-read-scroll-item {
-          flex: 0 0 150px;
-          width: 150px;
-          padding: 0 12px;
-          border-left: 0.5px solid rgba(0,0,0,0.08);
-        }
-        .most-read-scroll-item:first-child { border-left: none; padding-right: 0; }
-        .most-read-scroll-item:last-child { border-left: none; }
-
         .card-link:hover img { transform: scale(1.05); }
         .featured-link:hover h2 { opacity: 0.7; }
         .recent-card:hover p { opacity: 0.65; }
@@ -159,10 +116,10 @@ export function MeehunCategoryPage({
         </div>
       </header>
 
-      {/* 3-col strip */}
+      {/* Desktop: 3-col grid */}
       <div style={{ maxWidth: "72rem", margin: "0 auto", padding: "0 1.5rem" }} className="meehun-grid">
 
-        {/* LEFT: Recent — desktop */}
+        {/* LEFT: Recent circles */}
         <div className="meehun-col-left">
           {recentArticles.map((article, i) => (
             <RecentArticleCard key={article.id} article={article} categorySlug={category.slug} isLast={i === recentArticles.length - 1} />
@@ -196,75 +153,9 @@ export function MeehunCategoryPage({
           ) : (
             <p style={{ fontFamily: FONT_THAANA, fontSize: "13px", color: TEXT_MUTED }}>ފީޗަރ ލިޔުމެއް ނެތް</p>
           )}
-
-          {/* Recent — mobile scroll */}
-          {recentArticles.length > 0 && (
-            <div className="recent-mobile" style={{ marginTop: "1.5rem", paddingTop: "1.25rem", borderTop: `0.5px solid ${DIVIDER}` }}>
-              <ColLabel>ފަހުގެ ލިޔުންތައް</ColLabel>
-              <div style={{ display: "flex", flexDirection: "row", overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch" as any, scrollbarWidth: "none" as any, paddingBottom: "4px" }}>
-                {recentArticles.map((article, i) => (
-                  <Link
-                    key={article.id}
-                    href={`/${category.slug}/${article.slug}`}
-                    style={{
-                      flex: "0 0 calc(65vw - 24px)",
-                      width: "calc(65vw - 24px)",
-                      textAlign: "center",
-                      textDecoration: "none",
-                      padding: i === 0 ? "0 12px 0 0" : "0 12px",
-                      borderLeft: i === 0 ? "none" : `0.5px solid ${DIVIDER}`,
-                    }}
-                    className="recent-card"
-                  >
-                    <div style={{ width: "72px", height: "72px", borderRadius: "999px", overflow: "hidden", backgroundColor: BG_CARD, margin: "0 auto 8px" }}>
-                      {article.featured_image
-                        ? <img src={article.featured_image} alt={article.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        : <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
-                      }
-                    </div>
-                    <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_PRIMARY, lineHeight: 1.6, margin: 0 }} className="line-clamp-2">
-                      {article.title}
-                    </p>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Most read — mobile scroll */}
-          {mostRead.length > 0 && (
-            <div className="most-read-mobile" style={{ marginTop: "1.5rem", paddingTop: "1.25rem", borderTop: `0.5px solid ${DIVIDER}` }}>
-              <ColLabel>އެންމެ ގިނައިން ކިޔާ</ColLabel>
-              <div style={{ display: "flex", flexDirection: "row", overflowX: "auto", WebkitOverflowScrolling: "touch" as any, scrollbarWidth: "none" as any, paddingBottom: "4px" }}>
-                {mostRead.map((article, i) => (
-                  <Link
-                    key={article.id}
-                    href={`/${category.slug}/${article.slug}`}
-                    style={{
-                      flex: "0 0 150px",
-                      width: "150px",
-                      textDecoration: "none",
-                      padding: i === 0 ? "0 12px 0 0" : "0 12px",
-                      borderLeft: i === 0 || i === mostRead.length - 1 ? "none" : `0.5px solid ${DIVIDER}`,
-                    }}
-                  >
-                    <div style={{ marginBottom: "6px" }}><MostReadPill rank={i + 1} /></div>
-                    <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: "0 0 3px" }} className="line-clamp-3">
-                      {article.title}
-                    </p>
-                    {article.view_count != null && (
-                      <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_MUTED, margin: 0, lineHeight: 2 }}>
-                        {article.view_count.toLocaleString()} ކިޔާ
-                      </p>
-                    )}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* RIGHT: Most read — desktop */}
+        {/* RIGHT: Most read */}
         <div className="meehun-col-right">
           <ColLabel>އެންމެ ގިނައިން ކިޔާ</ColLabel>
           {mostRead.map((article, i) => (
@@ -284,6 +175,92 @@ export function MeehunCategoryPage({
             </Link>
           ))}
         </div>
+
+      </div>
+
+      {/* Mobile only: recent scroll + most read scroll */}
+      <div className="meehun-mobile-only" style={{ maxWidth: "72rem", margin: "0 auto", padding: "0 1.5rem" }}>
+
+        {/* Recent circles scroll */}
+        {recentArticles.length > 0 && (
+          <div style={{ marginTop: "1.5rem", paddingTop: "1.25rem", borderTop: `0.5px solid ${DIVIDER}` }}>
+            <ColLabel>ފަހުގެ ލިޔުންތައް</ColLabel>
+            <div style={{
+              display: "flex",
+              flexDirection: "row",
+              overflowX: "auto",
+              overflowY: "hidden",
+              WebkitOverflowScrolling: "touch" as any,
+              scrollbarWidth: "none" as any,
+              paddingBottom: "8px",
+            }}>
+              {recentArticles.map((article, i) => (
+                <Link
+                  key={article.id}
+                  href={`/${category.slug}/${article.slug}`}
+                  style={{
+                    flex: "0 0 calc(65vw - 32px)",
+                    textAlign: "center",
+                    textDecoration: "none",
+                    paddingLeft: i === recentArticles.length - 1 ? "0" : "16px",
+                    paddingRight: i === 0 ? "0" : "16px",
+                    borderLeft: i === 0 ? "none" : `0.5px solid ${DIVIDER}`,
+                  }}
+                  className="recent-card"
+                >
+                  <div style={{ width: "80px", height: "80px", borderRadius: "999px", overflow: "hidden", backgroundColor: BG_CARD, margin: "0 auto 10px" }}>
+                    {article.featured_image
+                      ? <img src={article.featured_image} alt={article.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      : <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
+                    }
+                  </div>
+                  <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_PRIMARY, lineHeight: 1.6, margin: 0 }} className="line-clamp-2">
+                    {article.title}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Most read scroll */}
+        {mostRead.length > 0 && (
+          <div style={{ marginTop: "1.5rem", paddingTop: "1.25rem", borderTop: `0.5px solid ${DIVIDER}` }}>
+            <ColLabel>އެންމެ ގިނައިން ކިޔާ</ColLabel>
+            <div style={{
+              display: "flex",
+              flexDirection: "row",
+              overflowX: "auto",
+              WebkitOverflowScrolling: "touch" as any,
+              scrollbarWidth: "none" as any,
+              paddingBottom: "8px",
+            }}>
+              {mostRead.map((article, i) => (
+                <Link
+                  key={article.id}
+                  href={`/${category.slug}/${article.slug}`}
+                  style={{
+                    flex: "0 0 160px",
+                    textDecoration: "none",
+                    paddingLeft: i === mostRead.length - 1 ? "0" : "12px",
+                    paddingRight: i === 0 ? "0" : "12px",
+                    borderLeft: i === 0 ? "none" : `0.5px solid ${DIVIDER}`,
+                  }}
+                >
+                  <div style={{ marginBottom: "6px" }}><MostReadPill rank={i + 1} /></div>
+                  <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: "0 0 3px" }} className="line-clamp-3">
+                    {article.title}
+                  </p>
+                  {article.view_count != null && (
+                    <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_MUTED, margin: 0, lineHeight: 2 }}>
+                      {article.view_count.toLocaleString()} ކިޔާ
+                    </p>
+                  )}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
       </div>
 
