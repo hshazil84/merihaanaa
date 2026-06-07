@@ -1,4 +1,3 @@
-import NewsletterCTA from "@/components/public/NewsletterCTA";
 import { BookCover } from "./BookCover";
 import { Pagination } from "./Pagination";
 
@@ -9,18 +8,11 @@ const TEXT = "rgb(60,45,20)";
 const TEXT_MUTED = "rgb(140,120,80)";
 const DIVIDER = "rgba(180,160,110,0.2)";
 
-function formatDhivehiDate(d: string | null): string | null {
-  if (!d) return null;
-  const date = new Date(d);
-  const months = ["ޖެނުއަރީ","ފެބްރުއަރީ","މާރިޗު","އޭޕްރީލު","މެއި","ޖޫން","ޖުލައި","އޯގަސްޓު","ސެޕްޓެމްބަރު","އޮކްޓޯބަރު","ނޮވެމްބަރު","ޑިސެމްބަރު"];
-  return months[date.getMonth()] + " " + date.getDate() + "، " + date.getFullYear();
-}
-
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "1.5rem" }}>
       <div style={{ height: "1px", flex: 1, background: GOLD, opacity: 0.4 }} />
-      <p style={{ fontFamily: FONT_DISPLAY, fontSize: "20px", fontWeight: 400, color: TEXT, margin: 0 }}>
+      <p style={{ fontFamily: FONT, fontSize: "14px", fontWeight: 700, color: TEXT, margin: 0, letterSpacing: "0.03em" }}>
         {children}
       </p>
       <div style={{ height: "1px", flex: 1, background: GOLD, opacity: 0.4 }} />
@@ -28,24 +20,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ArticleMeta({ article }: { article: any }) {
-  const date = formatDhivehiDate(article.published_at);
-  if (!date && !article.reading_time_minutes) return null;
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: "5px", marginTop: "4px", flexWrap: "wrap" }}>
-      {date && <span style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED }}>{date}</span>}
-      {date && article.reading_time_minutes && <span style={{ color: TEXT_MUTED, fontSize: "10px", opacity: 0.5 }}>{"·"}</span>}
-      {article.reading_time_minutes && <span style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED }}>{article.reading_time_minutes + " މިނެޓު"}</span>}
-    </div>
-  );
-}
-
 function SeriesBookCover({ series, categorySlug }: { series: any; categorySlug: string }) {
-  const href = series.latest_slug
-    ? "/" + categorySlug + "/" + series.latest_slug
-    : "/" + categorySlug;
-
-  // Pass series thumbnail as both cover fields, null out date so BookCover doesn't show chapter date
   const articleProp = {
     id: series.id,
     title: series.title,
@@ -61,7 +36,6 @@ function SeriesBookCover({ series, categorySlug }: { series: any; categorySlug: 
     <div style={{ position: "relative" }}>
       <BookCover article={articleProp} categorySlug={categorySlug} />
 
-      {/* Latest chapter badge — overlaid on top of BookCover */}
       {series.latest_chapter && (
         <div style={{ position: "absolute", bottom: "52px", right: "8px", zIndex: 2 }}>
           <span style={{
@@ -75,7 +49,6 @@ function SeriesBookCover({ series, categorySlug }: { series: any; categorySlug: 
         </div>
       )}
 
-      {/* Chapter count badge top left */}
       {series.chapter_count > 0 && (
         <div style={{ position: "absolute", top: "10px", right: "10px", zIndex: 2 }}>
           <span style={{
@@ -89,7 +62,6 @@ function SeriesBookCover({ series, categorySlug }: { series: any; categorySlug: 
         </div>
       )}
 
-      {/* Series title + date below */}
       <div style={{ marginTop: "4px", paddingRight: "4px" }}>
         <h3 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "13px", color: TEXT, lineHeight: 1.9, margin: "0 0 2px" }} dir="rtl"
           className="line-clamp-2">
@@ -97,7 +69,11 @@ function SeriesBookCover({ series, categorySlug }: { series: any; categorySlug: 
         </h3>
         {series.latest_published_at && (
           <span style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED }}>
-            {formatDhivehiDate(series.latest_published_at)}
+            {(function() {
+              const date = new Date(series.latest_published_at);
+              const months = ["ޖެނުއަރީ","ފެބްރުއަރީ","މާރިޗު","އޭޕްރީލު","މެއި","ޖޫން","ޖުލައި","އޯގަސްޓު","ސެޕްޓެމްބަރު","އޮކްޓޯބަރު","ނޮވެމްބަރު","ޑިސެމްބަރު"];
+              return months[date.getMonth()] + " " + date.getDate() + "، " + date.getFullYear();
+            })()}
           </span>
         )}
       </div>
@@ -123,7 +99,6 @@ export function StoriesCategoryPage({
 
   return (
     <div dir="rtl" style={{ backgroundColor: "#F0EAD6", minHeight: "100vh" }}>
-      {/* Noise texture */}
       <div style={{
         position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0,
         backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E\")",
@@ -132,7 +107,6 @@ export function StoriesCategoryPage({
 
       <div style={{ position: "relative", zIndex: 1 }}>
 
-        {/* Header */}
         <header className="max-w-4xl mx-auto px-6 pt-8 pb-6 text-center">
           <h1 style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "16px" }}>
             <span style={{ height: "1px", width: "40px", backgroundColor: GOLD, flexShrink: 0, display: "inline-block" }} />
@@ -145,7 +119,6 @@ export function StoriesCategoryPage({
 
         <div className="max-w-4xl mx-auto px-6">
 
-          {/* Most recent */}
           {recent.length > 0 && (
             <section style={{ marginBottom: "3rem" }}>
               <SectionLabel>އެންމެ ފަހުގެ</SectionLabel>
@@ -154,7 +127,6 @@ export function StoriesCategoryPage({
                   return (
                     <div key={article.id}>
                       <BookCover article={article} categorySlug={category.slug} />
-                      <ArticleMeta article={article} />
                     </div>
                   );
                 })}
@@ -166,7 +138,6 @@ export function StoriesCategoryPage({
             <div style={{ borderTop: "0.5px solid " + DIVIDER, marginBottom: "3rem" }} />
           )}
 
-          {/* Long stories — series */}
           {series.length > 0 && (
             <section style={{ marginBottom: "3rem" }}>
               <SectionLabel>ދިގު ވާހަކަ</SectionLabel>
@@ -182,7 +153,6 @@ export function StoriesCategoryPage({
             <div style={{ borderTop: "0.5px solid " + DIVIDER, marginBottom: "3rem" }} />
           )}
 
-          {/* Short stories */}
           {shorts.length > 0 && (
             <section style={{ marginBottom: "3rem" }}>
               <SectionLabel>ކުރު ވާހަކަ</SectionLabel>
@@ -191,7 +161,6 @@ export function StoriesCategoryPage({
                   return (
                     <div key={article.id}>
                       <BookCover article={article} categorySlug={category.slug} />
-                      <ArticleMeta article={article} />
                     </div>
                   );
                 })}
@@ -202,10 +171,6 @@ export function StoriesCategoryPage({
         </div>
 
         <Pagination page={page} totalPages={totalPages} categorySlug={category.slug} variant="parchment" />
-
-        <div style={{ backgroundColor: "#F0EAD6" }}>
-          <NewsletterCTA />
-        </div>
 
       </div>
     </div>
