@@ -206,7 +206,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         .select("id, title, slug, cover_portrait_url, featured_image, reading_time_minutes, published_at, chapter_number, series_id, author:authors!author_id(full_name)", { count: "exact" })
         .eq("status", "published")
         .eq("category_id", category.id)
-        .is("series_id", null)
+        .filter("series_id", "is", null)
         .order("published_at", { ascending: false })
         .range(shortFrom, shortTo),
     ]);
