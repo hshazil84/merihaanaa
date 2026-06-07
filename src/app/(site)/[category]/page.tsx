@@ -13,6 +13,7 @@ interface PageProps {
 
 const PAGE_SIZE = 8;
 const DEFAULT_PAGE_SIZE = 12;
+const SHORT_STORIES_PAGE_SIZE = 8;
 
 export async function generateMetadata({ params }: PageProps) {
   const supabase = await createServerSupabaseClient();
@@ -172,17 +173,95 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
     );
   }
 
+  // ── VAAHAKA (Stories) ────────────────────────────────
+  if (category.slug === "vaahaka") {
+    const shortFrom = (page - 1) * SHORT_STORIES_PAGE_SIZE;
+    const shortTo   = shortFrom + SHORT_STORIES_PAGE_SIZE - 1;
+
+    const [
+      { data: recentRaw },
+      { data: seriesRaw },
+      { data: shortRaw, count: shortCount },
+    ] = await Promise.all([
+      // Most recent 4 articles
+      supabase
+        .from("articles")
+        .select("id, title, slug, cover_portrait_url, featured_image, reading_time_minutes, published_at, chapter_number, series_id, author:authors!author_id(full_name)")
+        .eq("status", "published")
+        .eq("category_id", category.id)
+        .order("published_at", { ascending: false })
+        .limit(4),
+
+      // Active series in this category
+      supabase
+        .from("series")
+        .select("id, title, slug, description, thumbnail, category_id")
+        .eq("category_id", category.id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false }),
+
+      // Short stories — no series_id, paginated
+      supabase
+        .from("articles")
+        .select("id, title, slug, cover_portrait_url, featured_image, reading_time_minutes, published_at, chapter_number, series_id, author:authors!author_id(full_name)", { count: "exact" })
+        .eq("status", "published")
+        .eq("category_id", category.id)
+        .is("series_id", null)
+        .order("published_at", { ascending: false })
+        .range(shortFrom, shortTo),
+    ]);
+
+    // For each series, fetch latest chapter info
+    const seriesWithChapters = await Promise.all(
+      (seriesRaw ?? []).map(async (s: any) => {
+        const [{ data: latest }, { count: chapterCount }] = await Promise.all([
+          supabase
+            .from("articles")
+            .select("slug, chapter_number, published_at")
+            .eq("status", "published")
+            .eq("series_id", s.id)
+            .order("chapter_number", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          supabase
+            .from("articles")
+            .select("id", { count: "exact", head: true })
+            .eq("status", "published")
+            .eq("series_id", s.id),
+        ]);
+        return {
+          ...s,
+          latest_chapter:      latest?.chapter_number ?? null,
+          latest_slug:         latest?.slug ?? null,
+          latest_published_at: latest?.published_at ?? null,
+          chapter_count:       chapterCount ?? 0,
+        };
+      })
+    );
+
+    const shortTotal = shortCount ?? 0;
+
+    return (
+      <StoriesCategoryPage
+        category={category}
+        recentArticles={(recentRaw ?? []) as any[]}
+        seriesList={seriesWithChapters as any[]}
+        shortStories={(shortRaw ?? []) as any[]}
+        total={shortTotal}
+        totalPages={Math.ceil(shortTotal / SHORT_STORIES_PAGE_SIZE)}
+        page={page}
+      />
+    );
+  }
+
   // ── ALL OTHER CATEGORIES ─────────────────────────────
   const from = (page - 1) * DEFAULT_PAGE_SIZE;
   const to = from + DEFAULT_PAGE_SIZE - 1;
-  const isVaahaka = category.slug === "vaahaka";
 
   const { data: articles, count } = await supabase
     .from("articles")
     .select(
-      isVaahaka
-        ? "id, title, slug, excerpt, featured_image, cover_portrait_url, cover_type, cover_video_thumbnail, reading_time_minutes, published_at, review_score, review_subject, tags, author:authors!author_id(full_name)"
-        : "id, title, slug, excerpt, featured_image, cover_type, cover_video_thumbnail, reading_time_minutes, published_at, review_score, review_subject, tags, author:authors!author_id(full_name)",
+      "id, title, slug, excerpt, featured_image, cover_type, cover_video_thumbnail, reading_time_minutes, published_at, review_score, review_subject, tags, author:authors!author_id(full_name)",
       { count: "exact" }
     )
     .eq("status", "published")
@@ -193,10 +272,6 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   const allArticles = articles ?? [];
   const total = count ?? 0;
   const totalPages = Math.ceil(total / DEFAULT_PAGE_SIZE);
-
-  if (category.slug === "vaahaka") {
-    return <StoriesCategoryPage category={category} articles={allArticles} total={total} totalPages={totalPages} page={page} />;
-  }
 
   if (category.slug === "raha") {
     return <ReviewsCategoryPage category={category} articles={allArticles} total={total} totalPages={totalPages} page={page} />;
