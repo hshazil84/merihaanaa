@@ -423,10 +423,9 @@ export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, 
                           {getFirstTag(featured.tags)}
                         </span>
                       )}
-                      <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug} style={{ textDecoration: "none" }}>
-                        <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "clamp(1.1rem,2.5vw,1.4rem)", lineHeight: 1.8, margin: "0 0 10px", color: TEXT }}>
-                          {featured.title}
-                        </h2>
+                      <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug}
+                        style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "4px", marginBottom: "16px", borderBottom: "1px solid " + RED, paddingBottom: "1px" }}>
+                        {"މުޅި އާޓިކަލް ކިޔާލަން ←"}
                       </Link>
                       {featured.excerpt && (
                         <p style={{ fontFamily: FONT, fontSize: "14px", color: "rgb(60,58,52)", lineHeight: 2, margin: "0 0 16px" }} className="lc4">
