@@ -120,6 +120,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
       { data: cinemaRaw },
       { data: ottRaw },
       { data: topReadRaw },
+      { data: featuredOriginal },
     ] = await Promise.all([
       supabase
         .from("articles")
@@ -148,6 +149,13 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         .eq("category_id", category.id)
         .order("view_count", { ascending: false })
         .limit(5),
+      supabase
+        .from("originals")
+        .select("id, title, slug, description, thumbnail_url, cloudflare_stream_id, duration_seconds, type")
+        .eq("featured_on_film", true)
+        .eq("status", "published")
+        .limit(1)
+        .maybeSingle(),
     ]);
 
     return (
@@ -156,6 +164,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         cinemaEntries={(cinemaRaw ?? []) as any[]}
         ottEntries={(ottRaw ?? []) as any[]}
         topRead={(topReadRaw ?? []) as any[]}
+        featuredOriginal={featuredOriginal as any}
         categorySlug={category.slug}
         totalCount={count ?? 0}
         page={page}
