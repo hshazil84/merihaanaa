@@ -308,27 +308,6 @@ function Sidebar({ cinemaEntries, ottEntries, categorySlug, onCinemaClick, onOTT
   return (
     <div>
 
-      {topRead.length > 0 && (
-        <div style={{ marginBottom: "1.5rem", paddingBottom: "1.5rem", borderBottom: "0.5px solid " + DIVIDER }}>
-          <SectionLabel>ގިނައިން ކިޔާ</SectionLabel>
-          <div>
-            {topRead.map(function(a, i) {
-              return (
-                <Link key={a.id} href={"/" + categorySlug + "/" + a.slug}
-                  style={{ textDecoration: "none", display: "flex", alignItems: "flex-start", gap: "10px", padding: "8px 0", borderBottom: i < topRead.length - 1 ? "0.5px solid " + DIVIDER : "none" }}>
-                  <span style={{ fontFamily: "Georgia,serif", fontSize: "16px", fontWeight: 700, color: i < 2 ? RED : TEXT_MUTED, minWidth: "20px", lineHeight: 1.3, flexShrink: 0 }}>
-                    {i + 1}
-                  </span>
-                  <p style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: TEXT, margin: 0, lineHeight: 1.7 }} className="lc2" dir="rtl">
-                    {a.title}
-                  </p>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {(cinemaEntries.length > 0 || ottEntries.length > 0) && (
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
