@@ -110,7 +110,6 @@ const CSS = [
   ".lc2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}",
   ".lc3{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}",
   ".lc4{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}",
-  ".film-sidebar-inner{background:rgba(0,0,0,0.03);border:0.5px solid rgba(0,0,0,0.07);border-radius:12px;padding:1.25rem;}",
   "@media(max-width:1024px){.film-layout{grid-template-columns:1fr!important;}.film-sidebar-col{display:none!important;}.film-4col{grid-template-columns:1fr 1fr!important;}.film-trending-grid{grid-template-columns:1fr!important;}}",
   "@media(max-width:768px){.film-featured{grid-template-columns:1fr!important;}.film-3col{grid-template-columns:1fr 1fr!important;}}",
   "@media(max-width:480px){.film-3col,.film-4col{grid-template-columns:1fr!important;}}",
@@ -298,7 +297,7 @@ function OTTModal({ entry, onClose }: { entry: OTTEntry; onClose: () => void }) 
   );
 }
 
-function Sidebar({ cinemaEntries, ottEntries, topRead, categorySlug, onCinemaClick, onOTTClick }: {
+function Sidebar({ cinemaEntries, ottEntries, categorySlug, onCinemaClick, onOTTClick }: {
   cinemaEntries: CinemaEntry[];
   ottEntries: OTTEntry[];
   topRead: TopRead[];
@@ -307,7 +306,7 @@ function Sidebar({ cinemaEntries, ottEntries, topRead, categorySlug, onCinemaCli
   onOTTClick: (e: OTTEntry) => void;
 }) {
   return (
-    <div className="film-sidebar-inner">
+    <div>
 
       {topRead.length > 0 && (
         <div style={{ marginBottom: "1.5rem", paddingBottom: "1.5rem", borderBottom: "0.5px solid " + DIVIDER }}>
@@ -631,7 +630,6 @@ export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, 
               <Sidebar
                 cinemaEntries={cinemaEntries}
                 ottEntries={ottEntries}
-                topRead={topRead}
                 categorySlug={categorySlug}
                 onCinemaClick={setSelectedCinema}
                 onOTTClick={setSelectedOTT}
