@@ -245,6 +245,7 @@ function CinemaSidebar({ entries, onEntryClick }: { entries: CinemaEntry[]; onEn
         {active.showing_date && (
           <p style={{ fontFamily: "system-ui,sans-serif", fontSize: "11px", color: TEXT_MUTED, margin: "0 0 6px", textAlign: "right", opacity: 0.75 }}>{formatDate(active.showing_date)}</p>
         )}
+        <p style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: RED, margin: 0, textAlign: "right" }}>{"ތަފްސީލު ←"}</p>
       </button>
 
       {/* Upcoming strip */}
@@ -279,32 +280,30 @@ function OTTSidebar({ entries, onEntryClick }: { entries: OTTEntry[]; onEntryCli
         <p style={{ fontFamily: FONT, fontSize: "11px", fontWeight: 700, color: RED, margin: 0 }}>ޓްރެންޑިންގ އޯޓީޓީ ކޮންޓެންޓް</p>
       </div>
       <div style={{ height: "0.5px", background: "rgba(0,0,0,0.05)", margin: "0 16px" }} />
-
-      {/* 3-col poster grid */}
-      <div style={{ padding: "12px 16px 14px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", direction: "ltr" }}>
-        {entries.slice(0, 6).map(function(entry, i) {
+      <div style={{ padding: "4px 0 6px" }}>
+        {entries.map(function(entry, i) {
           const pm = PCOLORS[entry.platform] ?? "#666";
           const pl = PLABELS[entry.platform] ?? entry.platform;
           return (
             <button key={entry.id} onClick={function() { onEntryClick(entry); }}
-              style={{ background: "none", border: "none", cursor: "pointer", padding: 0, textAlign: "right" }}>
-              <div style={{ position: "relative", width: "100%", aspectRatio: "3/4", borderRadius: "8px", overflow: "hidden", background: BG_CARD, boxShadow: SHADOW, marginBottom: "5px" }}>
+              style={{ display: "flex", alignItems: "center", gap: "12px", width: "100%", padding: "9px 16px", background: "none", border: "none", cursor: "pointer", borderBottom: i < entries.length - 1 ? "0.5px solid rgba(0,0,0,0.04)" : "none", textAlign: "right" }}>
+              <span style={{ fontFamily: "Georgia,serif", fontSize: "15px", fontWeight: 700, color: i < 3 ? RED : "rgba(0,0,0,0.2)", minWidth: "20px", textAlign: "center", flexShrink: 0 }}>
+                {entry.rank}
+              </span>
+              <div style={{ width: "42px", height: "58px", borderRadius: "7px", overflow: "hidden", flexShrink: 0, background: BG_CARD, boxShadow: "0 2px 10px rgba(0,0,0,0.12)" }}>
                 {entry.poster_url
                   ? <img src={entry.poster_url} alt={entry.title_dv} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   : <div style={{ width: "100%", height: "100%", background: BG_CARD }} />
                 }
-                {/* Rank badge */}
-                <div style={{ position: "absolute", top: "5px", right: "5px", width: "18px", height: "18px", borderRadius: "50%", background: i < 3 ? RED : "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ fontFamily: "Georgia,serif", fontSize: "9px", fontWeight: 700, color: "white", lineHeight: 1 }}>{entry.rank}</span>
-                </div>
-                {/* Platform badge bottom */}
-                <div style={{ position: "absolute", bottom: "5px", left: "5px" }}>
-                  <span style={{ fontFamily: "system-ui,sans-serif", fontSize: "8px", fontWeight: 700, padding: "1px 5px", borderRadius: "3px", background: pm, color: "white" }}>{pl}</span>
-                </div>
               </div>
-              <p style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: TEXT, margin: 0, lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} dir="rtl">
-                {entry.title_dv}
-              </p>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: TEXT, margin: "0 0 5px", lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} dir="rtl">
+                  {entry.title_dv}
+                </p>
+                <span style={{ fontFamily: "system-ui,sans-serif", fontSize: "9px", fontWeight: 700, padding: "2px 6px", borderRadius: "4px", background: pm, color: "white", display: "inline-block" }}>
+                  {pl}
+                </span>
+              </div>
             </button>
           );
         })}
