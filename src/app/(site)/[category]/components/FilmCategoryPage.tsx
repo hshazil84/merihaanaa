@@ -48,7 +48,7 @@ const PCOLORS: Record<string, string> = { netflix: "#E50914", apple: "#555555", 
 const PLABELS: Record<string, string> = { netflix: "Netflix", apple: "Apple TV+", amazon: "Prime Video", videoclub: "Video Club", baiskoafu: "Baiskoafu" };
 
 const CSS = [
-  ".film-layout{display:grid;grid-template-columns:1fr 260px;gap:3rem;align-items:start;}",
+  ".film-layout{display:grid;grid-template-columns:1fr 240px;gap:3rem;align-items:start;}",
   ".film-featured{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;}",
   ".film-3col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.25rem;}",
   ".film-4col{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1.25rem;}",
@@ -115,20 +115,18 @@ function CinemaModal({ entry, onClose }: { entry: CinemaEntry; onClose: () => vo
             {entry.performance === "houseful" && <span style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, padding: "3px 8px", borderRadius: "20px", background: "#fef9c3", color: "#854d0e" }}>{"🎟 ހައުސްފުލް"}</span>}
           </div>
         </div>
-        <div style={{ height: "0.5px", background: DIVIDER, margin: "0 20px 0" }} />
+        <div style={{ height: "0.5px", background: DIVIDER, margin: "0 20px" }} />
         <div style={{ display: "flex", gap: "16px", padding: "20px", alignItems: "flex-start" }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "20px", lineHeight: 1.7, margin: "0 0 5px", color: TEXT }} dir="rtl">{entry.title}</h2>
             {entry.showing_date && <p style={{ fontFamily: "system-ui,sans-serif", fontSize: "12px", color: TEXT_MUTED, margin: "0 0 14px", opacity: 0.7 }}>{formatDate(entry.showing_date)}</p>}
             {entry.synopsis && <p style={{ fontFamily: FONT, fontSize: "13px", color: "rgb(80,78,72)", lineHeight: 1.9, margin: "0 0 16px" }} dir="rtl">{entry.synopsis}</p>}
             {entry.article_id && (
-              <a href={"/film/" + entry.article_id} style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none", borderBottom: "1px solid rgba(186,42,49,0.3)", paddingBottom: "1px" }}>
-                {"ރިވިއު ކިޔާ ←"}
-              </a>
+              <a href={"/film/" + entry.article_id} style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none", borderBottom: "1px solid rgba(186,42,49,0.3)", paddingBottom: "1px" }}>{"ރިވިއު ކިޔާ ←"}</a>
             )}
           </div>
           {entry.featured_image && (
-            <div style={{ width: "96px", height: "132px", borderRadius: "10px", overflow: "hidden", flexShrink: 0, background: BG_CARD, boxShadow: SHADOW }}>
+            <div style={{ width: "96px", height: "96px", borderRadius: "10px", overflow: "hidden", flexShrink: 0, background: BG_CARD, boxShadow: SHADOW }}>
               <img src={entry.featured_image} alt={entry.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             </div>
           )}
@@ -201,60 +199,72 @@ function CinemaSidebar({ entries, onEntryClick }: { entries: CinemaEntry[]; onEn
   const carousel   = nowShowing.length > 0 ? nowShowing : entries;
   const active     = carousel[Math.min(idx, carousel.length - 1)];
   if (!active) return null;
+
   return (
     <div style={{ background: "white", border: "0.5px solid rgba(0,0,0,0.07)", borderRadius: "16px", overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
+
+      {/* Header */}
       <div style={{ padding: "12px 16px 10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", gap: "5px" }}>
           {carousel.length > 1 && carousel.map(function(_, i) {
-            return <button key={i} onClick={function() { setIdx(i); }} style={{ height: "5px", width: i === idx ? "18px" : "5px", borderRadius: "3px", background: i === idx ? RED : "rgba(0,0,0,0.12)", border: "none", cursor: "pointer", transition: "width 0.25s ease", padding: 0 }} />;
+            return <button key={i} onClick={function() { setIdx(i); }}
+              style={{ height: "5px", width: i === idx ? "18px" : "5px", borderRadius: "3px", background: i === idx ? RED : "rgba(0,0,0,0.12)", border: "none", cursor: "pointer", transition: "width 0.25s ease", padding: 0 }} />;
           })}
         </div>
         <p style={{ fontFamily: FONT, fontSize: "11px", fontWeight: 700, color: RED, margin: 0 }}>ސިނަމާ</p>
       </div>
+
       <div style={{ height: "0.5px", background: "rgba(0,0,0,0.05)", margin: "0 16px" }} />
+
+      {/* 1:1 Poster */}
       <button onClick={function() { onEntryClick(active); }}
-        style={{ display: "flex", gap: "14px", padding: "16px", alignItems: "flex-start", background: "none", border: "none", cursor: "pointer", width: "100%", textAlign: "right" }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", justifyContent: "flex-end", marginBottom: "7px" }}>
-            <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, padding: "2px 8px", borderRadius: "10px",
-              background: active.chart_type === "cinema_now" ? RED : "rgb(240,239,233)",
-              color: active.chart_type === "cinema_now" ? "white" : "rgb(80,78,72)" }}>
+        style={{ display: "block", width: "100%", background: "none", border: "none", cursor: "pointer", padding: "14px 16px 10px" }}>
+        <div style={{ position: "relative", width: "100%", aspectRatio: "1/1", borderRadius: "10px", overflow: "hidden", background: BG_CARD, boxShadow: SHADOW, marginBottom: "10px" }}>
+          {active.featured_image
+            ? <img src={active.featured_image} alt={active.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            : <div style={{ width: "100%", height: "100%", background: BG_CARD }} />
+          }
+          {/* Overlay badge */}
+          <div style={{ position: "absolute", top: "8px", right: "8px", display: "flex", gap: "4px" }}>
+            <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, padding: "2px 7px", borderRadius: "10px",
+              background: active.chart_type === "cinema_now" ? RED : "rgba(0,0,0,0.55)",
+              color: "white", backdropFilter: "blur(4px)" }}>
               {active.chart_type === "cinema_now" ? "މިހާރު ދައްކަނީ" : "އަންނަނީ"}
             </span>
-            {active.performance === "hit" && <span style={{ fontSize: "11px" }}>{"🔥"}</span>}
-            {active.performance === "flop" && <span style={{ fontSize: "11px" }}>{"😞"}</span>}
-            {active.performance === "houseful" && <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, padding: "2px 6px", borderRadius: "10px", background: "#fef9c3", color: "#854d0e" }}>{"🎟"}</span>}
           </div>
-          <p style={{ fontFamily: FONT, fontSize: "13px", fontWeight: 700, color: TEXT, margin: "0 0 4px", lineHeight: 1.5, textAlign: "right" }} dir="rtl">{active.title}</p>
-          {active.showing_date && (
-            <p style={{ fontFamily: "system-ui,sans-serif", fontSize: "11px", color: TEXT_MUTED, margin: "0 0 10px", textAlign: "right", opacity: 0.75 }}>{formatDate(active.showing_date)}</p>
+          {/* Performance overlay */}
+          {active.performance && (
+            <div style={{ position: "absolute", top: "8px", left: "8px" }}>
+              {active.performance === "hit" && <span style={{ fontSize: "16px" }}>{"🔥"}</span>}
+              {active.performance === "flop" && <span style={{ fontSize: "16px" }}>{"😞"}</span>}
+              {active.performance === "houseful" && <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, padding: "2px 6px", borderRadius: "10px", background: "rgba(254,249,195,0.9)", color: "#854d0e" }}>{"🎟"}</span>}
+            </div>
           )}
-          <p style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: RED, margin: 0, textAlign: "right" }}>{"ތަފްސީލު ←"}</p>
         </div>
-        {active.featured_image ? (
-          <div style={{ width: "60px", height: "84px", borderRadius: "8px", overflow: "hidden", flexShrink: 0, background: BG_CARD, boxShadow: SHADOW }}>
-            <img src={active.featured_image} alt={active.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          </div>
-        ) : (
-          <div style={{ width: "60px", height: "84px", borderRadius: "8px", flexShrink: 0, background: BG_CARD }} />
+        <p style={{ fontFamily: FONT, fontSize: "13px", fontWeight: 700, color: TEXT, margin: "0 0 3px", lineHeight: 1.5, textAlign: "right" }} dir="rtl">{active.title}</p>
+        {active.showing_date && (
+          <p style={{ fontFamily: "system-ui,sans-serif", fontSize: "11px", color: TEXT_MUTED, margin: "0 0 6px", textAlign: "right", opacity: 0.75 }}>{formatDate(active.showing_date)}</p>
         )}
+        <p style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: RED, margin: 0, textAlign: "right" }}>{"ތަފްސީލު ←"}</p>
       </button>
+
+      {/* Upcoming strip */}
       {upcoming.length > 0 && (
         <>
           <div style={{ height: "0.5px", background: "rgba(0,0,0,0.05)", margin: "0 16px" }} />
           <div style={{ padding: "10px 16px 12px", display: "flex", alignItems: "center", gap: "10px" }}>
+            <p style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, color: TEXT_MUTED, margin: 0, flexShrink: 0 }}>ކުރިއަށް</p>
             <div style={{ display: "flex", gap: "7px" }}>
               {upcoming.slice(0, 3).map(function(e) {
                 return (
                   <button key={e.id} onClick={function() { onEntryClick(e); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
-                    <div style={{ width: "32px", height: "44px", borderRadius: "5px", overflow: "hidden", background: BG_CARD, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
+                    <div style={{ width: "32px", height: "32px", borderRadius: "5px", overflow: "hidden", background: BG_CARD, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
                       {e.featured_image && <img src={e.featured_image} alt={e.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
                     </div>
                   </button>
                 );
               })}
             </div>
-            <p style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, color: TEXT_MUTED, margin: 0, marginRight: "auto" }}>ކުރިއަށް</p>
           </div>
         </>
       )}
@@ -270,28 +280,32 @@ function OTTSidebar({ entries, onEntryClick }: { entries: OTTEntry[]; onEntryCli
         <p style={{ fontFamily: FONT, fontSize: "11px", fontWeight: 700, color: RED, margin: 0 }}>ޓްރެންޑިންގ އޯޓީޓީ ކޮންޓެންޓް</p>
       </div>
       <div style={{ height: "0.5px", background: "rgba(0,0,0,0.05)", margin: "0 16px" }} />
-      <div>
-        {entries.map(function(entry, i) {
+
+      {/* 3-col poster grid */}
+      <div style={{ padding: "12px 16px 14px", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
+        {entries.slice(0, 6).map(function(entry, i) {
+          const pm = PCOLORS[entry.platform] ?? "#666";
+          const pl = PLABELS[entry.platform] ?? entry.platform;
           return (
             <button key={entry.id} onClick={function() { onEntryClick(entry); }}
-              style={{ display: "flex", gap: "10px", padding: "11px 16px", borderBottom: i < entries.length - 1 ? "0.5px solid rgba(0,0,0,0.04)" : "none", alignItems: "center", background: "none", border: "none", cursor: "pointer", width: "100%", textAlign: "right" }}>
-              <span style={{ fontFamily: "Georgia,serif", fontSize: "16px", fontWeight: 700, color: i < 3 ? RED : "rgba(0,0,0,0.18)", minWidth: "20px", flexShrink: 0, textAlign: "center" }}>{entry.rank}</span>
-              {entry.poster_url ? (
-                <div style={{ width: "38px", height: "54px", borderRadius: "6px", overflow: "hidden", flexShrink: 0, background: BG_CARD, boxShadow: "0 2px 10px rgba(0,0,0,0.12)" }}>
-                  <img src={entry.poster_url} alt={entry.title_dv} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 0, textAlign: "right" }}>
+              <div style={{ position: "relative", width: "100%", aspectRatio: "3/4", borderRadius: "8px", overflow: "hidden", background: BG_CARD, boxShadow: SHADOW, marginBottom: "5px" }}>
+                {entry.poster_url
+                  ? <img src={entry.poster_url} alt={entry.title_dv} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  : <div style={{ width: "100%", height: "100%", background: BG_CARD }} />
+                }
+                {/* Rank badge */}
+                <div style={{ position: "absolute", top: "5px", right: "5px", width: "18px", height: "18px", borderRadius: "50%", background: i < 3 ? RED : "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontFamily: "Georgia,serif", fontSize: "9px", fontWeight: 700, color: "white", lineHeight: 1 }}>{entry.rank}</span>
                 </div>
-              ) : (
-                <div style={{ width: "38px", height: "54px", borderRadius: "6px", flexShrink: 0, background: BG_CARD }} />
-              )}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: TEXT, margin: "0 0 4px", lineHeight: 1.4, textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} dir="rtl">{entry.title_dv}</p>
-                <div style={{ display: "flex", gap: "5px", alignItems: "center", justifyContent: "flex-end" }}>
-                  {entry.genre && <span style={{ fontFamily: FONT, fontSize: "9px", color: TEXT_MUTED }}>{entry.genre}</span>}
-                  <span style={{ fontFamily: "system-ui,sans-serif", fontSize: "9px", fontWeight: 700, padding: "2px 6px", borderRadius: "4px", color: "white", background: PCOLORS[entry.platform] ?? "#666", flexShrink: 0 }}>
-                    {PLABELS[entry.platform] ?? entry.platform}
-                  </span>
+                {/* Platform badge bottom */}
+                <div style={{ position: "absolute", bottom: "5px", left: "5px" }}>
+                  <span style={{ fontFamily: "system-ui,sans-serif", fontSize: "8px", fontWeight: 700, padding: "1px 5px", borderRadius: "3px", background: pm, color: "white" }}>{pl}</span>
                 </div>
               </div>
+              <p style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: TEXT, margin: 0, lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} dir="rtl">
+                {entry.title_dv}
+              </p>
             </button>
           );
         })}
@@ -478,7 +492,6 @@ export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, 
               {ottEntries.length > 0 && <OTTSidebar entries={ottEntries} onEntryClick={setSelectedOTT} />}
             </div>
           )}
-
         </div>
       </div>
 
