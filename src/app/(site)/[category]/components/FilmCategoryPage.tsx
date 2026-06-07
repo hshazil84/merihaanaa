@@ -103,6 +103,9 @@ const CSS = [
   ".lc2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}",
   ".lc3{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}",
   ".lc4{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}",
+  ".sheet-overlay{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,0.6);display:flex;align-items:flex-end;justify-content:center;}",
+  ".sheet-inner{background:white;width:100%;max-width:520px;border-radius:20px 20px 0 0;overflow:hidden;max-height:90vh;overflow-y:auto;}",
+  "@media(min-width:768px){.sheet-overlay{align-items:center!important;}.sheet-inner{border-radius:16px!important;max-height:82vh!important;}}",
   "@media(max-width:1024px){.film-layout{grid-template-columns:1fr!important;}.film-sidebar-col{display:none!important;}.film-4col{grid-template-columns:1fr 1fr!important;}.film-trending-grid{grid-template-columns:1fr!important;}}",
   "@media(max-width:768px){.film-featured{grid-template-columns:1fr!important;}.film-3col{grid-template-columns:1fr 1fr!important;}}",
   "@media(max-width:480px){.film-3col,.film-4col{grid-template-columns:1fr!important;}}",
@@ -174,53 +177,82 @@ function ArticleCard({ article, categorySlug }: { article: Article; categorySlug
   );
 }
 
+function ModalClose({ onClose }: { onClose: () => void }) {
+  return (
+    <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: TEXT_MUTED, padding: "4px", flexShrink: 0 }}>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 2l12 12M14 2L2 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+    </button>
+  );
+}
+
 function CinemaModal({ entry, onClose }: { entry: CinemaEntry; onClose: () => void }) {
   const ytId = entry.trailer_url ? getYouTubeId(entry.trailer_url) : null;
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}
-      onClick={onClose}>
-      <div style={{ background: "white", width: "100%", maxWidth: "520px", borderRadius: "20px 20px 0 0", overflow: "hidden", maxHeight: "90vh", overflowY: "auto" }}
-        onClick={function(e) { e.stopPropagation(); }} dir="rtl">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "0.5px solid " + DIVIDER }}>
+    <div className="sheet-overlay" onClick={onClose}>
+      <div className="sheet-inner" onClick={function(e) { e.stopPropagation(); }} dir="rtl">
+
+        {/* Handle bar — mobile only */}
+        <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}>
+          <div style={{ width: "36px", height: "4px", borderRadius: "2px", background: "rgba(0,0,0,0.12)" }} />
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 20px 14px", borderBottom: "0.5px solid " + DIVIDER }}>
           <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
-            <span style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, padding: "2px 8px", borderRadius: "20px",
+            <span style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, padding: "3px 10px", borderRadius: "20px",
               background: entry.chart_type === "cinema_now" ? RED : "rgb(240,239,233)",
               color: entry.chart_type === "cinema_now" ? "white" : "rgb(100,100,100)" }}>
               {entry.chart_type === "cinema_now" ? "މިހާރު ދައްކަނީ" : "އަންނަނީ"}
             </span>
-            {entry.performance === "hit" && <span style={{ fontSize: "13px" }}>{"🔥"}</span>}
-            {entry.performance === "flop" && <span style={{ fontSize: "13px" }}>{"😞"}</span>}
+            {entry.performance === "hit" && <span style={{ fontSize: "14px" }}>{"🔥"}</span>}
+            {entry.performance === "flop" && <span style={{ fontSize: "14px" }}>{"😞"}</span>}
             {entry.performance === "houseful" && (
-              <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, padding: "2px 7px", borderRadius: "20px", background: "#fef9c3", color: "#854d0e" }}>
+              <span style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, padding: "3px 8px", borderRadius: "20px", background: "#fef9c3", color: "#854d0e" }}>
                 {"🎟 ހައުސްފުލް"}
               </span>
             )}
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: TEXT_MUTED, padding: "4px" }}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 2l12 12M14 2L2 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-          </button>
+          <ModalClose onClose={onClose} />
         </div>
+
         <div style={{ padding: "20px" }}>
-          <div style={{ display: "flex", gap: "14px", marginBottom: "16px" }}>
+          <div style={{ display: "flex", gap: "16px", marginBottom: "18px" }}>
             {entry.featured_image && (
-              <div style={{ width: "88px", height: "120px", borderRadius: "8px", overflow: "hidden", flexShrink: 0, background: BG_CARD }}>
+              <div style={{ width: "96px", height: "130px", borderRadius: "10px", overflow: "hidden", flexShrink: 0, background: BG_CARD, boxShadow: "0 4px 16px rgba(0,0,0,0.15)" }}>
                 <img src={entry.featured_image} alt={entry.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               </div>
             )}
             <div style={{ flex: 1 }}>
-              <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "17px", lineHeight: 1.7, margin: "0 0 6px", color: TEXT }}>{entry.title}</h2>
-              {entry.showing_date && <p style={{ fontFamily: FONT, fontSize: "11px", color: TEXT_MUTED, margin: 0 }}>{formatDate(entry.showing_date)}</p>}
+              <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "18px", lineHeight: 1.7, margin: "0 0 6px", color: TEXT }}>{entry.title}</h2>
+              {entry.showing_date && (
+                <p style={{ fontFamily: FONT, fontSize: "12px", color: TEXT_MUTED, margin: "0 0 10px" }}>{formatDate(entry.showing_date)}</p>
+              )}
+              {entry.trailer_url && !ytId && (
+                <a href={entry.trailer_url} target="_blank" rel="noopener noreferrer"
+                  style={{ fontFamily: FONT, fontSize: "11px", fontWeight: 700, color: RED, textDecoration: "none", border: "1px solid " + RED, padding: "4px 12px", borderRadius: "6px", display: "inline-block" }}>
+                  {"ޓްރެއިލަ ބަލާ"}
+                </a>
+              )}
             </div>
           </div>
-          {entry.synopsis && <p style={{ fontFamily: FONT, fontSize: "13px", color: "rgb(80,78,72)", lineHeight: 1.9, margin: "0 0 16px" }}>{entry.synopsis}</p>}
+
+          {entry.synopsis && (
+            <p style={{ fontFamily: FONT, fontSize: "13px", color: "rgb(80,78,72)", lineHeight: 1.9, margin: "0 0 18px" }}>{entry.synopsis}</p>
+          )}
+
           {ytId && (
-            <div style={{ borderRadius: "10px", overflow: "hidden", aspectRatio: "16/9", marginBottom: "16px" }}>
-              <iframe src={"https://www.youtube.com/embed/" + ytId} style={{ width: "100%", height: "100%", border: "none", display: "block" }} allowFullScreen allow="autoplay; encrypted-media" />
+            <div style={{ borderRadius: "12px", overflow: "hidden", aspectRatio: "16/9", marginBottom: "18px" }}>
+              <iframe src={"https://www.youtube.com/embed/" + ytId}
+                style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+                allowFullScreen allow="autoplay; encrypted-media" />
             </div>
           )}
+
           {entry.article_id && (
-            <div style={{ paddingTop: "12px", borderTop: "0.5px solid " + DIVIDER }}>
-              <a href={"/film/" + entry.article_id} style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none" }}>{"← ރިވިއު ކިޔާ"}</a>
+            <div style={{ paddingTop: "14px", borderTop: "0.5px solid " + DIVIDER }}>
+              <a href={"/film/" + entry.article_id}
+                style={{ fontFamily: FONT, fontSize: "13px", fontWeight: 700, color: RED, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                {"← ރިވިއު ކިޔާ"}
+              </a>
             </div>
           )}
         </div>
@@ -233,45 +265,59 @@ function OTTModal({ entry, onClose }: { entry: OTTEntry; onClose: () => void }) 
   const pm = PLATFORM_COLORS[entry.platform] ?? "#666";
   const pl = PLATFORM_LABELS[entry.platform] ?? entry.platform;
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}
-      onClick={onClose}>
-      <div style={{ background: "white", width: "100%", maxWidth: "520px", borderRadius: "20px 20px 0 0", overflow: "hidden", maxHeight: "90vh", overflowY: "auto" }}
-        onClick={function(e) { e.stopPropagation(); }} dir="rtl">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "0.5px solid " + DIVIDER }}>
-          <span style={{ fontFamily: "sans-serif", fontSize: "10px", fontWeight: 700, padding: "2px 8px", borderRadius: "20px", background: pm, color: "white" }}>{pl}</span>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: TEXT_MUTED, padding: "4px" }}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 2l12 12M14 2L2 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-          </button>
+    <div className="sheet-overlay" onClick={onClose}>
+      <div className="sheet-inner" onClick={function(e) { e.stopPropagation(); }} dir="rtl">
+
+        <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}>
+          <div style={{ width: "36px", height: "4px", borderRadius: "2px", background: "rgba(0,0,0,0.12)" }} />
         </div>
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 20px 14px", borderBottom: "0.5px solid " + DIVIDER }}>
+          <span style={{ fontFamily: "sans-serif", fontSize: "11px", fontWeight: 700, padding: "3px 10px", borderRadius: "20px", background: pm, color: "white" }}>{pl}</span>
+          <ModalClose onClose={onClose} />
+        </div>
+
         <div style={{ padding: "20px" }}>
-          <div style={{ display: "flex", gap: "14px", marginBottom: "16px" }}>
+          <div style={{ display: "flex", gap: "16px", marginBottom: "18px" }}>
             {entry.poster_url && (
-              <div style={{ width: "88px", height: "120px", borderRadius: "8px", overflow: "hidden", flexShrink: 0, background: BG_CARD }}>
+              <div style={{ width: "96px", height: "130px", borderRadius: "10px", overflow: "hidden", flexShrink: 0, background: BG_CARD, boxShadow: "0 4px 16px rgba(0,0,0,0.15)" }}>
                 <img src={entry.poster_url} alt={entry.title_dv} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               </div>
             )}
             <div style={{ flex: 1 }}>
-              <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "17px", lineHeight: 1.7, margin: "0 0 4px", color: TEXT }}>{entry.title_dv}</h2>
-              {entry.title_en && <p style={{ fontFamily: "sans-serif", fontSize: "12px", color: TEXT_MUTED, margin: "0 0 8px" }}>{entry.title_en}</p>}
-              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "6px" }}>
-                {entry.genre && <span style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED }}>{entry.genre}</span>}
-                {entry.season && <span style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED }}>{"S" + entry.season}</span>}
-                {entry.episodes && <span style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED }}>{entry.episodes + " eps"}</span>}
+              <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "18px", lineHeight: 1.7, margin: "0 0 4px", color: TEXT }}>{entry.title_dv}</h2>
+              {entry.title_en && (
+                <p style={{ fontFamily: "sans-serif", fontSize: "12px", color: TEXT_MUTED, margin: "0 0 10px" }}>{entry.title_en}</p>
+              )}
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "8px" }}>
+                {entry.genre && <span style={{ fontFamily: FONT, fontSize: "11px", color: TEXT_MUTED }}>{entry.genre}</span>}
+                {entry.season && <span style={{ fontFamily: FONT, fontSize: "11px", color: TEXT_MUTED }}>{"S" + entry.season}</span>}
+                {entry.episodes && <span style={{ fontFamily: FONT, fontSize: "11px", color: TEXT_MUTED }}>{entry.episodes + " eps"}</span>}
               </div>
               {entry.rating && (
                 <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
                   {[1,2,3,4,5].map(function(s) {
-                    return <svg key={s} width="13" height="13" viewBox="0 0 24 24" fill={(entry.rating ?? 0) >= s ? RED : "none"} stroke={RED} strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
+                    return <svg key={s} width="14" height="14" viewBox="0 0 24 24" fill={(entry.rating ?? 0) >= s ? RED : "none"} stroke={RED} strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
                   })}
-                  <span style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED, marginRight: "4px" }}>{entry.rating + "/5"}</span>
+                  <span style={{ fontFamily: FONT, fontSize: "11px", color: TEXT_MUTED, marginRight: "4px" }}>{entry.rating + "/5"}</span>
                 </div>
               )}
             </div>
           </div>
-          {entry.synopsis && <p style={{ fontFamily: FONT, fontSize: "13px", color: "rgb(80,78,72)", lineHeight: 1.9, margin: "0 0 16px" }}>{entry.synopsis}</p>}
-          <div style={{ display: "flex", gap: "12px", paddingTop: "12px", borderTop: "0.5px solid " + DIVIDER }}>
-            {entry.ott_instagram && <a href={entry.ott_instagram} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none" }}>{"← Instagram"}</a>}
-            {entry.article_id && <a href={"/film/" + entry.article_id} style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none" }}>{"← ރިވިއު ކިޔާ"}</a>}
+
+          {entry.synopsis && (
+            <p style={{ fontFamily: FONT, fontSize: "13px", color: "rgb(80,78,72)", lineHeight: 1.9, margin: "0 0 18px" }}>{entry.synopsis}</p>
+          )}
+
+          <div style={{ display: "flex", gap: "14px", paddingTop: "14px", borderTop: "0.5px solid " + DIVIDER }}>
+            {entry.ott_instagram && (
+              <a href={entry.ott_instagram} target="_blank" rel="noopener noreferrer"
+                style={{ fontFamily: FONT, fontSize: "13px", fontWeight: 700, color: RED, textDecoration: "none" }}>{"← Instagram"}</a>
+            )}
+            {entry.article_id && (
+              <a href={"/film/" + entry.article_id}
+                style={{ fontFamily: FONT, fontSize: "13px", fontWeight: 700, color: RED, textDecoration: "none" }}>{"← ރިވިއު ކިޔާ"}</a>
+            )}
           </div>
         </div>
       </div>
@@ -279,51 +325,77 @@ function OTTModal({ entry, onClose }: { entry: OTTEntry; onClose: () => void }) 
   );
 }
 
-function Sidebar({ cinemaEntries, ottEntries, onCinemaClick, onOTTClick }: {
-  cinemaEntries: CinemaEntry[];
-  ottEntries: OTTEntry[];
-  onCinemaClick: (e: CinemaEntry) => void;
-  onOTTClick: (e: OTTEntry) => void;
-}) {
+function CinemaSidebar({ entries, onEntryClick }: { entries: CinemaEntry[]; onEntryClick: (e: CinemaEntry) => void }) {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const nowShowing = entries.filter(function(e) { return e.chart_type === "cinema_now"; });
+  const upcoming   = entries.filter(function(e) { return e.chart_type === "cinema_upcoming"; });
+  const allNow     = nowShowing.length > 0 ? nowShowing : entries;
+  const active     = allNow[activeIdx] ?? allNow[0];
+
+  if (!active) return null;
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+    <div style={{ background: "white", border: "0.5px solid rgba(0,0,0,0.08)", borderRadius: "14px", overflow: "hidden" }}>
 
-      {cinemaEntries.length > 0 && (
-        <div style={{ background: "white", border: "0.5px solid rgba(0,0,0,0.08)", borderRadius: "12px", overflow: "hidden" }}>
-          <div style={{ padding: "12px 14px 10px", borderBottom: "0.5px solid rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: "8px" }}>
-            <div style={{ width: "3px", height: "14px", background: RED, borderRadius: "2px", flexShrink: 0 }} />
-            <p style={{ fontFamily: FONT_DISPLAY, fontSize: "15px", fontWeight: 400, color: RED, margin: 0 }}>ސިނަމާ</p>
-            <span style={{ fontFamily: FONT, fontSize: "9px", color: TEXT_MUTED, marginRight: "auto" }}>އޮލިމްޕަސް</span>
+      {/* Header */}
+      <div style={{ padding: "10px 14px 8px", borderBottom: "0.5px solid rgba(0,0,0,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", gap: "5px" }}>
+          {allNow.map(function(_, i) {
+            return (
+              <button key={i} onClick={function() { setActiveIdx(i); }}
+                style={{ width: i === activeIdx ? "16px" : "6px", height: "6px", borderRadius: "3px", background: i === activeIdx ? RED : "rgba(0,0,0,0.15)", border: "none", cursor: "pointer", transition: "width 0.2s ease", padding: 0 }} />
+            );
+          })}
+        </div>
+        <p style={{ fontFamily: FONT, fontSize: "11px", fontWeight: 700, color: RED, margin: 0 }}>ސިނަމާ</p>
+      </div>
+
+      {/* Active film */}
+      <button onClick={function() { onEntryClick(active); }}
+        style={{ display: "flex", gap: "12px", padding: "14px", alignItems: "flex-start", background: "none", border: "none", cursor: "pointer", width: "100%", textAlign: "right" }}>
+        {active.featured_image ? (
+          <div style={{ width: "64px", height: "88px", borderRadius: "8px", overflow: "hidden", flexShrink: 0, background: BG_CARD, boxShadow: "0 4px 12px rgba(0,0,0,0.18)" }}>
+            <img src={active.featured_image} alt={active.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           </div>
-          <div style={{ padding: "8px 14px 4px" }}>
-            {cinemaEntries.map(function(entry, i) {
+        ) : (
+          <div style={{ width: "64px", height: "88px", borderRadius: "8px", flexShrink: 0, background: BG_CARD, boxShadow: "0 4px 12px rgba(0,0,0,0.18)" }} />
+        )}
+        <div style={{ flex: 1, minWidth: 0, paddingTop: "2px" }}>
+          <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", justifyContent: "flex-end", marginBottom: "6px" }}>
+            <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, padding: "2px 8px", borderRadius: "10px",
+              background: active.chart_type === "cinema_now" ? RED : "rgb(240,239,233)",
+              color: active.chart_type === "cinema_now" ? "white" : "rgb(100,100,100)" }}>
+              {active.chart_type === "cinema_now" ? "މިހާރު ދައްކަނީ" : "އަންނަނީ"}
+            </span>
+            {active.performance === "hit" && <span style={{ fontSize: "12px" }}>{"🔥"}</span>}
+            {active.performance === "flop" && <span style={{ fontSize: "12px" }}>{"😞"}</span>}
+            {active.performance === "houseful" && <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, padding: "2px 6px", borderRadius: "10px", background: "#fef9c3", color: "#854d0e" }}>{"🎟 ހައުސްފުލް"}</span>}
+          </div>
+          <p style={{ fontFamily: FONT, fontSize: "13px", fontWeight: 700, color: TEXT, margin: "0 0 5px", lineHeight: 1.5, textAlign: "right" }} dir="rtl">
+            {active.title}
+          </p>
+          {active.showing_date && (
+            <p style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED, margin: "0 0 8px", textAlign: "right" }}>
+              {formatDate(active.showing_date)}
+            </p>
+          )}
+          <p style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: RED, margin: 0, textAlign: "right" }}>
+            {"ތަފްސީލު ބަލާ ←"}
+          </p>
+        </div>
+      </button>
+
+      {/* Upcoming strip */}
+      {upcoming.length > 0 && (
+        <div style={{ borderTop: "0.5px solid rgba(0,0,0,0.06)", padding: "10px 14px", display: "flex", alignItems: "center", gap: "10px" }}>
+          <p style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, color: TEXT_MUTED, margin: 0, flexShrink: 0 }}>ކުރިއަށް</p>
+          <div style={{ display: "flex", gap: "6px", overflow: "hidden" }}>
+            {upcoming.slice(0, 3).map(function(e) {
               return (
-                <button key={entry.id} onClick={function() { onCinemaClick(entry); }}
-                  style={{ display: "flex", gap: "12px", padding: "10px 0", borderBottom: i < cinemaEntries.length - 1 ? "0.5px solid rgba(0,0,0,0.06)" : "none", alignItems: "flex-start", background: "none", border: "none", cursor: "pointer", width: "100%", textAlign: "right" }}>
-                  {entry.featured_image ? (
-                    <div style={{ width: "52px", height: "72px", borderRadius: "6px", overflow: "hidden", flexShrink: 0, background: BG_CARD, boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}>
-                      <img src={entry.featured_image} alt={entry.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    </div>
-                  ) : (
-                    <div style={{ width: "52px", height: "72px", borderRadius: "6px", flexShrink: 0, background: BG_CARD }} />
-                  )}
-                  <div style={{ flex: 1, minWidth: 0, paddingTop: "2px" }}>
-                    <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", justifyContent: "flex-end", marginBottom: "5px" }}>
-                      <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, padding: "2px 7px", borderRadius: "10px",
-                        background: entry.chart_type === "cinema_now" ? RED : "rgb(240,239,233)",
-                        color: entry.chart_type === "cinema_now" ? "white" : "rgb(100,100,100)" }}>
-                        {entry.chart_type === "cinema_now" ? "މިހާރު ދައްކަނީ" : "އަންނަނީ"}
-                      </span>
-                      {entry.performance === "hit" && <span style={{ fontSize: "11px" }}>{"🔥"}</span>}
-                      {entry.performance === "flop" && <span style={{ fontSize: "11px" }}>{"😞"}</span>}
-                      {entry.performance === "houseful" && <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, padding: "2px 6px", borderRadius: "10px", background: "#fef9c3", color: "#854d0e" }}>{"🎟 ހައުސްފުލް"}</span>}
-                    </div>
-                    <p style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: TEXT, margin: "0 0 4px", lineHeight: 1.5, textAlign: "right" }} dir="rtl">{entry.title}</p>
-                    {entry.showing_date && (
-                      <p style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED, margin: 0, textAlign: "right" }}>
-                        {formatDate(entry.showing_date)}
-                      </p>
-                    )}
+                <button key={e.id} onClick={function() { onEntryClick(e); }}
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0, flexShrink: 0 }}>
+                  <div style={{ width: "30px", height: "42px", borderRadius: "4px", overflow: "hidden", background: BG_CARD }}>
+                    {e.featured_image && <img src={e.featured_image} alt={e.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
                   </div>
                 </button>
               );
@@ -331,49 +403,54 @@ function Sidebar({ cinemaEntries, ottEntries, onCinemaClick, onOTTClick }: {
           </div>
         </div>
       )}
+    </div>
+  );
+}
 
-      {ottEntries.length > 0 && (
-        <div style={{ background: "white", border: "0.5px solid rgba(0,0,0,0.08)", borderRadius: "12px", overflow: "hidden" }}>
-          <div style={{ padding: "12px 14px 10px", borderBottom: "0.5px solid rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: "8px" }}>
-            <div style={{ width: "3px", height: "14px", background: RED, borderRadius: "2px", flexShrink: 0 }} />
-            <p style={{ fontFamily: FONT_DISPLAY, fontSize: "15px", fontWeight: 400, color: RED, margin: 0 }}>OTT ޓްރެންޑިން</p>
-          </div>
-          <div style={{ padding: "8px 14px 4px" }}>
-            {ottEntries.map(function(entry, i) {
-              return (
-                <button key={entry.id} onClick={function() { onOTTClick(entry); }}
-                  style={{ display: "flex", gap: "12px", padding: "10px 0", borderBottom: i < ottEntries.length - 1 ? "0.5px solid rgba(0,0,0,0.06)" : "none", alignItems: "flex-start", background: "none", border: "none", cursor: "pointer", width: "100%", textAlign: "right" }}>
-                  <span style={{ fontFamily: "Georgia,serif", fontSize: "15px", fontWeight: 700, color: i < 3 ? RED : TEXT_MUTED, minWidth: "18px", lineHeight: 1, paddingTop: "4px", flexShrink: 0 }}>{entry.rank}</span>
-                  {entry.poster_url ? (
-                    <div style={{ width: "44px", height: "62px", borderRadius: "5px", overflow: "hidden", flexShrink: 0, background: BG_CARD, boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}>
-                      <img src={entry.poster_url} alt={entry.title_dv} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    </div>
-                  ) : (
-                    <div style={{ width: "44px", height: "62px", borderRadius: "5px", flexShrink: 0, background: BG_CARD }} />
-                  )}
-                  <div style={{ flex: 1, minWidth: 0, paddingTop: "2px" }}>
-                    <p style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: TEXT, margin: "0 0 5px", lineHeight: 1.5, textAlign: "right" }} dir="rtl">{entry.title_dv}</p>
-                    <div style={{ display: "flex", gap: "5px", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" }}>
-                      <span style={{ fontFamily: "sans-serif", fontSize: "9px", fontWeight: 700, padding: "1px 6px", borderRadius: "4px", color: "white", background: PLATFORM_COLORS[entry.platform] ?? "#666" }}>
-                        {PLATFORM_LABELS[entry.platform] ?? entry.platform}
-                      </span>
-                      {entry.genre && <span style={{ fontFamily: FONT, fontSize: "9px", color: TEXT_MUTED }}>{entry.genre}</span>}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
+function OTTSidebar({ entries, onEntryClick }: { entries: OTTEntry[]; onEntryClick: (e: OTTEntry) => void }) {
+  if (!entries.length) return null;
+  return (
+    <div style={{ background: "white", border: "0.5px solid rgba(0,0,0,0.08)", borderRadius: "14px", overflow: "hidden" }}>
+      <div style={{ padding: "10px 14px 8px", borderBottom: "0.5px solid rgba(0,0,0,0.06)" }}>
+        <p style={{ fontFamily: FONT, fontSize: "11px", fontWeight: 700, color: RED, margin: 0 }}>
+          ޓްރެންޑިންގ އޯޓީޓީ ކޮންޓެންޓް
+        </p>
+      </div>
+      <div>
+        {entries.map(function(entry, i) {
+          return (
+            <button key={entry.id} onClick={function() { onEntryClick(entry); }}
+              style={{ display: "flex", gap: "10px", padding: "10px 14px", borderBottom: i < entries.length - 1 ? "0.5px solid rgba(0,0,0,0.05)" : "none", alignItems: "center", background: "none", border: "none", cursor: "pointer", width: "100%", textAlign: "right" }}>
+              <span style={{ fontFamily: "Georgia,serif", fontSize: "17px", fontWeight: 700, color: i < 3 ? RED : TEXT_MUTED, minWidth: "20px", flexShrink: 0, textAlign: "center" }}>{entry.rank}</span>
+              {entry.poster_url ? (
+                <div style={{ width: "40px", height: "56px", borderRadius: "6px", overflow: "hidden", flexShrink: 0, background: BG_CARD, boxShadow: "0 2px 8px rgba(0,0,0,0.14)" }}>
+                  <img src={entry.poster_url} alt={entry.title_dv} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </div>
+              ) : (
+                <div style={{ width: "40px", height: "56px", borderRadius: "6px", flexShrink: 0, background: BG_CARD }} />
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: TEXT, margin: "0 0 4px", lineHeight: 1.4, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} dir="rtl">
+                  {entry.title_dv}
+                </p>
+                <div style={{ display: "flex", gap: "5px", alignItems: "center", justifyContent: "flex-end" }}>
+                  <span style={{ fontFamily: "sans-serif", fontSize: "9px", fontWeight: 700, padding: "2px 6px", borderRadius: "4px", color: "white", background: PLATFORM_COLORS[entry.platform] ?? "#666" }}>
+                    {PLATFORM_LABELS[entry.platform] ?? entry.platform}
+                  </span>
+                  {entry.genre && <span style={{ fontFamily: FONT, fontSize: "9px", color: TEXT_MUTED }}>{entry.genre}</span>}
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
 export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, featuredOriginal, categorySlug, totalCount, page }: Props) {
   const [selectedCinema, setSelectedCinema] = useState<CinemaEntry | null>(null);
-  const [selectedOTT, setSelectedOTT] = useState<OTTEntry | null>(null);
+  const [selectedOTT, setSelectedOTT]       = useState<OTTEntry | null>(null);
 
   const featured   = articles[0] ?? null;
   const grid3      = articles.slice(1, 4);
@@ -480,12 +557,10 @@ export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, 
                   {featuredOriginal && featuredOriginal.cloudflare_stream_id && (
                     <div>
                       <div style={{ borderRadius: "10px", overflow: "hidden", aspectRatio: "16/9", marginBottom: "12px", background: "rgb(10,10,10)" }}>
-                        <iframe
-                          src={CF + "/" + featuredOriginal.cloudflare_stream_id + "/iframe"}
+                        <iframe src={CF + "/" + featuredOriginal.cloudflare_stream_id + "/iframe"}
                           style={{ width: "100%", height: "100%", border: "none", display: "block" }}
                           allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
-                          allowFullScreen
-                        />
+                          allowFullScreen />
                       </div>
                       <p style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: "rgba(255,255,255,0.9)", margin: "0 0 4px", lineHeight: 1.6 }} dir="rtl">
                         {featuredOriginal.title}
@@ -567,13 +642,13 @@ export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, 
           </div>
 
           {showSidebar && (
-            <div className="film-sidebar-col" style={{ position: "sticky", top: "140px" }}>
-              <Sidebar
-                cinemaEntries={cinemaEntries}
-                ottEntries={ottEntries}
-                onCinemaClick={setSelectedCinema}
-                onOTTClick={setSelectedOTT}
-              />
+            <div className="film-sidebar-col" style={{ position: "sticky", top: "140px", display: "flex", flexDirection: "column", gap: "14px" }}>
+              {cinemaEntries.length > 0 && (
+                <CinemaSidebar entries={cinemaEntries} onEntryClick={setSelectedCinema} />
+              )}
+              {ottEntries.length > 0 && (
+                <OTTSidebar entries={ottEntries} onEntryClick={setSelectedOTT} />
+              )}
             </div>
           )}
 
@@ -581,7 +656,7 @@ export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, 
       </div>
 
       {selectedCinema && <CinemaModal entry={selectedCinema} onClose={function() { setSelectedCinema(null); }} />}
-      {selectedOTT && <OTTModal entry={selectedOTT} onClose={function() { setSelectedOTT(null); }} />}
+      {selectedOTT    && <OTTModal    entry={selectedOTT}    onClose={function() { setSelectedOTT(null); }} />}
     </div>
   );
 }
