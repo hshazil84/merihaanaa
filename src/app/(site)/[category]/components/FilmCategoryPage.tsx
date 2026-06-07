@@ -297,7 +297,7 @@ function ChartSidebar({ cinemaEntries, ottEntries, onCinemaClick, onOTTClick }: 
               return (
                 <button key={entry.id}
                   onClick={function() { onCinemaClick(entry); }}
-                  style={{ display: "flex", gap: "10px", padding: "10px 0", borderBottom: "0.5px solid " + DIVIDER, alignItems: "flex-start", background: "none", border_bottom: "none", cursor: "pointer", width: "100%", textAlign: "right" }}>
+                  style={{ display: "flex", gap: "10px", padding: "10px 0", borderBottom: "0.5px solid " + DIVIDER, alignItems: "flex-start", background: "none", cursor: "pointer", width: "100%", textAlign: "right" }}>
                   {entry.featured_image ? (
                     <div style={{ width: "38px", height: "54px", borderRadius: "5px", overflow: "hidden", flexShrink: 0, background: BG_CARD }}>
                       <img src={entry.featured_image} alt={entry.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
