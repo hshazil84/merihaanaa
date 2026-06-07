@@ -419,7 +419,7 @@ export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, 
                   <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
                     <div>
                       {getFirstTag(featured.tags) && (
-                        <span style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: "white", background: RED, padding: "2px 10px", borderRadius: "20px", display: "inline-block", marginBottom: "10px", letterSpacing: "0.05em" }}>
+                        <span style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: RED, background: "transparent", border: "1.5px solid " + RED, padding: "4px 12px", borderRadius: "20px", display: "inline-block", marginBottom: "12px", letterSpacing: "0.05em", lineHeight: 1.6 }}>
                           {getFirstTag(featured.tags)}
                         </span>
                       )}
