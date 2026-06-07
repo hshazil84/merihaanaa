@@ -391,7 +391,7 @@ export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, 
   return (
     <div style={{ backgroundColor: BG, minHeight: "100vh" }} dir="rtl">
       <style>{`
-        .film-layout { display: grid; grid-template-columns: ${showSidebar ? "1fr 260px" : "1fr"}; gap: 3rem; align-items: start; }
+        .film-layout { display: grid; grid-template-columns: 1fr 260px; gap: 3rem; align-items: start; }
         .film-featured { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; }
         .film-3col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.25rem; }
         .film-4col { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 1.25rem; }
