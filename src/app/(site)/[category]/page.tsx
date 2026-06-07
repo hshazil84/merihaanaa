@@ -118,7 +118,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
     const [
       { data: articles, count },
       { data: cinemaRaw },
-      { data: videoClubRaw },
+      { data: ottRaw },
     ] = await Promise.all([
       supabase
         .from("articles")
@@ -136,17 +136,17 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         .in("chart_type", ["cinema_now", "cinema_upcoming"])
         .order("rank", { ascending: true }),
       supabase
-        .from("charts")
+        .from("chart_series")
         .select("*")
-        .eq("chart_type", "video_club")
+        .eq("is_active", true)
         .order("rank", { ascending: true }),
     ]);
 
     return (
       <FilmCategoryPage
         articles={(articles ?? []) as any[]}
-        cinemaEntries={cinemaRaw ?? []}
-        videoClubEntries={videoClubRaw ?? []}
+        cinemaEntries={(cinemaRaw ?? []) as any[]}
+        ottEntries={(ottRaw ?? []) as any[]}
         categorySlug={category.slug}
         totalCount={count ?? 0}
         page={page}
