@@ -397,11 +397,15 @@ export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, 
     <div className="bg-[#F5F3EF]" dir="rtl">
       <div className="max-w-6xl mx-auto px-6 py-10">
 
-        <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "1.5rem", borderBottom: "2px solid rgb(26,26,26)", paddingBottom: "10px" }}>
-          <h1 style={{ fontFamily: "'MVTypewriter','MV Boli',sans-serif", fontSize: "22px", fontWeight: 700, margin: 0, color: "rgb(26,26,26)" }}>
-            ފިލްމު
-          </h1>
-        </div>
+        <header style={{ textAlign: "center", padding: "2rem 0 1.5rem" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1rem" }}>
+            <span style={{ color: "rgba(0,0,0,0.18)", fontSize: "11px" }}>✦</span>
+            <h1 style={{ fontFamily: '"SanguSuruhee","MVTypewriter","Noto Sans Thaana",sans-serif', fontSize: "clamp(2rem, 5vw, 3.5rem)", color: "#E87060", lineHeight: 1.5, fontWeight: 400, margin: 0 }}>
+              ފިލްމު
+            </h1>
+            <span style={{ color: "rgba(0,0,0,0.18)", fontSize: "11px" }}>✦</span>
+          </div>
+        </header>
 
         <div style={{ display: "grid", gridTemplateColumns: showCharts ? "1fr 220px" : "1fr", gap: "2.5rem" }}>
 
