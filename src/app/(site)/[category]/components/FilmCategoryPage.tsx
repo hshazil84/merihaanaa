@@ -243,7 +243,18 @@ function CinemaSidebar({ entries, onEntryClick }: { entries: CinemaEntry[]; onEn
         </div>
         <p style={{ fontFamily: FONT, fontSize: "13px", fontWeight: 700, color: TEXT, margin: "0 0 3px", lineHeight: 1.5, textAlign: "right" }} dir="rtl">{active.title}</p>
         {active.showing_date && (
-          <p style={{ fontFamily: "system-ui,sans-serif", fontSize: "11px", color: TEXT_MUTED, margin: "0 0 6px", textAlign: "right", opacity: 0.75 }}>{formatDate(active.showing_date)}</p>
+          <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", background: "white", border: "0.5px solid rgba(0,0,0,0.1)", borderRadius: "10px", overflow: "hidden", width: "44px", marginBottom: "8px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
+            <div style={{ background: RED, width: "100%", padding: "2px 0", textAlign: "center" }}>
+              <span style={{ fontFamily: "system-ui,sans-serif", fontSize: "9px", fontWeight: 600, color: "white", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                {new Date(active.showing_date).toLocaleDateString("en-US", { month: "short" })}
+              </span>
+            </div>
+            <div style={{ padding: "3px 0 4px", textAlign: "center" }}>
+              <span style={{ fontFamily: "system-ui,sans-serif", fontSize: "20px", fontWeight: 300, color: TEXT, lineHeight: 1 }}>
+                {new Date(active.showing_date).getDate()}
+              </span>
+            </div>
+          </div>
         )}
         <p style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: RED, margin: 0, textAlign: "right" }}>{"ތަފްސީލު ←"}</p>
       </button>
