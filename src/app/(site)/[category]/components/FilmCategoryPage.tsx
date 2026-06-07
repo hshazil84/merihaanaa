@@ -1,5 +1,4 @@
 "use client";
-// src/app/(site)/[category]/components/FilmCategoryPage.tsx
 
 import { useState } from "react";
 import Link from "next/link";
@@ -89,6 +88,19 @@ const PLATFORM_LABELS: Record<string, string> = {
   baiskoafu: "Baiskoafu",
 };
 
+const CSS = [
+  ".film-layout{display:grid;grid-template-columns:1fr 260px;gap:3rem;align-items:start;}",
+  ".film-featured{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;}",
+  ".film-3col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.25rem;}",
+  ".film-4col{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1.25rem;}",
+  ".lc2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}",
+  ".lc3{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}",
+  ".lc4{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}",
+  "@media(max-width:1024px){.film-layout{grid-template-columns:1fr!important;}.film-sidebar-col{display:none!important;}.film-4col{grid-template-columns:1fr 1fr!important;}}",
+  "@media(max-width:768px){.film-featured{grid-template-columns:1fr!important;}.film-3col{grid-template-columns:1fr 1fr!important;}}",
+  "@media(max-width:480px){.film-3col,.film-4col{grid-template-columns:1fr!important;}}",
+].join("");
+
 function getYouTubeId(url: string) {
   const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
   return m ? m[1] : null;
@@ -118,21 +130,12 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function TagPill({ tag }: { tag: string }) {
-  return (
-    <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, color: RED, letterSpacing: "0.05em", display: "block", marginBottom: "4px" }}>
-      {tag}
-    </span>
-  );
-}
-
-function ArticleCard({ article, categorySlug, aspect }: { article: Article; categorySlug: string; aspect?: string }) {
+function ArticleCard({ article, categorySlug }: { article: Article; categorySlug: string }) {
   const slug = article.category?.slug ?? categorySlug;
   const tag = getFirstTag(article.tags);
-  const ar = aspect ?? "4/3";
   return (
     <Link href={"/" + slug + "/" + article.slug} style={{ textDecoration: "none", display: "block" }}>
-      <div style={{ aspectRatio: ar, overflow: "hidden", borderRadius: "8px", backgroundColor: BG_CARD, marginBottom: "10px" }}>
+      <div style={{ aspectRatio: "4/3", overflow: "hidden", borderRadius: "8px", backgroundColor: BG_CARD, marginBottom: "10px" }}>
         {article.featured_image
           ? <img src={article.featured_image} alt={article.title} style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.5s ease" }}
               onMouseOver={function(e) { (e.currentTarget as HTMLImageElement).style.transform = "scale(1.04)"; }}
@@ -140,9 +143,12 @@ function ArticleCard({ article, categorySlug, aspect }: { article: Article; cate
           : <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
         }
       </div>
-      {tag && <TagPill tag={tag} />}
-      <h3 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "13px", color: TEXT, lineHeight: 1.9, margin: "0 0 4px" }}
-        className="line-clamp-2">
+      {tag && (
+        <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, color: "white", background: RED, padding: "2px 8px", borderRadius: "20px", display: "inline-block", marginBottom: "5px", letterSpacing: "0.04em" }}>
+          {tag}
+        </span>
+      )}
+      <h3 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "13px", color: TEXT, lineHeight: 1.9, margin: "0 0 4px" }} className="lc2">
         {article.title}
       </h3>
       {article.author && (
@@ -200,7 +206,7 @@ function CinemaModal({ entry, onClose }: { entry: CinemaEntry; onClose: () => vo
           )}
           {entry.article_id && (
             <div style={{ paddingTop: "12px", borderTop: "0.5px solid " + DIVIDER }}>
-              <a href={"/film/" + entry.article_id} style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none" }}>← ރިވިއު ކިޔާ</a>
+              <a href={"/film/" + entry.article_id} style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none" }}>{"← ރިވިއު ކިޔާ"}</a>
             </div>
           )}
         </div>
@@ -250,8 +256,8 @@ function OTTModal({ entry, onClose }: { entry: OTTEntry; onClose: () => void }) 
           </div>
           {entry.synopsis && <p style={{ fontFamily: FONT, fontSize: "13px", color: "rgb(80,78,72)", lineHeight: 1.9, margin: "0 0 16px" }}>{entry.synopsis}</p>}
           <div style={{ display: "flex", gap: "12px", paddingTop: "12px", borderTop: "0.5px solid " + DIVIDER }}>
-            {entry.ott_instagram && <a href={entry.ott_instagram} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none" }}>← Instagram</a>}
-            {entry.article_id && <a href={"/film/" + entry.article_id} style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none" }}>← ރިވިއު ކިޔާ</a>}
+            {entry.ott_instagram && <a href={entry.ott_instagram} target="_blank" rel="noopener noreferrer" style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none" }}>{"← Instagram"}</a>}
+            {entry.article_id && <a href={"/film/" + entry.article_id} style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none" }}>{"← ރިވިއު ކިޔާ"}</a>}
           </div>
         </div>
       </div>
@@ -270,7 +276,6 @@ function Sidebar({ cinemaEntries, ottEntries, topRead, categorySlug, onCinemaCli
   return (
     <div style={{ paddingTop: "0.5rem" }}>
 
-      {/* Top read */}
       {topRead.length > 0 && (
         <div style={{ marginBottom: "2rem", paddingBottom: "2rem", borderBottom: "0.5px solid " + DIVIDER }}>
           <SectionLabel>ގިނައިން ކިޔާ</SectionLabel>
@@ -281,7 +286,7 @@ function Sidebar({ cinemaEntries, ottEntries, topRead, categorySlug, onCinemaCli
                   <span style={{ fontFamily: "Georgia,serif", fontSize: "16px", fontWeight: 700, color: i < 2 ? RED : TEXT_MUTED, minWidth: "20px", lineHeight: 1.3, flexShrink: 0 }}>
                     {i + 1}
                   </span>
-                  <p style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: TEXT, margin: 0, lineHeight: 1.7 }} className="line-clamp-2" dir="rtl">
+                  <p style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: TEXT, margin: 0, lineHeight: 1.7 }} className="lc2" dir="rtl">
                     {a.title}
                   </p>
                 </Link>
@@ -291,86 +296,87 @@ function Sidebar({ cinemaEntries, ottEntries, topRead, categorySlug, onCinemaCli
         </div>
       )}
 
-      {/* Charts header */}
-      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
-        <div style={{ width: "3px", height: "14px", background: RED, borderRadius: "2px", flexShrink: 0 }} />
-        <p style={{ fontFamily: FONT_DISPLAY, fontSize: "15px", fontWeight: 400, color: RED, margin: 0 }}>
-          ފިލްމީ ޗާޓު
-        </p>
-      </div>
-      <div style={{ height: "1px", background: "rgba(186,42,49,0.2)", marginBottom: "20px" }} />
-
-      {/* Cinema */}
-      {cinemaEntries.length > 0 && (
-        <div style={{ marginBottom: "2rem" }}>
-          <p style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: TEXT_MUTED, margin: "0 0 12px", letterSpacing: "0.05em" }}>
-            ސިނަމާ · އޮލިމްޕަސް
-          </p>
-          <div>
-            {cinemaEntries.map(function(entry, i) {
-              return (
-                <button key={entry.id} onClick={function() { onCinemaClick(entry); }}
-                  style={{ display: "flex", gap: "10px", padding: "10px 0", borderBottom: i < cinemaEntries.length - 1 ? "0.5px solid " + DIVIDER : "none", alignItems: "flex-start", background: "none", border: "none", cursor: "pointer", width: "100%", textAlign: "right" }}>
-                  {entry.featured_image ? (
-                    <div style={{ width: "38px", height: "54px", borderRadius: "5px", overflow: "hidden", flexShrink: 0, background: BG_CARD }}>
-                      <img src={entry.featured_image} alt={entry.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    </div>
-                  ) : (
-                    <div style={{ width: "38px", height: "54px", borderRadius: "5px", flexShrink: 0, background: BG_CARD }} />
-                  )}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontFamily: FONT, fontSize: "11px", fontWeight: 700, color: TEXT, margin: "0 0 5px", lineHeight: 1.5, textAlign: "right" }} dir="rtl">{entry.title}</p>
-                    <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", justifyContent: "flex-end" }}>
-                      <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, padding: "1px 6px", borderRadius: "10px",
-                        background: entry.chart_type === "cinema_now" ? RED : "rgb(240,239,233)",
-                        color: entry.chart_type === "cinema_now" ? "white" : "rgb(100,100,100)" }}>
-                        {entry.chart_type === "cinema_now" ? "މިހާރު" : "އަންނަނީ"}
-                      </span>
-                      {entry.performance === "hit" && <span style={{ fontSize: "11px" }}>{"🔥"}</span>}
-                      {entry.performance === "flop" && <span style={{ fontSize: "11px" }}>{"😞"}</span>}
-                      {entry.performance === "houseful" && <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, padding: "1px 5px", borderRadius: "10px", background: "#fef9c3", color: "#854d0e" }}>{"🎟"}</span>}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {cinemaEntries.length > 0 && ottEntries.length > 0 && (
-        <div style={{ borderTop: "0.5px solid " + DIVIDER, marginBottom: "1.5rem" }} />
-      )}
-
-      {/* OTT */}
-      {ottEntries.length > 0 && (
+      {(cinemaEntries.length > 0 || ottEntries.length > 0) && (
         <div>
-          <p style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: TEXT_MUTED, margin: "0 0 12px", letterSpacing: "0.05em" }}>
-            {"OTT · Netflix · Apple · Video Club"}
-          </p>
-          <div>
-            {ottEntries.map(function(entry, i) {
-              return (
-                <button key={entry.id} onClick={function() { onOTTClick(entry); }}
-                  style={{ display: "flex", gap: "10px", padding: "10px 0", borderBottom: i < ottEntries.length - 1 ? "0.5px solid " + DIVIDER : "none", alignItems: "flex-start", background: "none", border: "none", cursor: "pointer", width: "100%", textAlign: "right" }}>
-                  <span style={{ fontFamily: "Georgia,serif", fontSize: "14px", fontWeight: 700, color: i < 3 ? RED : TEXT_MUTED, minWidth: "18px", lineHeight: 1, paddingTop: "2px", flexShrink: 0 }}>{entry.rank}</span>
-                  {entry.poster_url ? (
-                    <div style={{ width: "38px", height: "54px", borderRadius: "5px", overflow: "hidden", flexShrink: 0, background: BG_CARD }}>
-                      <img src={entry.poster_url} alt={entry.title_dv} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    </div>
-                  ) : (
-                    <div style={{ width: "38px", height: "54px", borderRadius: "5px", flexShrink: 0, background: BG_CARD }} />
-                  )}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontFamily: FONT, fontSize: "11px", fontWeight: 700, color: TEXT, margin: "0 0 5px", lineHeight: 1.5, textAlign: "right" }} dir="rtl">{entry.title_dv}</p>
-                    <span style={{ fontFamily: "sans-serif", fontSize: "9px", fontWeight: 700, padding: "1px 5px", borderRadius: "4px", color: "white", background: PLATFORM_COLORS[entry.platform] ?? "#666" }}>
-                      {PLATFORM_LABELS[entry.platform] ?? entry.platform}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+            <div style={{ width: "3px", height: "18px", background: RED, borderRadius: "2px", flexShrink: 0 }} />
+            <p style={{ fontFamily: FONT_DISPLAY, fontSize: "17px", fontWeight: 400, color: RED, margin: 0 }}>
+              ފިލްމީ ޗާޓު
+            </p>
           </div>
+          <div style={{ height: "1px", background: "rgba(186,42,49,0.2)", marginBottom: "20px" }} />
+
+          {cinemaEntries.length > 0 && (
+            <div style={{ marginBottom: "2rem" }}>
+              <p style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: TEXT_MUTED, margin: "0 0 12px", letterSpacing: "0.05em" }}>
+                ސިނަމާ · އޮލިމްޕަސް
+              </p>
+              <div>
+                {cinemaEntries.map(function(entry, i) {
+                  return (
+                    <button key={entry.id} onClick={function() { onCinemaClick(entry); }}
+                      style={{ display: "flex", gap: "10px", padding: "10px 0", borderBottom: i < cinemaEntries.length - 1 ? "0.5px solid " + DIVIDER : "none", alignItems: "flex-start", background: "none", border: "none", cursor: "pointer", width: "100%", textAlign: "right" }}>
+                      {entry.featured_image ? (
+                        <div style={{ width: "38px", height: "54px", borderRadius: "5px", overflow: "hidden", flexShrink: 0, background: BG_CARD }}>
+                          <img src={entry.featured_image} alt={entry.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        </div>
+                      ) : (
+                        <div style={{ width: "38px", height: "54px", borderRadius: "5px", flexShrink: 0, background: BG_CARD }} />
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontFamily: FONT, fontSize: "11px", fontWeight: 700, color: TEXT, margin: "0 0 5px", lineHeight: 1.5, textAlign: "right" }} dir="rtl">{entry.title}</p>
+                        <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                          <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, padding: "1px 6px", borderRadius: "10px",
+                            background: entry.chart_type === "cinema_now" ? RED : "rgb(240,239,233)",
+                            color: entry.chart_type === "cinema_now" ? "white" : "rgb(100,100,100)" }}>
+                            {entry.chart_type === "cinema_now" ? "މިހާރު" : "އަންނަނީ"}
+                          </span>
+                          {entry.performance === "hit" && <span style={{ fontSize: "11px" }}>{"🔥"}</span>}
+                          {entry.performance === "flop" && <span style={{ fontSize: "11px" }}>{"😞"}</span>}
+                          {entry.performance === "houseful" && <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, padding: "1px 5px", borderRadius: "10px", background: "#fef9c3", color: "#854d0e" }}>{"🎟"}</span>}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {cinemaEntries.length > 0 && ottEntries.length > 0 && (
+            <div style={{ borderTop: "0.5px solid " + DIVIDER, marginBottom: "1.5rem" }} />
+          )}
+
+          {ottEntries.length > 0 && (
+            <div>
+              <p style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: TEXT_MUTED, margin: "0 0 12px", letterSpacing: "0.05em" }}>
+                {"OTT · Netflix · Apple · Video Club"}
+              </p>
+              <div>
+                {ottEntries.map(function(entry, i) {
+                  return (
+                    <button key={entry.id} onClick={function() { onOTTClick(entry); }}
+                      style={{ display: "flex", gap: "10px", padding: "10px 0", borderBottom: i < ottEntries.length - 1 ? "0.5px solid " + DIVIDER : "none", alignItems: "flex-start", background: "none", border: "none", cursor: "pointer", width: "100%", textAlign: "right" }}>
+                      <span style={{ fontFamily: "Georgia,serif", fontSize: "14px", fontWeight: 700, color: i < 3 ? RED : TEXT_MUTED, minWidth: "18px", lineHeight: 1, paddingTop: "2px", flexShrink: 0 }}>{entry.rank}</span>
+                      {entry.poster_url ? (
+                        <div style={{ width: "38px", height: "54px", borderRadius: "5px", overflow: "hidden", flexShrink: 0, background: BG_CARD }}>
+                          <img src={entry.poster_url} alt={entry.title_dv} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        </div>
+                      ) : (
+                        <div style={{ width: "38px", height: "54px", borderRadius: "5px", flexShrink: 0, background: BG_CARD }} />
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontFamily: FONT, fontSize: "11px", fontWeight: 700, color: TEXT, margin: "0 0 5px", lineHeight: 1.5, textAlign: "right" }} dir="rtl">{entry.title_dv}</p>
+                        <span style={{ fontFamily: "sans-serif", fontSize: "9px", fontWeight: 700, padding: "1px 5px", borderRadius: "4px", color: "white", background: PLATFORM_COLORS[entry.platform] ?? "#666" }}>
+                          {PLATFORM_LABELS[entry.platform] ?? entry.platform}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -390,45 +396,23 @@ export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, 
 
   return (
     <div style={{ backgroundColor: BG, minHeight: "100vh" }} dir="rtl">
-      <style>{`
-        .film-layout { display: grid; grid-template-columns: 1fr 260px; gap: 3rem; align-items: start; }
-        .film-featured { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; }
-        .film-3col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.25rem; }
-        .film-4col { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 1.25rem; }
-        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-        @media (max-width: 1024px) {
-          .film-layout { grid-template-columns: 1fr !important; }
-          .film-sidebar-col { display: none; }
-          .film-4col { grid-template-columns: 1fr 1fr !important; }
-        }
-        @media (max-width: 768px) {
-          .film-featured { grid-template-columns: 1fr !important; }
-          .film-3col { grid-template-columns: 1fr 1fr !important; }
-        }
-        @media (max-width: 480px) {
-          .film-3col, .film-4col { grid-template-columns: 1fr !important; }
-        }
-      `}</style>
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
-      {/* Header */}
       <header style={{ maxWidth: "72rem", margin: "0 auto", padding: "2rem 1.5rem 1.5rem", textAlign: "center" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1rem" }}>
-          <span style={{ color: "rgba(0,0,0,0.18)", fontSize: "11px" }}>✦</span>
+          <span style={{ color: "rgba(0,0,0,0.18)", fontSize: "11px" }}>{"✦"}</span>
           <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(2rem,5vw,3.5rem)", color: RED, lineHeight: 1.5, fontWeight: 400, margin: 0 }}>
             ފިލްމު
           </h1>
-          <span style={{ color: "rgba(0,0,0,0.18)", fontSize: "11px" }}>✦</span>
+          <span style={{ color: "rgba(0,0,0,0.18)", fontSize: "11px" }}>{"✦"}</span>
         </div>
       </header>
 
       <div style={{ maxWidth: "72rem", margin: "0 auto", padding: "0 1.5rem 4rem" }}>
-        <div className="film-layout">
+        <div className={showSidebar ? "film-layout" : ""}>
 
-          {/* Main */}
           <div>
 
-            {/* Featured */}
             {featured && (
               <>
                 <div className="film-featured" style={{ marginBottom: "1.5rem" }}>
@@ -445,26 +429,29 @@ export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, 
                         </h2>
                       </Link>
                       {featured.excerpt && (
-                        <p style={{ fontFamily: FONT, fontSize: "13px", color: "rgb(100,98,92)", lineHeight: 1.9, margin: "0 0 12px" }} className="line-clamp-4">
+                        <p style={{ fontFamily: FONT, fontSize: "13px", color: "rgb(100,98,92)", lineHeight: 1.9, margin: "0 0 12px" }} className="lc4">
                           {featured.excerpt}
                         </p>
                       )}
+                    </div>
+                    <div>
                       {featured.author && (
-                        <p style={{ fontFamily: FONT, fontSize: "11px", color: TEXT_MUTED, margin: "0 0 4px" }}>
+                        <p style={{ fontFamily: FONT, fontSize: "11px", color: TEXT_MUTED, margin: "0 0 3px" }}>
                           {featured.author.full_name}
                         </p>
                       )}
                       {featured.published_at && (
-                        <p style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED, margin: 0 }}>
-                          {new Date(featured.published_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+                        <p style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED, margin: "0 0 3px" }}>
+                          {formatDate(featured.published_at)}
                         </p>
                       )}
                       {featured.reading_time_minutes && (
-                        <p style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED, margin: "4px 0 0" }}>
+                        <p style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED, margin: 0 }}>
                           {featured.reading_time_minutes + " މިނެޓު"}
                         </p>
                       )}
                     </div>
+                  </div>
                   <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug} style={{ textDecoration: "none", display: "block" }}>
                     <div style={{ aspectRatio: "1/1", overflow: "hidden", borderRadius: "10px", background: BG_CARD }}>
                       {featured.featured_image
@@ -480,17 +467,15 @@ export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, 
               </>
             )}
 
-            {/* 3-col grid */}
             {grid3.length > 0 && (
               <>
                 <div className="film-3col" style={{ marginBottom: "1.5rem" }}>
-                  {grid3.map(function(a) { return <ArticleCard key={a.id} article={a} categorySlug={categorySlug} aspect="4/3" />; })}
+                  {grid3.map(function(a) { return <ArticleCard key={a.id} article={a} categorySlug={categorySlug} />; })}
                 </div>
                 <div style={{ borderTop: "0.5px solid " + DIVIDER, marginBottom: "1.5rem" }} />
               </>
             )}
 
-            {/* Trending */}
             {trending.length > 0 && (
               <>
                 <SectionLabel>ފިލްމު ތެރޭ ޓްރެންޑިން</SectionLabel>
@@ -507,8 +492,8 @@ export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, 
                             {article.featured_image && <img src={article.featured_image} alt={article.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
                           </div>
                           <div style={{ flex: 1 }}>
-                            {tag && <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, color: RED, display: "block", marginBottom: "3px" }}>{tag}</span>}
-                            <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: "13px", lineHeight: 1.8, margin: "0 0 3px", color: TEXT }} className="line-clamp-2">{article.title}</p>
+                            {tag && <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, color: "white", background: RED, padding: "1px 7px", borderRadius: "10px", display: "inline-block", marginBottom: "4px" }}>{tag}</span>}
+                            <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: "13px", lineHeight: 1.8, margin: "0 0 3px", color: TEXT }} className="lc2">{article.title}</p>
                             {article.author && <p style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED, margin: 0 }}>{article.author.full_name}</p>}
                           </div>
                         </div>
@@ -520,20 +505,17 @@ export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, 
               </>
             )}
 
-            {/* 4-col grid */}
             {grid4.length > 0 && (
               <>
                 <div className="film-4col" style={{ marginBottom: "2rem" }}>
-                  {grid4.map(function(a) { return <ArticleCard key={a.id} article={a} categorySlug={categorySlug} aspect="4/3" />; })}
+                  {grid4.map(function(a) { return <ArticleCard key={a.id} article={a} categorySlug={categorySlug} />; })}
                 </div>
-
-                {/* Pagination */}
                 {totalPages > 1 && (
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", paddingTop: "1rem", borderTop: "0.5px solid " + DIVIDER }}>
                     {page > 1 && (
                       <a href={"/" + categorySlug + "?page=" + (page - 1)}
                         style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none", padding: "6px 14px", border: "0.5px solid " + RED, borderRadius: "6px" }}>
-                        ← ކުރީ
+                        {"← ކުރީ"}
                       </a>
                     )}
                     <span style={{ fontFamily: FONT, fontSize: "12px", color: TEXT_MUTED }}>
@@ -542,7 +524,7 @@ export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, 
                     {page < totalPages && (
                       <a href={"/" + categorySlug + "?page=" + (page + 1)}
                         style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none", padding: "6px 14px", border: "0.5px solid " + RED, borderRadius: "6px" }}>
-                        ފަހަތް →
+                        {"ފަހަތް →"}
                       </a>
                     )}
                   </div>
@@ -552,7 +534,6 @@ export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, 
 
           </div>
 
-          {/* Sidebar */}
           {showSidebar && (
             <div className="film-sidebar-col" style={{ position: "sticky", top: "140px" }}>
               <Sidebar
