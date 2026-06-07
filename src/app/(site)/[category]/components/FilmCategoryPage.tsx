@@ -313,7 +313,7 @@ function ChartSidebar({
             {cinemaEntries.map((entry, i) => (
               <button key={entry.id} onClick={() => onCinemaClick(entry)}
                 className="w-full text-right hover:opacity-70 transition-opacity"
-                style={{ display: "flex", gap: "8px", padding: "8px 0", borderBottom: "0.5px dashed rgb(224,221,214)", alignItems: "flex-start", background: "none", border_bottom: "0.5px dashed rgb(224,221,214)", cursor: "pointer" }}>
+                style={{ display: "flex", gap: "8px", padding: "8px 0", borderBottom: "0.5px dashed rgb(224,221,214)", alignItems: "flex-start", background: "none", cursor: "pointer" }}
                 <span style={{ fontSize: "12px", fontWeight: 700, color: i < 2 ? CORAL : "rgb(153,153,153)", minWidth: "16px", fontFamily: "serif" }}>
                   {entry.rank}
                 </span>
