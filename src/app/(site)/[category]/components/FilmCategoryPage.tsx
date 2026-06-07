@@ -434,25 +434,37 @@ export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, 
                 <div className="film-featured" style={{ marginBottom: "1.5rem" }}>
                   <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
                     <div>
-                      {getFirstTag(featured.tags) && <TagPill tag={getFirstTag(featured.tags)!} />}
+                      {getFirstTag(featured.tags) && (
+                        <span style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: "white", background: RED, padding: "2px 10px", borderRadius: "20px", display: "inline-block", marginBottom: "10px", letterSpacing: "0.05em" }}>
+                          {getFirstTag(featured.tags)}
+                        </span>
+                      )}
                       <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug} style={{ textDecoration: "none" }}>
                         <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "clamp(1.1rem,2.5vw,1.4rem)", lineHeight: 1.8, margin: "0 0 10px", color: TEXT }}>
                           {featured.title}
                         </h2>
                       </Link>
                       {featured.excerpt && (
-                        <p style={{ fontFamily: FONT, fontSize: "13px", color: "rgb(100,98,92)", lineHeight: 1.9, margin: "0 0 12px" }} className="line-clamp-3">
+                        <p style={{ fontFamily: FONT, fontSize: "13px", color: "rgb(100,98,92)", lineHeight: 1.9, margin: "0 0 12px" }} className="line-clamp-4">
                           {featured.excerpt}
                         </p>
                       )}
+                      {featured.author && (
+                        <p style={{ fontFamily: FONT, fontSize: "11px", color: TEXT_MUTED, margin: "0 0 4px" }}>
+                          {featured.author.full_name}
+                        </p>
+                      )}
+                      {featured.published_at && (
+                        <p style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED, margin: 0 }}>
+                          {new Date(featured.published_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+                        </p>
+                      )}
+                      {featured.reading_time_minutes && (
+                        <p style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED, margin: "4px 0 0" }}>
+                          {featured.reading_time_minutes + " މިނެޓު"}
+                        </p>
+                      )}
                     </div>
-                    {featured.author && (
-                      <p style={{ fontFamily: FONT, fontSize: "11px", color: TEXT_MUTED, margin: 0 }}>
-                        {featured.author.full_name}
-                        {featured.reading_time_minutes ? " · " + featured.reading_time_minutes + " މިނެޓު" : ""}
-                      </p>
-                    )}
-                  </div>
                   <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug} style={{ textDecoration: "none", display: "block" }}>
                     <div style={{ aspectRatio: "1/1", overflow: "hidden", borderRadius: "10px", background: BG_CARD }}>
                       {featured.featured_image
