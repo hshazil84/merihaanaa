@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: PageProps) {
   if (!category) return { title: "ކެޓަގަރީ ނުލިބުނު" };
   return {
     title: category.name,
-    description: `${category.name} - މެރިހާނާ`,
+    description: category.name + " - މެރިހާނާ",
   };
 }
 
@@ -91,7 +91,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
       .range(from, to);
 
     if (excludeIds.length > 0) {
-      gridQuery = gridQuery.not("id", "in", `(${excludeIds.join(",")})`);
+      gridQuery = gridQuery.not("id", "in", "(" + excludeIds.join(",") + ")");
     }
 
     const { data: gridRaw, count } = await gridQuery;
@@ -119,11 +119,12 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
       { data: articles, count },
       { data: cinemaRaw },
       { data: ottRaw },
+      { data: topReadRaw },
     ] = await Promise.all([
       supabase
         .from("articles")
         .select(
-          "id, title, slug, excerpt, featured_image, reading_time_minutes, published_at, author:authors!author_id(full_name), category:categories!category_id(name, slug)",
+          "id, title, slug, excerpt, featured_image, reading_time_minutes, published_at, tags, view_count, author:authors!author_id(full_name), category:categories!category_id(name, slug)",
           { count: "exact" }
         )
         .eq("status", "published")
@@ -140,6 +141,13 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         .select("*")
         .eq("is_active", true)
         .order("rank", { ascending: true }),
+      supabase
+        .from("articles")
+        .select("id, title, slug, view_count")
+        .eq("status", "published")
+        .eq("category_id", category.id)
+        .order("view_count", { ascending: false })
+        .limit(5),
     ]);
 
     return (
@@ -147,6 +155,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         articles={(articles ?? []) as any[]}
         cinemaEntries={(cinemaRaw ?? []) as any[]}
         ottEntries={(ottRaw ?? []) as any[]}
+        topRead={(topReadRaw ?? []) as any[]}
         categorySlug={category.slug}
         totalCount={count ?? 0}
         page={page}
