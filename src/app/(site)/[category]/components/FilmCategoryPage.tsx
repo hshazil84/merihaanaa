@@ -245,7 +245,6 @@ function CinemaSidebar({ entries, onEntryClick }: { entries: CinemaEntry[]; onEn
         {active.showing_date && (
           <p style={{ fontFamily: "system-ui,sans-serif", fontSize: "11px", color: TEXT_MUTED, margin: "0 0 6px", textAlign: "right", opacity: 0.75 }}>{formatDate(active.showing_date)}</p>
         )}
-        <p style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: RED, margin: 0, textAlign: "right" }}>{"ތަފްސީލު ←"}</p>
       </button>
 
       {/* Upcoming strip */}
@@ -282,7 +281,7 @@ function OTTSidebar({ entries, onEntryClick }: { entries: OTTEntry[]; onEntryCli
       <div style={{ height: "0.5px", background: "rgba(0,0,0,0.05)", margin: "0 16px" }} />
 
       {/* 3-col poster grid */}
-      <div style={{ padding: "12px 16px 14px", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
+      <div style={{ padding: "12px 16px 14px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", direction: "ltr" }}>
         {entries.slice(0, 6).map(function(entry, i) {
           const pm = PCOLORS[entry.platform] ?? "#666";
           const pl = PLABELS[entry.platform] ?? entry.platform;
