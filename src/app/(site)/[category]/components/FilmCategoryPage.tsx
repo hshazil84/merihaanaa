@@ -429,7 +429,7 @@ export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, 
                         </h2>
                       </Link>
                       {featured.excerpt && (
-                        <p style={{ fontFamily: FONT, fontSize: "13px", color: "rgb(100,98,92)", lineHeight: 1.9, margin: "0 0 12px" }} className="lc4">
+                        <p style={{ fontFamily: FONT, fontSize: "14px", color: "rgb(60,58,52)", lineHeight: 2, margin: "0 0 16px" }} className="lc4">
                           {featured.excerpt}
                         </p>
                       )}
