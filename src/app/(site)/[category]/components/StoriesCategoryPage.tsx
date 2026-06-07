@@ -34,7 +34,7 @@ function ArticleMeta({ article }: { article: any }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "5px", marginTop: "4px", flexWrap: "wrap" }}>
       {date && <span style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED }}>{date}</span>}
-      {date && article.reading_time_minutes && <span style={{ color: TEXT_MUTED, fontSize: "10px", opacity: 0.5 }}>·</span>}
+      {date && article.reading_time_minutes && <span style={{ color: TEXT_MUTED, fontSize: "10px", opacity: 0.5 }}>{"·"}</span>}
       {article.reading_time_minutes && <span style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED }}>{article.reading_time_minutes + " މިނެޓު"}</span>}
     </div>
   );
@@ -44,35 +44,64 @@ function SeriesBookCover({ series, categorySlug }: { series: any; categorySlug: 
   const href = series.latest_slug
     ? "/" + categorySlug + "/" + series.latest_slug
     : "/" + categorySlug;
+
+  // Pass series thumbnail as both cover fields, null out date so BookCover doesn't show chapter date
+  const articleProp = {
+    id: series.id,
+    title: series.title,
+    slug: series.latest_slug ?? series.slug,
+    cover_portrait_url: series.thumbnail ?? null,
+    featured_image: series.thumbnail ?? null,
+    published_at: null,
+    author: null,
+    reading_time_minutes: null,
+  };
+
   return (
-    <a href={href} style={{ textDecoration: "none", display: "block" }}>
-      <div style={{ position: "relative", marginBottom: "10px" }}>
-        <BookCover article={{ ...series, slug: series.latest_slug ?? series.slug, featured_image: series.thumbnail, cover_portrait_url: series.thumbnail }} categorySlug={categorySlug} />
-        {series.latest_chapter && (
-          <div style={{ position: "absolute", bottom: "8px", right: "8px" }}>
-            <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, background: "rgba(180,160,110,0.92)", color: "white", padding: "2px 8px", borderRadius: "10px", display: "block", backdropFilter: "blur(4px)" }}>
-              {"އެންމެ ފަހުގެ · " + series.latest_chapter + " ވަނަ ބައި"}
-            </span>
-          </div>
-        )}
-        {series.chapter_count > 0 && (
-          <div style={{ position: "absolute", top: "8px", left: "8px" }}>
-            <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, background: "rgba(0,0,0,0.5)", color: "white", padding: "2px 7px", borderRadius: "8px", backdropFilter: "blur(4px)" }}>
-              {series.chapter_count + " ބައި"}
-            </span>
-          </div>
+    <div style={{ position: "relative" }}>
+      <BookCover article={articleProp} categorySlug={categorySlug} />
+
+      {/* Latest chapter badge — overlaid on top of BookCover */}
+      {series.latest_chapter && (
+        <div style={{ position: "absolute", bottom: "52px", right: "8px", zIndex: 2 }}>
+          <span style={{
+            fontFamily: FONT, fontSize: "9px", fontWeight: 700,
+            background: "rgba(180,160,110,0.92)", color: "white",
+            padding: "2px 8px", borderRadius: "10px", display: "block",
+            backdropFilter: "blur(4px)",
+          }}>
+            {"އެންމެ ފަހުގެ · " + series.latest_chapter + " ވަނަ ބައި"}
+          </span>
+        </div>
+      )}
+
+      {/* Chapter count badge top left */}
+      {series.chapter_count > 0 && (
+        <div style={{ position: "absolute", top: "10px", right: "10px", zIndex: 2 }}>
+          <span style={{
+            fontFamily: FONT, fontSize: "9px", fontWeight: 700,
+            background: "rgba(0,0,0,0.5)", color: "white",
+            padding: "2px 7px", borderRadius: "8px",
+            backdropFilter: "blur(4px)",
+          }}>
+            {series.chapter_count + " ބައި"}
+          </span>
+        </div>
+      )}
+
+      {/* Series title + date below */}
+      <div style={{ marginTop: "4px", paddingRight: "4px" }}>
+        <h3 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "13px", color: TEXT, lineHeight: 1.9, margin: "0 0 2px" }} dir="rtl"
+          className="line-clamp-2">
+          {series.title}
+        </h3>
+        {series.latest_published_at && (
+          <span style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED }}>
+            {formatDhivehiDate(series.latest_published_at)}
+          </span>
         )}
       </div>
-      <h3 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "13px", color: TEXT, lineHeight: 1.9, margin: "0 0 2px" }} dir="rtl"
-        className="line-clamp-2">
-        {series.title}
-      </h3>
-      {series.latest_published_at && (
-        <span style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED }}>
-          {formatDhivehiDate(series.latest_published_at)}
-        </span>
-      )}
-    </a>
+    </div>
   );
 }
 
@@ -88,7 +117,6 @@ export function StoriesCategoryPage({
   totalPages: number;
   page: number;
 }) {
-  // Support both old (articles) and new (recentArticles/seriesList/shortStories) props
   const recent = recentArticles ?? articles?.slice(0, 4) ?? [];
   const series = seriesList ?? [];
   const shorts = shortStories ?? articles ?? [];
