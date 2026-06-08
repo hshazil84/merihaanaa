@@ -95,7 +95,7 @@ export function StoriesCategoryPage({
 }) {
   const recent = recentArticles ?? articles?.slice(0, 4) ?? [];
   const series = seriesList ?? [];
-  const shorts = shortStories ?? articles ?? [];
+  const shorts = (shortStories && shortStories.length > 0) ? shortStories : (articles ?? []);
 
   return (
     <div dir="rtl" style={{ backgroundColor: "#F0EAD6", minHeight: "100vh" }}>
