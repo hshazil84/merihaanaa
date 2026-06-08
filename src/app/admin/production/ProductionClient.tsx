@@ -91,7 +91,7 @@ function AddItemModal({ categories, onClose, onAdd }: {
       .insert({
         title: title.trim(),
         slug,
-        status: "draft",
+        status: "idea",
         content_type: "article",
         category_id: categoryId || null,
         scheduled_at: scheduledAt || null,
