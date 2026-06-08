@@ -13,6 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import NotificationBell from "@/components/admin/NotificationBell";
 import {
   LayoutDashboard,
   FileText,
@@ -43,7 +44,7 @@ const NAV_GROUPS = [
     { href: "/admin/media",        label: "މީޑިއާ",           icon: ImageIcon,       comingSoon: false },
     { href: "/admin/homepage",     label: "ހޯމްޕޭޖް",        icon: Home,            comingSoon: false },
     { href: "/admin/charts",       label: "ޗާޓްސް",           icon: BarChart2,       comingSoon: false },
-    { href: "/admin/production", label: "ޕްރޮޑަކްޝަން",       icon: Clapperboard, comingSoon: false },
+    { href: "/admin/production",   label: "ޕްރޮޑަކްޝަން",    icon: Clapperboard,    comingSoon: false },
     { href: "/admin/ads",          label: "އިޝްތިހާރު",      icon: Megaphone,       comingSoon: true  },
   ],
   [
@@ -67,6 +68,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
   "/admin/media":         "މީޑިއާ",
   "/admin/homepage":      "ހޯމްޕޭޖް",
   "/admin/charts":        "ޗާޓްސް",
+  "/admin/production":    "ޕްރޮޑަކްޝަން",
   "/admin/ads":           "އިޝްތިހާރު",
   "/admin/videos":        "ވީޑިއޯ",
   "/admin/originals":     "ވީއޯޑީ",
@@ -75,7 +77,6 @@ const BREADCRUMB_MAP: Record<string, string> = {
   "/admin/comments":      "ކޮމެންޓް",
   "/admin/subscribers":   "ސަބްސްކްރައިބަރ",
   "/admin/authors":       "ލިޔުންތެރިން",
-  "/admin/production": "ޕްރޮޑަކްޝަން",
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -135,7 +136,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="h-screen flex overflow-hidden bg-muted/30">
 
       <Toaster
-        position="bottom-center"
+        position="bottom-left"
         toastOptions={{
           duration: 3000,
           style: {
@@ -274,6 +275,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           </div>
           <div className="flex items-center gap-1">
+            <NotificationBell />
             <button
               onClick={toggleDark}
               className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
