@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { Toaster } from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -41,7 +42,7 @@ const NAV_GROUPS = [
     { href: "/admin/articles/new", label: "އާ ލިޔުން",       icon: FilePlus,        comingSoon: false },
     { href: "/admin/media",        label: "މީޑިއާ",           icon: ImageIcon,       comingSoon: false },
     { href: "/admin/homepage",     label: "ހޯމްޕޭޖް",        icon: Home,            comingSoon: false },
-    { href: "/admin/charts",       label: "ޗާޓްސް",           icon: BarChart2,       comingSoon: false  },
+    { href: "/admin/charts",       label: "ޗާޓްސް",           icon: BarChart2,       comingSoon: false },
     { href: "/admin/ads",          label: "އިޝްތިހާރު",      icon: Megaphone,       comingSoon: true  },
   ],
   [
@@ -131,7 +132,36 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="h-screen flex overflow-hidden bg-muted/30">
 
-      {/* ── NAV — first in DOM = visual right in RTL ── */}
+      <Toaster
+        position="bottom-left"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
+            fontSize: "13px",
+            borderRadius: "10px",
+            direction: "rtl",
+          },
+          success: {
+            style: {
+              background: "rgb(240,253,244)",
+              color: "rgb(22,101,52)",
+              border: "1px solid rgb(187,247,208)",
+            },
+            iconTheme: { primary: "rgb(22,163,74)", secondary: "white" },
+          },
+          error: {
+            style: {
+              background: "rgb(254,242,242)",
+              color: "rgb(153,27,27)",
+              border: "1px solid rgb(254,202,202)",
+            },
+            iconTheme: { primary: "rgb(220,38,38)", secondary: "white" },
+          },
+        }}
+      />
+
+      {/* NAV */}
       <aside className={`
         ${sidebarOpen ? "w-52" : "w-0 overflow-hidden"}
         flex-shrink-0 bg-background border-l border-border
@@ -224,7 +254,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      {/* ── MAIN — last in DOM = visual left in RTL ── */}
+      {/* MAIN */}
       <div className="flex-1 flex flex-col overflow-hidden">
 
         <header className="h-12 flex-shrink-0 bg-background border-b border-border flex items-center justify-between px-4 gap-4">
