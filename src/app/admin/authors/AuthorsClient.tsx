@@ -211,7 +211,8 @@ export default function AuthorsClient({ authors: initial }: Props) {
         setShowModal(false);
       } else {
         toast.error("Failed to add author", { id });
-        console.error(error);
+        console.error("INSERT ERROR:", JSON.stringify(error));
+        console.error("PAYLOAD:", JSON.stringify(payload));
       }
     }
     setSaving(false);
