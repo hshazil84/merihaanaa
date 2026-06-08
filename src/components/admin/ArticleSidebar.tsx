@@ -297,8 +297,8 @@ export default function ArticleSidebar({
   const isReviewPlacement = placement === "review";
 
   useEffect(() => {
-    supabase.from("user_profiles").select("id, full_name, role")
-      .in("role", ["admin", "editor", "author"]).order("full_name")
+    supabase.from("authors").select("id, full_name, role")
+      .eq("is_active", true).order("full_name")
       .then(({ data }) => { if (data) setAuthors(data); });
     supabase.from("series").select("id, title").eq("is_active", true).order("title")
       .then(({ data }) => { if (data) setSeriesList(data); });
