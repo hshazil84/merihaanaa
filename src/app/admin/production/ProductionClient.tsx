@@ -83,8 +83,9 @@ function AddItemModal({ categories, onClose, onAdd }: {
   async function handleSave() {
     if (!title.trim()) return;
     setSaving(true);
-    const id = toast.loading("Creating...");
+    const toastId = toast.loading("Creating...");
     const slug = slugify(title.trim());
+
     const { data, error } = await supabase
       .from("articles")
       .insert({
@@ -96,24 +97,31 @@ function AddItemModal({ categories, onClose, onAdd }: {
         scheduled_at: scheduledAt || null,
         body: {},
       })
-      .select("id, title, slug, status, category_id, published_at, scheduled_at, created_at")
+      .select("id")
       .single();
 
     if (error || !data) {
-      toast.error("Failed to create", { id });
+      console.error("INSERT ERROR:", JSON.stringify(error));
+      toast.error("Failed to create", { id: toastId });
       setSaving(false);
       return;
     }
 
-    // Get category info
     const cat = categories.find((c) => c.id === categoryId) ?? null;
     const article: Article = {
-      ...data,
+      id: data.id,
+      title: title.trim(),
+      slug,
+      status: "draft",
+      category_id: categoryId || null,
+      published_at: null,
+      scheduled_at: scheduledAt || null,
+      created_at: new Date().toISOString(),
       author: null,
       category: cat ? { name: cat.name, slug: cat.slug } : null,
     };
 
-    toast.success("Created", { id });
+    toast.success("Created", { id: toastId });
     onAdd(article);
     onClose();
   }
