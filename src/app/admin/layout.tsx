@@ -43,6 +43,7 @@ const NAV_GROUPS = [
     { href: "/admin/media",        label: "މީޑިއާ",           icon: ImageIcon,       comingSoon: false },
     { href: "/admin/homepage",     label: "ހޯމްޕޭޖް",        icon: Home,            comingSoon: false },
     { href: "/admin/charts",       label: "ޗާޓްސް",           icon: BarChart2,       comingSoon: false },
+    { href: "/admin/production", label: "ޕްރޮޑަކްޝަން",       icon: Clapperboard, comingSoon: false },
     { href: "/admin/ads",          label: "އިޝްތިހާރު",      icon: Megaphone,       comingSoon: true  },
   ],
   [
@@ -74,6 +75,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
   "/admin/comments":      "ކޮމެންޓް",
   "/admin/subscribers":   "ސަބްސްކްރައިބަރ",
   "/admin/authors":       "ލިޔުންތެރިން",
+  "/admin/production": "ޕްރޮޑަކްޝަން",
 };
 
 const ROLE_LABELS: Record<string, string> = {
