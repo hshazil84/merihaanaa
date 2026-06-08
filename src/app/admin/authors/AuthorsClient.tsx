@@ -37,7 +37,7 @@ const emptyForm = {
   slug: "",
   bio: "",
   avatar: "",
-  role: "author",
+  role: "writer",
   social_twitter: "",
   social_instagram: "",
   is_active: true,
@@ -211,8 +211,7 @@ export default function AuthorsClient({ authors: initial }: Props) {
         setShowModal(false);
       } else {
         toast.error("Failed to add author", { id });
-        console.error("INSERT ERROR:", JSON.stringify(error));
-        console.error("PAYLOAD:", JSON.stringify(payload));
+        console.error(error);
       }
     }
     setSaving(false);
@@ -333,6 +332,17 @@ export default function AuthorsClient({ authors: initial }: Props) {
                 <input type="text" value={form.slug} onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
                   placeholder="ahmed-mohamed" dir="ltr"
                   className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600" />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Role</label>
+                <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600">
+                  <option value="writer">Writer</option>
+                  <option value="editor">Editor</option>
+                  <option value="contributor">Contributor</option>
+                  <option value="photographer">Photographer</option>
+                </select>
               </div>
 
               <div>
