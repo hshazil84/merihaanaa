@@ -12,6 +12,8 @@ interface PageProps {
   params: { category: string; slug: string };
 }
 
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+
 const DHIVEHI_MONTHS: Record<number, string> = {
   1: "ޖެނުއަރީ", 2: "ފެބްރުއަރީ", 3: "މާރިޗު", 4: "އޭޕްރީލް",
   5: "މެއި", 6: "ޖޫން", 7: "ޖުލައި", 8: "އޮގަސްޓް",
@@ -20,12 +22,18 @@ const DHIVEHI_MONTHS: Record<number, string> = {
 
 function formatDhivehiDate(iso: string): string {
   const d = new Date(iso);
-  return `${d.getDate()} ${DHIVEHI_MONTHS[d.getMonth() + 1]} ${d.getFullYear()}`;
+  return d.getDate() + " " + DHIVEHI_MONTHS[d.getMonth() + 1] + " " + d.getFullYear();
 }
 
 function chapterLabel(n: number | null) {
   if (!n) return null;
-  return `${n} ވަނަ ބައި`;
+  return n + " ވަނަ ބައި";
+}
+
+function avatarSrc(avatar: string | null): string | null {
+  if (!avatar) return null;
+  if (avatar.startsWith("http")) return avatar;
+  return SUPABASE_URL + "/storage/v1/object/public/avatars/" + avatar;
 }
 
 async function getArticle(slug: string) {
@@ -52,18 +60,12 @@ async function getArticle(slug: string) {
 async function getSeriesChapters(seriesId: string, currentId: string) {
   const supabase = await createServerSupabaseClient();
   const { data: series } = await supabase
-    .from("series")
-    .select("id, title")
-    .eq("id", seriesId)
-    .single();
-
+    .from("series").select("id, title").eq("id", seriesId).single();
   const { data: chapters } = await supabase
     .from("articles")
     .select("id, title, slug, chapter_number, category:categories!category_id(slug)")
-    .eq("series_id", seriesId)
-    .eq("status", "published")
+    .eq("series_id", seriesId).eq("status", "published")
     .order("chapter_number", { ascending: true, nullsFirst: false });
-
   return { series, chapters: chapters ?? [] };
 }
 
@@ -72,27 +74,20 @@ async function getRelated(categoryId: string, excludeId: string, categorySlug: s
   const { data } = await supabase
     .from("articles")
     .select("id, title, slug, featured_image, reading_time_minutes, category:categories!category_id(name, slug)")
-    .eq("status", "published")
-    .eq("category_id", categoryId)
-    .neq("id", excludeId)
-    .order("published_at", { ascending: false })
-    .limit(3);
+    .eq("status", "published").eq("category_id", categoryId).neq("id", excludeId)
+    .order("published_at", { ascending: false }).limit(3);
   return data ?? [];
 }
 
 export async function generateMetadata({ params }: PageProps) {
   const article = await getArticle(params.slug);
   if (!article) return { title: "ލިޔުން ނުލިބުނު" };
-
-  const coverImage =
-    article.cover_type === "image"
-      ? article.cover_url || article.featured_image
-      : article.cover_video_thumbnail;
-
+  const coverImage = article.cover_type === "image"
+    ? article.cover_url || article.featured_image
+    : article.cover_video_thumbnail;
   const cat = article.category as any;
   const catSlug = cat?.slug ?? params.category;
   const articleUrl = "https://merihaanaa.com/" + catSlug + "/" + article.slug;
-
   return {
     title: article.title,
     description: article.excerpt,
@@ -123,18 +118,18 @@ export default async function ArticlePage({ params }: PageProps) {
     ? await getSeriesChapters(article.series_id!, article.id)
     : { series: null, chapters: [] };
 
-  const coverImage =
-    article.cover_type === "image"
-      ? article.cover_url || article.featured_image
-      : article.cover_type === "video" ? article.cover_video_thumbnail : null;
+  const coverImage = article.cover_type === "image"
+    ? article.cover_url || article.featured_image
+    : article.cover_type === "video" ? article.cover_video_thumbnail : null;
 
   const publishedDate = article.published_at ? formatDhivehiDate(article.published_at) : null;
   const articleUrl = "https://merihaanaa.com/" + catSlug + "/" + article.slug;
 
-  // Current chapter index for prev/next
   const currentChapterIndex = chapters.findIndex((c: any) => c.id === article.id);
   const prevChapter = currentChapterIndex > 0 ? chapters[currentChapterIndex - 1] : null;
   const nextChapter = currentChapterIndex < chapters.length - 1 ? chapters[currentChapterIndex + 1] : null;
+
+  const av = avatarSrc(author?.avatar ?? null);
 
   const articleContent = (
     <div className="bg-[#F5F3EF] min-h-screen" dir="rtl">
@@ -152,7 +147,6 @@ export default async function ArticlePage({ params }: PageProps) {
           </div>
         )}
 
-        {/* Chapter label for vaahaka */}
         {hasSeries && article.chapter_number && (
           <p className="mb-2 text-sm" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', color: "rgb(160,158,152)", lineHeight: 2 }}>
             {chapterLabel(article.chapter_number)}
@@ -191,34 +185,37 @@ export default async function ArticlePage({ params }: PageProps) {
       )}
 
       {/* Byline */}
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgb(210,207,200)" }}>
-          {author?.avatar ? (
-            <img src={process.env.NEXT_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/avatars/" + author.avatar}
-              alt={author.full_name} className="w-full h-full object-cover" />
-          ) : (
-            <span style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "11px", color: "rgb(100,98,92)" }}>
-              {author?.full_name?.[0] ?? "M"}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {author?.full_name && (
-            <p style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "12px", fontWeight: 700, color: "rgb(26,26,26)", lineHeight: 1.4 }}>
-              {author.full_name}
-            </p>
-          )}
-          {publishedDate && (
-            <p style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "10px", color: "rgb(160,158,152)", lineHeight: 1.4 }}>
-              · {publishedDate}
-            </p>
-          )}
-        </div>
-      </div>
+      <div className="max-w-3xl mx-auto px-6 mb-8">
+        <div className="flex items-center justify-between flex-wrap gap-3 py-4 border-t border-b border-black/10">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgb(210,207,200)" }}>
+              {av ? (
+                <img src={av} alt={author?.full_name ?? ""} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <span style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "11px", color: "rgb(100,98,92)" }}>
+                    {author?.full_name?.[0] ?? "M"}
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {author?.full_name && (
+                <p style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "12px", fontWeight: 700, color: "rgb(26,26,26)", lineHeight: 1.4 }}>
+                  {author.full_name}
+                </p>
+              )}
+              {publishedDate && (
+                <p style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "10px", color: "rgb(160,158,152)", lineHeight: 1.4 }}>
+                  {"· " + publishedDate}
+                </p>
+              )}
+            </div>
+          </div>
           <div className="flex items-center gap-4">
             {article.reading_time_minutes && (
               <span style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "11px", color: "rgb(160,158,152)", lineHeight: 2 }}>
-                {article.reading_time_minutes} މިނެޓު
+                {article.reading_time_minutes + " މިނެޓު"}
               </span>
             )}
             <SocialShare url={articleUrl} title={article.title} />
@@ -231,12 +228,12 @@ export default async function ArticlePage({ params }: PageProps) {
         <ArticleBody body={article.body} />
       </div>
 
-      {/* Prev / Next chapter navigation — vaahaka only */}
+      {/* Prev / Next chapter navigation */}
       {hasSeries && (prevChapter || nextChapter) && (
         <div className="max-w-3xl mx-auto px-6 pb-8">
           <div className="flex items-center justify-between gap-4 py-5 border-t border-b border-black/10">
             {nextChapter ? (
-              <Link href={`/${(nextChapter as any).category?.slug ?? catSlug}/${(nextChapter as any).slug}`}
+              <Link href={"/" + ((nextChapter as any).category?.slug ?? catSlug) + "/" + (nextChapter as any).slug}
                 className="flex items-center gap-2 text-sm hover:opacity-70 transition-opacity"
                 style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', color: "rgb(26,26,26)" }}>
                 <svg className="w-4 h-4 flex-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -248,9 +245,8 @@ export default async function ArticlePage({ params }: PageProps) {
                 </div>
               </Link>
             ) : <div />}
-
             {prevChapter ? (
-              <Link href={`/${(prevChapter as any).category?.slug ?? catSlug}/${(prevChapter as any).slug}`}
+              <Link href={"/" + ((prevChapter as any).category?.slug ?? catSlug) + "/" + (prevChapter as any).slug}
                 className="flex items-center gap-2 text-sm hover:opacity-70 transition-opacity text-left"
                 style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', color: "rgb(26,26,26)" }}>
                 <div>
@@ -266,7 +262,7 @@ export default async function ArticlePage({ params }: PageProps) {
         </div>
       )}
 
-      {/* Mobile chapters strip — vaahaka only */}
+      {/* Mobile chapters strip */}
       {hasSeries && chapters.length > 1 && (
         <div className="md:hidden max-w-3xl mx-auto px-6 pb-8">
           <p className="text-xs font-semibold text-neutral-500 mb-3" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif' }}>
@@ -276,24 +272,17 @@ export default async function ArticlePage({ params }: PageProps) {
             {chapters.map((ch: any) => {
               const isCurrent = ch.id === article.id;
               return (
-                <Link key={ch.id}
-                  href={`/${ch.category?.slug ?? catSlug}/${ch.slug}`}
-                  className={`flex-none px-3 py-2 rounded-lg border text-center transition-colors ${
-                    isCurrent
-                      ? "bg-neutral-900 border-neutral-900 text-white"
-                      : "border-neutral-200 text-neutral-600 hover:border-neutral-400"
-                  }`}
-                  style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', minWidth: "80px" }}
-                >
-                  <p className={`text-[9px] ${isCurrent ? "text-white/60" : "text-neutral-400"}`}>
-                    {ch.chapter_number ? `${ch.chapter_number} ވަނަ` : "—"}
+                <Link key={ch.id} href={"/" + (ch.category?.slug ?? catSlug) + "/" + ch.slug}
+                  className={"flex-none px-3 py-2 rounded-lg border text-center transition-colors " + (isCurrent ? "bg-neutral-900 border-neutral-900 text-white" : "border-neutral-200 text-neutral-600 hover:border-neutral-400")}
+                  style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', minWidth: "80px" }}>
+                  <p className={"text-[9px] " + (isCurrent ? "text-white/60" : "text-neutral-400")}>
+                    {ch.chapter_number ? (ch.chapter_number + " ވަނަ") : "—"}
                   </p>
                   <p className="text-xs font-semibold line-clamp-1 mt-0.5">{ch.title}</p>
                 </Link>
               );
             })}
           </div>
-          {/* Mobile ad slot */}
           <div className="mt-6 w-full h-20 rounded-xl bg-neutral-100 border border-dashed border-neutral-200 flex items-center justify-center">
             <p className="text-xs text-neutral-400">Ad</p>
           </div>
@@ -355,7 +344,7 @@ export default async function ArticlePage({ params }: PageProps) {
                   </h3>
                   {rel.reading_time_minutes && (
                     <p style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "10px", color: "rgb(160,158,152)", lineHeight: 2, marginTop: "4px" }}>
-                      {rel.reading_time_minutes} މިނެޓު
+                      {rel.reading_time_minutes + " މިނެޓު"}
                     </p>
                   )}
                 </Link>
@@ -374,63 +363,42 @@ export default async function ArticlePage({ params }: PageProps) {
     </div>
   );
 
-  // ── Vaahaka + series: two-column desktop layout ──
   if (hasSeries && chapters.length > 0) {
     return (
       <div className="bg-[#F5F3EF]">
         <div className="max-w-7xl mx-auto flex gap-0 relative">
-          {/* Main article — takes full width on mobile, ~65% on desktop */}
-          <div className="flex-1 min-w-0">
-            {articleContent}
-          </div>
-
-          {/* Chapters sidebar — desktop only */}
+          <div className="flex-1 min-w-0">{articleContent}</div>
           <aside className="hidden md:block w-72 flex-none">
             <div className="sticky top-24 p-6 space-y-4">
-              {/* Series title */}
               <div>
                 <p className="text-[10px] font-semibold text-neutral-400 uppercase tracking-wider mb-1"
-                  style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif' }}>
-                  ސީރީޒް
-                </p>
+                  style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif' }}>ސީރީޒް</p>
                 <p className="text-sm font-bold text-neutral-900"
-                  style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif' }}>
-                  {series?.title}
-                </p>
+                  style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif' }}>{series?.title}</p>
               </div>
-
-              {/* Chapter list */}
               <div className="space-y-1">
                 {chapters.map((ch: any) => {
                   const isCurrent = ch.id === article.id;
                   return (
-                    <Link key={ch.id}
-                      href={`/${ch.category?.slug ?? catSlug}/${ch.slug}`}
-                      className={`flex items-start gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-                        isCurrent ? "bg-neutral-900 text-white" : "hover:bg-neutral-100 text-neutral-700"
-                      }`}
-                    >
-                      <span className={`text-[10px] flex-none mt-0.5 tabular-nums ${isCurrent ? "text-white/50" : "text-neutral-400"}`}>
-                        {ch.chapter_number ? `${ch.chapter_number}` : "—"}
+                    <Link key={ch.id} href={"/" + (ch.category?.slug ?? catSlug) + "/" + ch.slug}
+                      className={"flex items-start gap-3 px-3 py-2.5 rounded-lg transition-colors " + (isCurrent ? "bg-neutral-900 text-white" : "hover:bg-neutral-100 text-neutral-700")}>
+                      <span className={"text-[10px] flex-none mt-0.5 tabular-nums " + (isCurrent ? "text-white/50" : "text-neutral-400")}>
+                        {ch.chapter_number ?? "—"}
                       </span>
                       <div className="min-w-0">
                         {ch.chapter_number && (
-                          <p className={`text-[9px] ${isCurrent ? "text-white/50" : "text-neutral-400"}`}
+                          <p className={"text-[9px] " + (isCurrent ? "text-white/50" : "text-neutral-400")}
                             style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif' }}>
-                            {ch.chapter_number} ވަނަ ބައި
+                            {ch.chapter_number + " ވަނަ ބައި"}
                           </p>
                         )}
                         <p className="text-xs font-semibold line-clamp-2 leading-snug"
-                          style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif' }}>
-                          {ch.title}
-                        </p>
+                          style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif' }}>{ch.title}</p>
                       </div>
                     </Link>
                   );
                 })}
               </div>
-
-              {/* Desktop ad slot */}
               <div className="w-full rounded-xl bg-neutral-100 border border-dashed border-neutral-200 flex items-center justify-center" style={{ height: "250px" }}>
                 <p className="text-xs text-neutral-400">Ad</p>
               </div>
