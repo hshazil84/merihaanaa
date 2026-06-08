@@ -6,16 +6,15 @@ const FONT = '"MVTypewriter","Noto Sans Thaana",sans-serif';
 const FONT_DISPLAY = '"SanguSuruhee","MVTypewriter","Noto Sans Thaana",sans-serif';
 const TEXT = "rgb(60,45,20)";
 const TEXT_MUTED = "rgb(140,120,80)";
-const DIVIDER = "rgba(180,160,110,0.2)";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "1.5rem" }}>
-      <div style={{ height: "1px", flex: 1, background: GOLD, opacity: 0.4 }} />
+      <div style={{ height: "1px", flex: 1, background: GOLD, opacity: 0.3 }} />
       <p style={{ fontFamily: FONT, fontSize: "14px", fontWeight: 700, color: TEXT, margin: 0, letterSpacing: "0.03em" }}>
         {children}
       </p>
-      <div style={{ height: "1px", flex: 1, background: GOLD, opacity: 0.4 }} />
+      <div style={{ height: "1px", flex: 1, background: GOLD, opacity: 0.3 }} />
     </div>
   );
 }
@@ -42,7 +41,6 @@ function SeriesBookCover({ series, categorySlug }: { series: any; categorySlug: 
             fontFamily: FONT, fontSize: "9px", fontWeight: 700,
             background: "rgba(180,160,110,0.92)", color: "white",
             padding: "2px 8px", borderRadius: "10px", display: "block",
-            backdropFilter: "blur(4px)",
           }}>
             {"އެންމެ ފަހުގެ · " + series.latest_chapter + " ވަނަ ބައި"}
           </span>
@@ -55,13 +53,11 @@ function SeriesBookCover({ series, categorySlug }: { series: any; categorySlug: 
             fontFamily: FONT, fontSize: "9px", fontWeight: 700,
             background: "rgba(0,0,0,0.5)", color: "white",
             padding: "2px 7px", borderRadius: "8px",
-            backdropFilter: "blur(4px)",
           }}>
             {series.chapter_count + " ބައި"}
           </span>
         </div>
       )}
-
     </div>
   );
 }
@@ -102,8 +98,9 @@ export function StoriesCategoryPage({
           </h1>
         </header>
 
-        <div className="max-w-4xl mx-auto px-6">
+        <div className="max-w-4xl mx-auto px-6 pb-16">
 
+          {/* Most recent */}
           {recent.length > 0 && (
             <section style={{ marginBottom: "3rem" }}>
               <SectionLabel>އެންމެ ފަހުގެ</SectionLabel>
@@ -119,10 +116,7 @@ export function StoriesCategoryPage({
             </section>
           )}
 
-          {recent.length > 0 && series.length > 0 && (
-            <div style={{ borderTop: "0.5px solid " + DIVIDER, marginBottom: "3rem" }} />
-          )}
-
+          {/* Long stories */}
           {series.length > 0 && (
             <section style={{ marginBottom: "3rem" }}>
               <SectionLabel>ދިގު ވާހަކަ</SectionLabel>
@@ -134,14 +128,11 @@ export function StoriesCategoryPage({
             </section>
           )}
 
-          {series.length > 0 && shorts.length > 0 && (
-            <div style={{ borderTop: "0.5px solid " + DIVIDER, marginBottom: "3rem" }} />
-          )}
-
+          {/* Short stories */}
           {shorts.length > 0 && (
-            <section style={{ marginBottom: "3rem" }}>
+            <section style={{ marginBottom: "2rem" }}>
               <SectionLabel>ކުރު ވާހަކަ</SectionLabel>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 {shorts.map(function(article: any) {
                   return (
                     <div key={article.id}>
