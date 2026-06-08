@@ -62,21 +62,6 @@ function SeriesBookCover({ series, categorySlug }: { series: any; categorySlug: 
         </div>
       )}
 
-      <div style={{ marginTop: "4px", paddingRight: "4px" }}>
-        <h3 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "13px", color: TEXT, lineHeight: 1.9, margin: "0 0 2px" }} dir="rtl"
-          className="line-clamp-2">
-          {series.title}
-        </h3>
-        {series.latest_published_at && (
-          <span style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED }}>
-            {(function() {
-              const date = new Date(series.latest_published_at);
-              const months = ["ޖެނުއަރީ","ފެބްރުއަރީ","މާރިޗު","އޭޕްރީލު","މެއި","ޖޫން","ޖުލައި","އޯގަސްޓު","ސެޕްޓެމްބަރު","އޮކްޓޯބަރު","ނޮވެމްބަރު","ޑިސެމްބަރު"];
-              return months[date.getMonth()] + " " + date.getDate() + "، " + date.getFullYear();
-            })()}
-          </span>
-        )}
-      </div>
     </div>
   );
 }
