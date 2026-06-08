@@ -183,7 +183,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
       { data: seriesRaw },
       { data: shortRaw, count: shortCount },
     ] = await Promise.all([
-      // Most recent 4 articles (including chapter releases)
+      // Most recent 4 articles
       supabase
         .from("articles")
         .select("id, title, slug, cover_portrait_url, featured_image, reading_time_minutes, published_at, chapter_number, series_id, author:authors!author_id(full_name)")
@@ -192,7 +192,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         .order("published_at", { ascending: false })
         .limit(4),
 
-      // Active series in this category
+      // Active series
       supabase
         .from("series")
         .select("id, title, slug, description, thumbnail, category_id")
@@ -200,7 +200,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         .eq("is_active", true)
         .order("created_at", { ascending: false }),
 
-      // Short stories — no series_id, paginated
+      // Short stories — no series_id
       supabase
         .from("articles")
         .select("id, title, slug, cover_portrait_url, featured_image, reading_time_minutes, published_at, chapter_number, series_id, author:authors!author_id(full_name)", { count: "exact" })
@@ -211,7 +211,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         .range(shortFrom, shortTo),
     ]);
 
-    // For each series, fetch latest chapter + cover from first chapter
+    // Enrich series with latest chapter + cover fallback
     const seriesWithChapters = await Promise.all(
       (seriesRaw ?? []).map(async (s: any) => {
         const [{ data: latest }, { count: chapterCount }, { data: firstChapter }] = await Promise.all([
@@ -243,20 +243,21 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
           latest_slug:         latest?.slug ?? null,
           latest_published_at: latest?.published_at ?? null,
           chapter_count:       chapterCount ?? 0,
-          // Use series thumbnail, fall back to first chapter cover
-          thumbnail: s.thumbnail ?? (firstChapter as any)?.cover_portrait_url ?? (firstChapter as any)?.featured_image ?? null,
+          thumbnail:           s.thumbnail ?? (firstChapter as any)?.cover_portrait_url ?? (firstChapter as any)?.featured_image ?? null,
         };
       })
     );
 
     const shortTotal = shortCount ?? 0;
+    const shortArticles = shortRaw ?? [];
 
     return (
       <StoriesCategoryPage
         category={category}
+        articles={shortArticles as any[]}
         recentArticles={(recentRaw ?? []) as any[]}
         seriesList={seriesWithChapters as any[]}
-        shortStories={(shortRaw ?? []) as any[]}
+        shortStories={shortArticles as any[]}
         total={shortTotal}
         totalPages={Math.ceil(shortTotal / SHORT_STORIES_PAGE_SIZE)}
         page={page}
