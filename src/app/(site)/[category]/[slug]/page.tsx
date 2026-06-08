@@ -41,7 +41,7 @@ async function getArticle(slug: string) {
       is_premium, tags,
       series_id, chapter_number,
       category:categories!category_id(id, name, slug),
-      author:authors!author_id(full_name, id)
+      author:authors!author_id(full_name, id, avatar)
     `)
     .eq("slug", slug)
     .eq("status", "published")
@@ -191,27 +191,30 @@ export default async function ArticlePage({ params }: PageProps) {
       )}
 
       {/* Byline */}
-      <div className="max-w-3xl mx-auto px-6 mb-8">
-        <div className="flex items-center justify-between flex-wrap gap-3 py-4 border-t border-b border-black/10">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "rgb(210,207,200)" }}>
-              <span style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "11px", color: "rgb(100,98,92)" }}>
-                {author?.full_name?.[0] ?? "M"}
-              </span>
-            </div>
-            <div>
-              {author?.full_name && (
-                <p style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "12px", fontWeight: 700, color: "rgb(26,26,26)", lineHeight: 1.4 }}>
-                  {author.full_name}
-                </p>
-              )}
-              {publishedDate && (
-                <p style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "10px", color: "rgb(160,158,152)", lineHeight: 1.4 }}>
-                  {publishedDate}
-                </p>
-              )}
-            </div>
-          </div>
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden" style={{ backgroundColor: "rgb(210,207,200)" }}>
+          {author?.avatar ? (
+            <img src={process.env.NEXT_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/avatars/" + author.avatar}
+              alt={author.full_name} className="w-full h-full object-cover" />
+          ) : (
+            <span style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "11px", color: "rgb(100,98,92)" }}>
+              {author?.full_name?.[0] ?? "M"}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {author?.full_name && (
+            <p style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "12px", fontWeight: 700, color: "rgb(26,26,26)", lineHeight: 1.4 }}>
+              {author.full_name}
+            </p>
+          )}
+          {publishedDate && (
+            <p style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "10px", color: "rgb(160,158,152)", lineHeight: 1.4 }}>
+              · {publishedDate}
+            </p>
+          )}
+        </div>
+      </div>
           <div className="flex items-center gap-4">
             {article.reading_time_minutes && (
               <span style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "11px", color: "rgb(160,158,152)", lineHeight: 2 }}>
