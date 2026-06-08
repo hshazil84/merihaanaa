@@ -14,5 +14,5 @@ export default async function ProductionPage() {
     .order("created_at", { ascending: false })
     .limit(200);
 
-  return <ProductionClient articles={articles ?? []} />;
+  return <ProductionClient articles={(articles ?? []) as any[]} />;
 }
