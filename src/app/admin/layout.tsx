@@ -133,7 +133,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="h-screen flex overflow-hidden bg-muted/30">
 
       <Toaster
-        position="bottom-left"
+        position="bottom-center"
         toastOptions={{
           duration: 3000,
           style: {
