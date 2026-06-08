@@ -22,6 +22,14 @@ import {
   ChevronRight, ChevronLeft, ArrowUpDown,
 } from "lucide-react";
 
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+
+function getAvatarUrl(path: string | null): string | null {
+  if (!path) return null;
+  if (path.startsWith("http")) return path;
+  return SUPABASE_URL + "/storage/v1/object/public/avatars/" + path;
+}
+
 interface Author {
   id: string;
   full_name: string | null;
@@ -75,7 +83,6 @@ const STATUS_FILTER_OPTIONS = [
   { value: "scheduled", label: "ޝެޑިއުލް" },
 ];
 
-// Placement badge config
 const PLACEMENT_CONFIG: Record<string, { label: string; color: string }> = {
   hero:           { label: "ހީރޯ",    color: "bg-purple-100 text-purple-700 border-purple-200" },
   editors_choice: { label: "ޗޮއިސް",  color: "bg-blue-100 text-blue-700 border-blue-200" },
@@ -92,8 +99,8 @@ function formatDate(iso: string | null): string {
 
 function formatViews(n: number | null): string {
   if (!n) return "0";
-  if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + "M";
+  if (n >= 1000) return (n / 1000).toFixed(1) + "K";
   return n.toLocaleString();
 }
 
@@ -118,7 +125,7 @@ export default function ArticlesClient({
       if (v && v !== "all" && v !== "") sp.set(k, v);
       if (k === "page" && v !== "1") sp.set(k, v);
     });
-    startTransition(() => { router.push(`${pathname}?${sp.toString()}`); });
+    startTransition(() => { router.push(pathname + "?" + sp.toString()); });
   }, [page, currentStatus, currentQ, currentCategory, pathname, router]);
 
   const handleDelete = async () => {
@@ -241,7 +248,7 @@ export default function ArticlesClient({
               ) : articles.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="h-48 text-center text-muted-foreground">
-                    {currentQ ? `"${currentQ}" ގެ ލިޔުންތަކެއް ނެތް` : "ލިޔުންތަކެއް ނެތް"}
+                    {currentQ ? ('"' + currentQ + '" ގެ ލިޔުންތަކެއް ނެތް') : "ލިޔުންތަކެއް ނެތް"}
                   </TableCell>
                 </TableRow>
               ) : articles.map((article) => {
@@ -250,23 +257,23 @@ export default function ArticlesClient({
                   ? formatDate(article.published_at) : formatDate(article.created_at);
                 const placementCfg = article.homepage_placement
                   ? PLACEMENT_CONFIG[article.homepage_placement] : null;
+                const avatarSrc = getAvatarUrl(article.author?.avatar_url ?? null);
 
                 return (
                   <TableRow key={article.id} className="hover:bg-muted/20 transition-colors">
 
                     <TableCell className="py-4">
-                      <Link href={`/admin/articles/${article.id}`} className="block hover:underline underline-offset-2">
+                      <Link href={"/admin/articles/" + article.id} className="block hover:underline underline-offset-2">
                         <p className="text-sm font-semibold text-foreground leading-snug text-right line-clamp-2">
                           {article.title}
                         </p>
-                        {/* Placement badge */}
                         {placementCfg && (
                           <div className="mt-1.5 flex items-center gap-1.5 justify-end">
-                            <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border font-medium ${placementCfg.color}`}
+                            <span className={"inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border font-medium " + placementCfg.color}
                               style={{ fontFamily: "MVTypewriter, serif" }}>
                               {placementCfg.label}
                               {article.homepage_slot && (
-                                <span className="opacity-70">· {article.homepage_slot}</span>
+                                <span className="opacity-70">{"· " + article.homepage_slot}</span>
                               )}
                             </span>
                           </div>
@@ -297,8 +304,8 @@ export default function ArticlesClient({
                       {article.author?.full_name ? (
                         <div className="flex items-center justify-end gap-2">
                           <span className="text-xs text-muted-foreground">{article.author.full_name}</span>
-                          {article.author.avatar_url && (
-                            <img src={article.author.avatar_url} alt=""
+                          {avatarSrc && (
+                            <img src={avatarSrc} alt=""
                               className="h-6 w-6 rounded-full object-cover ring-1 ring-border" />
                           )}
                         </div>
@@ -309,14 +316,14 @@ export default function ArticlesClient({
 
                     <TableCell>
                       <div className="flex items-center justify-center gap-1">
-                        <Link href={`/admin/articles/${article.id}`}>
+                        <Link href={"/admin/articles/" + article.id}>
                           <button type="button" title="އެޑިޓް"
                             className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
                             <Pencil className="h-3.5 w-3.5" />
                           </button>
                         </Link>
                         {article.status === "published" ? (
-                          <Link href={`/${article.category?.slug ?? "article"}/${article.slug}`} target="_blank" rel="noopener noreferrer">
+                          <Link href={"/" + (article.category?.slug ?? "article") + "/" + article.slug} target="_blank" rel="noopener noreferrer">
                             <button type="button" title="ބަލާ"
                               className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
                               <Eye className="h-3.5 w-3.5" />
@@ -345,7 +352,7 @@ export default function ArticlesClient({
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground" dir="rtl">
-            <span>ސަފްހާ {page} / {totalPages}</span>
+            <span>{"ސަފްހާ " + page + " / " + totalPages}</span>
             <div className="flex items-center gap-1">
               <Button variant="outline" size="icon" className="h-8 w-8"
                 disabled={page <= 1 || isPending}
@@ -360,7 +367,7 @@ export default function ArticlesClient({
                   return acc;
                 }, [])
                 .map((p, i) => p === "…"
-                  ? <span key={`e-${i}`} className="px-1">…</span>
+                  ? <span key={"e-" + i} className="px-1">…</span>
                   : <Button key={p} variant={p === page ? "default" : "outline"} size="icon"
                       className="h-8 w-8 tabular-nums" disabled={isPending}
                       onClick={() => navigate({ page: String(p) })}>{p}</Button>
@@ -385,7 +392,7 @@ export default function ArticlesClient({
             <h2 className="font-body text-base font-semibold text-foreground mb-2">ލިޔުން ފޮހެލަންތޯ؟</h2>
             <p className="font-body text-sm text-muted-foreground mb-6 leading-relaxed">
               <span className="font-semibold text-foreground">{deleteTarget.title}</span>
-              {" "}— މި ލިޔުން ދާއިމީ ގޮތެއްގައި ފޮހެވޭނެ.
+              {" — މި ލިޔުން ދާއިމީ ގޮތެއްގައި ފޮހެވޭނެ."}
             </p>
             <div className="flex gap-2 justify-start">
               <button onClick={handleDelete} disabled={isDeleting}
