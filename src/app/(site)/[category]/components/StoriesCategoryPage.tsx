@@ -5,7 +5,6 @@ const GOLD = "rgb(180,160,110)";
 const FONT = '"MVTypewriter","Noto Sans Thaana",sans-serif';
 const FONT_DISPLAY = '"SanguSuruhee","MVTypewriter","Noto Sans Thaana",sans-serif';
 const TEXT = "rgb(60,45,20)";
-const TEXT_MUTED = "rgb(140,120,80)";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -63,20 +62,17 @@ function SeriesBookCover({ series, categorySlug }: { series: any; categorySlug: 
 }
 
 export function StoriesCategoryPage({
-  category, articles, recentArticles, seriesList, shortStories, total, totalPages, page,
+  category, seriesList, shortStories, total, totalPages, page,
 }: {
   category: any;
-  articles?: any[];
-  recentArticles?: any[];
   seriesList?: any[];
   shortStories?: any[];
   total: number;
   totalPages: number;
   page: number;
 }) {
-  const recent = recentArticles ?? articles?.slice(0, 4) ?? [];
   const series = seriesList ?? [];
-  const shorts = (shortStories && shortStories.length > 0) ? shortStories : (articles ?? []);
+  const shorts = shortStories ?? [];
 
   return (
     <div dir="rtl" style={{ backgroundColor: "#F0EAD6", minHeight: "100vh" }}>
@@ -100,23 +96,7 @@ export function StoriesCategoryPage({
 
         <div className="max-w-4xl mx-auto px-6 pb-16">
 
-          {/* Most recent */}
-          {recent.length > 0 && (
-            <section style={{ marginBottom: "3rem" }}>
-              <SectionLabel>އެންމެ ފަހުގެ</SectionLabel>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {recent.map(function(article: any) {
-                  return (
-                    <div key={article.id}>
-                      <BookCover article={article} categorySlug={category.slug} />
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          )}
-
-          {/* Long stories */}
+          {/* Long stories — series, ordered by most recently updated */}
           {series.length > 0 && (
             <section style={{ marginBottom: "3rem" }}>
               <SectionLabel>ދިގު ވާހަކަ</SectionLabel>
@@ -128,7 +108,7 @@ export function StoriesCategoryPage({
             </section>
           )}
 
-          {/* Short stories */}
+          {/* Short stories — no series, most recent first */}
           {shorts.length > 0 && (
             <section style={{ marginBottom: "2rem" }}>
               <SectionLabel>ކުރު ވާހަކަ</SectionLabel>
