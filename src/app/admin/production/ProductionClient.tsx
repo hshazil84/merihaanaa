@@ -504,7 +504,7 @@ export default function ProductionClient({ articles: initialArticles, categories
             <button onClick={() => { setYear(now.getFullYear()); setMonth(now.getMonth()); }}
               style={{ fontFamily: PJ, fontSize: "11px", color: "#9ca3af", background: "none", border: "none", cursor: "pointer", padding: "0 4px" }}>Today</button>
           </div>
-          <div style={{ display: "flex", items: "center", gap: "10px", fontSize: "11px", color: "#9ca3af", fontFamily: PJ }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "11px", color: "#9ca3af", fontFamily: PJ }}>
             {(Object.entries(STAGE_COLORS) as [Stage, typeof STAGE_COLORS[Stage]][]).map(([s, cfg]) => (
               <span key={s} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                 <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: cfg.dot, display: "inline-block" }} />
