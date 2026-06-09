@@ -83,10 +83,10 @@ const STATUS_FILTER_OPTIONS = [
 ];
 
 const PLACEMENT_CONFIG: Record<string, { label: string; color: string }> = {
-  hero:           { label: "ހީރޯ",    color: "bg-purple-50 text-purple-600 border-purple-200" },
-  editors_choice: { label: "ޗޮއިސް",  color: "bg-blue-50 text-blue-600 border-blue-200" },
-  people:         { label: "މީހުން",   color: "bg-orange-50 text-orange-600 border-orange-200" },
-  review:         { label: "ރިވިއު",   color: "bg-teal-50 text-teal-600 border-teal-200" },
+  hero:           { label: "ހީރޯ",   color: "bg-purple-50 text-purple-600 border-purple-200" },
+  editors_choice: { label: "ޗޮއިސް", color: "bg-blue-50 text-blue-600 border-blue-200" },
+  people:         { label: "މީހުން",  color: "bg-orange-50 text-orange-600 border-orange-200" },
+  review:         { label: "ރިވިއު",  color: "bg-teal-50 text-teal-600 border-teal-200" },
 };
 
 function formatDate(iso: string | null): string {
@@ -109,9 +109,7 @@ function StatusPill({ status }: { status: string }) {
     <span
       className={"inline-flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-full border font-semibold " + cfg.color}
       style={{ fontFamily: "MVTypewriter, serif" }}>
-      {cfg.dot && (
-        <span className={"w-1.5 h-1.5 rounded-full flex-none " + cfg.dot} />
-      )}
+      {cfg.dot && <span className={"w-1.5 h-1.5 rounded-full flex-none " + cfg.dot} />}
       {cfg.label}
     </span>
   );
@@ -122,7 +120,7 @@ function PlacementPill({ placement, slot }: { placement: string; slot: number | 
   if (!cfg) return null;
   return (
     <span
-      className={"inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border font-medium " + cfg.color}
+      className={"inline-flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-full border font-medium " + cfg.color}
       style={{ fontFamily: "MVTypewriter, serif" }}>
       {cfg.label}
       {slot && <span className="opacity-60">{"· " + slot}</span>}
@@ -243,7 +241,7 @@ export default function ArticlesClient({
                     ސުރުހީ <ArrowUpDown className="h-3 w-3" />
                   </button>
                 </TableHead>
-                <TableHead className="text-right text-xs font-semibold text-muted-foreground w-28">ސްޓޭޓަސް</TableHead>
+                <TableHead className="text-right text-xs font-semibold text-muted-foreground w-40">ސްޓޭޓަސް</TableHead>
                 <TableHead className="text-right text-xs font-semibold text-muted-foreground w-32">ކެޓަގަރީ</TableHead>
                 <TableHead className="text-right text-xs font-semibold text-muted-foreground w-28">
                   <div className="flex items-center justify-end gap-1"><Eye className="h-3 w-3" /> ވިއު</div>
@@ -285,23 +283,25 @@ export default function ArticlesClient({
                 return (
                   <TableRow key={article.id} className="hover:bg-muted/20 transition-colors">
 
+                    {/* Title */}
                     <TableCell className="py-4">
                       <Link href={"/admin/articles/" + article.id} className="block hover:underline underline-offset-2">
                         <p className="text-sm font-semibold text-foreground leading-snug text-right line-clamp-2">
                           {article.title}
                         </p>
-                        {article.homepage_placement && (
-                          <div className="mt-1.5 flex items-center gap-1.5 justify-end">
-                            <PlacementPill
-                              placement={article.homepage_placement}
-                              slot={article.homepage_slot} />
-                          </div>
-                        )}
                       </Link>
                     </TableCell>
 
+                    {/* Status + Placement on same row */}
                     <TableCell className="text-right">
-                      <StatusPill status={article.status} />
+                      <div className="flex flex-wrap items-center justify-end gap-1.5">
+                        <StatusPill status={article.status} />
+                        {article.homepage_placement && (
+                          <PlacementPill
+                            placement={article.homepage_placement}
+                            slot={article.homepage_slot} />
+                        )}
+                      </div>
                     </TableCell>
 
                     <TableCell className="text-right">
