@@ -131,7 +131,7 @@ export default async function ArticlePage({ params }: PageProps) {
   const chapterPagination = hasSeries && chapters.length > 1 ? (
     <div className="max-w-3xl mx-auto px-6 pb-8">
       <div className="py-6 border-t border-black/10">
-        <div style={{ direction: "ltr", unicodeBidi: "isolate", display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "8px" }}>
+        <div style={{ direction: "ltr", unicodeBidi: "isolate", display: "flex", flexDirection: "row-reverse", flexWrap: "wrap", justifyContent: "center", gap: "8px" }}>
           {(chapters as any[]).map((ch) => {
             const isCurrent = ch.id === article.id;
             return (
