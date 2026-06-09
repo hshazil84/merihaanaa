@@ -262,33 +262,6 @@ export default async function ArticlePage({ params }: PageProps) {
         </div>
       )}
 
-      {/* Mobile: numbered pill strip — shown below prev/next */}
-      {hasSeries && chapters.length > 1 && (
-        <div className="md:hidden max-w-3xl mx-auto px-6 pb-8">
-          <p className="text-[10px] text-neutral-400 mb-3"
-            style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif' }}>
-            {series?.title ?? "ބައިތައް"}
-          </p>
-          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar" style={{ scrollbarWidth: "none" }}>
-            {chapters.map((ch: any) => {
-              const isCurrent = ch.id === article.id;
-              return (
-                <Link
-                  key={ch.id}
-                  href={"/" + (ch.category?.slug ?? catSlug) + "/" + ch.slug}
-                  className={"flex-none w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold transition-colors " +
-                    (isCurrent
-                      ? "bg-neutral-900 text-white"
-                      : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200")}
-                  style={{ fontFamily: '"MVTypewriter", sans-serif' }}>
-                  {ch.chapter_number ?? "—"}
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {/* Tags */}
       {Array.isArray(article.tags) && article.tags.length > 0 && (
         <div className="max-w-3xl mx-auto px-6 pb-10">
@@ -406,11 +379,6 @@ export default async function ArticlePage({ params }: PageProps) {
                             (isCurrent ? "bg-white/20 text-white" : "bg-neutral-200 text-neutral-500")}
                           style={{ fontFamily: '"MVTypewriter", sans-serif' }}>
                           {ch.chapter_number ?? "—"}
-                        </span>
-                        <span
-                          className={"text-[11px] " + (isCurrent ? "text-white font-semibold" : "text-neutral-600")}
-                          style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', lineHeight: 2 }}>
-                          {label}
                         </span>
                       </Link>
                     );
