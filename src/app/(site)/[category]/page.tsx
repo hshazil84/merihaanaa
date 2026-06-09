@@ -179,20 +179,10 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
     const shortTo   = shortFrom + SHORT_STORIES_PAGE_SIZE - 1;
 
     const [
-      { data: recentRaw },
       { data: seriesRaw },
       { data: shortRaw, count: shortCount },
     ] = await Promise.all([
-      // Most recent 4 articles
-      supabase
-        .from("articles")
-        .select("id, title, slug, cover_portrait_url, featured_image, reading_time_minutes, published_at, chapter_number, series_id, author:authors!author_id(full_name)")
-        .eq("status", "published")
-        .eq("category_id", category.id)
-        .order("published_at", { ascending: false })
-        .limit(4),
-
-      // Active series
+      // Active series — ordered by most recently updated
       supabase
         .from("series")
         .select("id, title, slug, description, thumbnail, category_id")
@@ -200,7 +190,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         .eq("is_active", true)
         .order("created_at", { ascending: false }),
 
-      // Short stories — no series_id
+      // Short stories — no series_id, most recent first
       supabase
         .from("articles")
         .select("id, title, slug, cover_portrait_url, featured_image, reading_time_minutes, published_at, chapter_number, series_id, author:authors!author_id(full_name)", { count: "exact" })
@@ -254,8 +244,6 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
     return (
       <StoriesCategoryPage
         category={category}
-        articles={shortArticles as any[]}
-        recentArticles={(recentRaw ?? []) as any[]}
         seriesList={seriesWithChapters as any[]}
         shortStories={shortArticles as any[]}
         total={shortTotal}
