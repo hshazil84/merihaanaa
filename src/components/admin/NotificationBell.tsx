@@ -77,7 +77,7 @@ export default function NotificationBell() {
         className="relative w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
         <Bell size={14} />
         {count > 0 && (
-          <span className={"absolute top-1 right-1 w-4 h-4 rounded-full text-[9px] font-bold text-white flex items-center justify-center " + (urgent > 0 ? "bg-red-500" : "bg-blue-500")}>
+          <span className={"absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-bold text-white flex items-center justify-center " + (urgent > 0 ? "bg-red-500" : "bg-neutral-700")}>
             {count > 9 ? "9+" : count}
           </span>
         )}
@@ -101,7 +101,7 @@ export default function NotificationBell() {
               {notifications.map((n) => (
                 <Link key={n.id} href={n.href} onClick={() => setOpen(false)}
                   className="flex items-start gap-3 px-4 py-3 hover:bg-muted/50 transition-colors">
-                  <div className={"w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 " + (n.urgent ? "bg-red-50 text-red-500" : "bg-blue-50 text-blue-500")}>
+                  <div className={"w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 " + (n.urgent ? "bg-red-50 text-red-500" : "bg-neutral-100 text-neutral-500")}>
                     {n.type === "event" ? <CalendarDays size={13} /> : <ClipboardList size={13} />}
                   </div>
                   <div className="flex-1 min-w-0">
