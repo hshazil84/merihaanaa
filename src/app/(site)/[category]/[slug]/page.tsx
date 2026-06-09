@@ -127,11 +127,11 @@ export default async function ArticlePage({ params }: PageProps) {
 
   const av = avatarSrc(author?.avatar ?? null);
 
-  /* Circular pill pagination — shared between web and mobile */
+  /* Circular pill pagination — isolated from RTL cascade */
   const chapterPagination = hasSeries && chapters.length > 1 ? (
     <div className="max-w-3xl mx-auto px-6 pb-8">
       <div className="py-6 border-t border-black/10">
-        <div className="flex flex-wrap justify-center gap-2" dir="ltr">
+        <div style={{ direction: "ltr", unicodeBidi: "isolate", display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "8px" }}>
           {(chapters as any[]).map((ch) => {
             const isCurrent = ch.id === article.id;
             return (
@@ -331,8 +331,11 @@ export default async function ArticlePage({ params }: PageProps) {
       <div className="bg-[#F5F3EF]" style={{ direction: "ltr" }}>
         <div className="max-w-7xl mx-auto flex">
 
-          {/* LEFT: Chapters sidebar — text only, no dots */}
-          <aside className="hidden md:block w-56 flex-none border-r border-black/[0.06]">
+          {/* Article content — physical left */}
+          <div className="flex-1 min-w-0">{articleContent}</div>
+
+          {/* Chapters sidebar — physical right */}
+          <aside className="hidden md:block w-56 flex-none border-l border-black/[0.06]">
             <div className="sticky top-24 p-5 space-y-4">
 
               <div className="pb-3 border-b border-black/10" dir="rtl">
@@ -370,9 +373,6 @@ export default async function ArticlePage({ params }: PageProps) {
               </div>
             </div>
           </aside>
-
-          {/* RIGHT: Article content */}
-          <div className="flex-1 min-w-0">{articleContent}</div>
 
         </div>
       </div>
