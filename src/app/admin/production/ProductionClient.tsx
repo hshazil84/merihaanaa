@@ -183,7 +183,7 @@ function ItemModal({ categories, team, articles, item, defaultDate, onClose, onS
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}
       onClick={onClose}>
-      <div style={{ background: "white", borderRadius: "14px", width: "100%", maxWidth: "400px", overflow: "hidden", maxHeight: "90vh", overflowY: "auto" }}
+      <div dir="ltr" style={{ background: "white", borderRadius: "14px", width: "100%", maxWidth: "400px", overflow: "hidden", maxHeight: "90vh", overflowY: "auto" }}
         onClick={(e) => e.stopPropagation()}>
 
         {/* Header */}
@@ -338,7 +338,7 @@ function CrewPanel({ team: initial, onClose }: { team: TeamMember[]; onClose: ()
   }
 
   return (
-    <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: "280px", background: "white", borderLeft: "0.5px solid #e5e7eb", zIndex: 40, display: "flex", flexDirection: "column", boxShadow: "-4px 0 24px rgba(0,0,0,0.08)" }}>
+    <div dir="ltr" style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: "280px", background: "white", borderLeft: "0.5px solid #e5e7eb", zIndex: 40, display: "flex", flexDirection: "column", boxShadow: "-4px 0 24px rgba(0,0,0,0.08)" }}>
       <div style={{ padding: "16px 20px", borderBottom: "0.5px solid #e5e7eb", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <p style={{ fontFamily: PJ, fontSize: "14px", fontWeight: 600, color: "#111827", margin: 0 }}>Crew</p>
         <div style={{ display: "flex", gap: "6px" }}>
