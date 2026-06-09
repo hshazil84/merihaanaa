@@ -262,29 +262,29 @@ export default async function ArticlePage({ params }: PageProps) {
         </div>
       )}
 
-      {/* Mobile chapters strip */}
+      {/* Mobile: numbered pill strip — shown below prev/next */}
       {hasSeries && chapters.length > 1 && (
         <div className="md:hidden max-w-3xl mx-auto px-6 pb-8">
-          <p className="text-xs font-semibold text-neutral-500 mb-3" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif' }}>
+          <p className="text-[10px] text-neutral-400 mb-3"
+            style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif' }}>
             {series?.title ?? "ބައިތައް"}
           </p>
-          <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar" style={{ scrollbarWidth: "none" }}>
+          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar" style={{ scrollbarWidth: "none" }}>
             {chapters.map((ch: any) => {
               const isCurrent = ch.id === article.id;
               return (
-                <Link key={ch.id} href={"/" + (ch.category?.slug ?? catSlug) + "/" + ch.slug}
-                  className={"flex-none px-3 py-2 rounded-lg border text-center transition-colors " + (isCurrent ? "bg-neutral-900 border-neutral-900 text-white" : "border-neutral-200 text-neutral-600 hover:border-neutral-400")}
-                  style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', minWidth: "80px" }}>
-                  <p className={"text-[9px] " + (isCurrent ? "text-white/60" : "text-neutral-400")}>
-                    {ch.chapter_number ? (ch.chapter_number + " ވަނަ") : "—"}
-                  </p>
-                  <p className="text-xs font-semibold line-clamp-1 mt-0.5">{ch.title}</p>
+                <Link
+                  key={ch.id}
+                  href={"/" + (ch.category?.slug ?? catSlug) + "/" + ch.slug}
+                  className={"flex-none w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold transition-colors " +
+                    (isCurrent
+                      ? "bg-neutral-900 text-white"
+                      : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200")}
+                  style={{ fontFamily: '"MVTypewriter", sans-serif' }}>
+                  {ch.chapter_number ?? "—"}
                 </Link>
               );
             })}
-          </div>
-          <div className="mt-6 w-full h-20 rounded-xl bg-neutral-100 border border-dashed border-neutral-200 flex items-center justify-center">
-            <p className="text-xs text-neutral-400">Ad</p>
           </div>
         </div>
       )}
@@ -366,44 +366,68 @@ export default async function ArticlePage({ params }: PageProps) {
   if (hasSeries && chapters.length > 0) {
     return (
       <div className="bg-[#F5F3EF]">
-        <div className="max-w-7xl mx-auto flex gap-0 relative">
-          <div className="flex-1 min-w-0">{articleContent}</div>
-          <aside className="hidden md:block w-72 flex-none">
-            <div className="sticky top-24 p-6 space-y-4">
-              <div>
-                <p className="text-[10px] font-semibold text-neutral-400 uppercase tracking-wider mb-1"
-                  style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif' }}>ސީރީޒް</p>
-                <p className="text-sm font-bold text-neutral-900"
-                  style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif' }}>{series?.title}</p>
+        <div className="max-w-7xl mx-auto flex gap-0 relative" dir="rtl">
+
+          {/* LEFT sidebar (visually left = start in RTL = right in DOM, but we want physical left) */}
+          {/* Use dir="ltr" on the flex container so "left" means physical left */}
+          <div className="max-w-7xl w-full mx-auto flex gap-0 relative" style={{ direction: "ltr" }}>
+
+            {/* Physical LEFT: Chapters sidebar */}
+            <aside className="hidden md:block w-64 flex-none border-r border-black/[0.06]">
+              <div className="sticky top-24 p-5 space-y-4">
+
+                {/* Series label + title */}
+                <div className="pb-4 border-b border-black/10" dir="rtl">
+                  <p className="text-[9px] font-semibold uppercase tracking-widest mb-1"
+                    style={{ fontFamily: '"MVTypewriter", sans-serif', color: "rgb(180,178,172)" }}>
+                    ސީރީޒް
+                  </p>
+                  <p className="text-sm font-bold leading-snug"
+                    style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', color: "rgb(26,26,26)", lineHeight: 1.8 }}>
+                    {series?.title}
+                  </p>
+                </div>
+
+                {/* Chapter rows: number dot + "X ވަނަ ބައި" */}
+                <nav className="space-y-0.5" dir="rtl">
+                  {chapters.map((ch: any) => {
+                    const isCurrent = ch.id === article.id;
+                    const label = ch.chapter_number ? ch.chapter_number + " ވަނަ ބައި" : "—";
+                    return (
+                      <Link
+                        key={ch.id}
+                        href={"/" + (ch.category?.slug ?? catSlug) + "/" + ch.slug}
+                        className={"flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors " +
+                          (isCurrent
+                            ? "bg-neutral-900 text-white"
+                            : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800")}>
+                        <span
+                          className={"w-5 h-5 rounded-full flex-none flex items-center justify-center text-[9px] font-bold tabular-nums " +
+                            (isCurrent ? "bg-white/20 text-white" : "bg-neutral-200 text-neutral-500")}
+                          style={{ fontFamily: '"MVTypewriter", sans-serif' }}>
+                          {ch.chapter_number ?? "—"}
+                        </span>
+                        <span
+                          className={"text-[11px] " + (isCurrent ? "text-white font-semibold" : "text-neutral-600")}
+                          style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', lineHeight: 2 }}>
+                          {label}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </nav>
+
+                {/* Ad slot */}
+                <div className="w-full rounded-xl bg-neutral-100 border border-dashed border-neutral-200 flex items-center justify-center" style={{ height: "200px" }}>
+                  <p className="text-xs text-neutral-400">Ad</p>
+                </div>
               </div>
-              <div className="space-y-1">
-                {chapters.map((ch: any) => {
-                  const isCurrent = ch.id === article.id;
-                  return (
-                    <Link key={ch.id} href={"/" + (ch.category?.slug ?? catSlug) + "/" + ch.slug}
-                      className={"flex items-start gap-3 px-3 py-2.5 rounded-lg transition-colors " + (isCurrent ? "bg-neutral-900 text-white" : "hover:bg-neutral-100 text-neutral-700")}>
-                      <span className={"text-[10px] flex-none mt-0.5 tabular-nums " + (isCurrent ? "text-white/50" : "text-neutral-400")}>
-                        {ch.chapter_number ?? "—"}
-                      </span>
-                      <div className="min-w-0">
-                        {ch.chapter_number && (
-                          <p className={"text-[9px] " + (isCurrent ? "text-white/50" : "text-neutral-400")}
-                            style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif' }}>
-                            {ch.chapter_number + " ވަނަ ބައި"}
-                          </p>
-                        )}
-                        <p className="text-xs font-semibold line-clamp-2 leading-snug"
-                          style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif' }}>{ch.title}</p>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-              <div className="w-full rounded-xl bg-neutral-100 border border-dashed border-neutral-200 flex items-center justify-center" style={{ height: "250px" }}>
-                <p className="text-xs text-neutral-400">Ad</p>
-              </div>
-            </div>
-          </aside>
+            </aside>
+
+            {/* Physical RIGHT: Article content */}
+            <div className="flex-1 min-w-0">{articleContent}</div>
+
+          </div>
         </div>
       </div>
     );
