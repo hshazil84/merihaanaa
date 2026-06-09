@@ -1,444 +1,615 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
-import { Plus, X, Archive, Trash2, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, X, ChevronLeft, ChevronRight, Users, Check } from "lucide-react";
 
-// ── Types ────────────────────────────────────────────────────────────────────
+const PJ = "'Plus Jakarta Sans', system-ui, sans-serif";
+const DV = "'MVTypewriter','Noto Sans Thaana',sans-serif";
+
 interface Article {
   id: string; title: string; slug: string; status: string;
   category_id: string | null; published_at: string | null;
   scheduled_at: string | null; created_at: string;
-  author: { id: string; full_name: string } | null;
   category: { name: string; slug: string } | null;
 }
 interface Category { id: string; name: string; slug: string; }
-
-const PJ = "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif";
-
-// ── Column definitions ───────────────────────────────────────────────────────
-const PORTFOLIO_COLS = [
-  { id: "3mo",  label: "3 Months",  accent: "#8b5cf6", bg: "#f5f3ff", border: "#ede9fe", dot: "#7c3aed" },
-  { id: "1mo",  label: "1 Month",   accent: "#0ea5e9", bg: "#f0f9ff", border: "#bae6fd", dot: "#0284c7" },
-  { id: "week", label: "This Week", accent: "#f59e0b", bg: "#fffbeb", border: "#fde68a", dot: "#d97706" },
-];
-const ACTIVE_COLS = [
-  { id: "idea",  label: "To Do",    accent: "#64748b", bg: "#f8fafc", border: "#e2e8f0", dot: "#475569" },
-  { id: "draft", label: "Writing",  accent: "#10b981", bg: "#f0fdf4", border: "#bbf7d0", dot: "#059669" },
-  { id: "review",label: "Review",   accent: "#f97316", bg: "#fff7ed", border: "#fed7aa", dot: "#ea580c" },
-];
-const DONE_COLS = [
-  { id: "published", label: "Published", accent: "#22c55e", bg: "#f0fdf4", border: "#bbf7d0", dot: "#16a34a" },
-];
-
-const ALL_COLS = [...PORTFOLIO_COLS, ...ACTIVE_COLS, ...DONE_COLS];
-
-function statusToCol(status: string): string {
-  if (status === "published") return "published";
-  if (status === "scheduled") return "week";
-  if (status === "draft") return "draft";
-  if (status === "idea") return "idea";
-  return "idea";
+interface TeamMember { id: string; full_name: string; role: string | null; phone: string | null; email: string | null; is_active: boolean; }
+interface Task {
+  id: string; title: string; stage: string; due_date: string | null;
+  assignee_ids: string[]; article_id: string | null; created_at: string;
+}
+interface Project {
+  id: string; title: string; description: string | null; stage: string;
+  due_date: string | null; assignee_ids: string[]; created_at: string;
 }
 
-function colToStatus(colId: string): string {
-  const map: Record<string, string> = {
-    "3mo": "idea", "1mo": "idea", "week": "scheduled",
-    "idea": "idea", "draft": "draft", "review": "draft",
-    "published": "published",
-  };
-  return map[colId] ?? "draft";
+type ItemType = "article" | "task" | "project";
+type Stage = "todo" | "inprogress" | "done";
+
+interface BoardItem {
+  id: string; type: ItemType; title: string; stage: Stage;
+  date: string | null; assignee_ids: string[]; category?: string | null;
+}
+
+const STAGE_COLORS: Record<Stage, { bg: string; border: string; dot: string; label: string }> = {
+  todo:       { bg: "#fffbeb", border: "#fde68a", dot: "#f59e0b", label: "To do" },
+  inprogress: { bg: "#eff6ff", border: "#bfdbfe", dot: "#3b82f6", label: "In progress" },
+  done:       { bg: "#f0fdf4", border: "#bbf7d0", dot: "#22c55e", label: "Done" },
+};
+
+const TYPE_COLORS: Record<ItemType, string> = {
+  article: "#6b7280", task: "#3b82f6", project: "#8b5cf6",
+};
+
+const CREW_ROLES = ["Photographer", "Videographer", "Makeup Artist", "Writer", "Editor", "Director", "Producer", "Other"];
+
+function isDhivehi(text: string): boolean {
+  return /[\u0780-\u07BF]/.test(text);
+}
+function textFont(text: string): string {
+  return isDhivehi(text) ? DV : PJ;
 }
 
 function slugify(t: string) {
-  return t.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^\w-]/g, "") + "-" + Math.random().toString(36).slice(2,5);
-}
-function formatShort(d: string | null) {
-  if (!d) return null;
-  return new Date(d).toLocaleDateString("en", { month: "short", day: "numeric" });
+  return t.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^\w-]/g, "") + "-" + Math.random().toString(36).slice(2, 5);
 }
 
-// ── Inline add input ─────────────────────────────────────────────────────────
-function InlineAdd({ colId, categories, onAdd }: {
-  colId: string; categories: Category[];
-  onAdd: (a: Article) => void;
+function getDaysInMonth(year: number, month: number): Date[] {
+  const days: Date[] = [];
+  const d = new Date(year, month, 1);
+  while (d.getMonth() === month) { days.push(new Date(d)); d.setDate(d.getDate() + 1); }
+  return days;
+}
+
+function formatDate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+function MemberAvatar({ member, size = 20 }: { member: TeamMember; size?: number }) {
+  const initials = member.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+  return (
+    <div style={{ width: size, height: size, borderRadius: "50%", background: "#e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.38, fontWeight: 600, color: "#64748b", flexShrink: 0, fontFamily: PJ }}>
+      {initials}
+    </div>
+  );
+}
+
+// ── Sticky Note Card ──────────────────────────────────────────────────────────
+function StickyCard({ item, team, onStageChange, onEdit, onDragStart }: {
+  item: BoardItem; team: TeamMember[];
+  onStageChange: (id: string, type: ItemType, stage: Stage) => void;
+  onEdit: (item: BoardItem) => void;
+  onDragStart: (e: React.DragEvent, item: BoardItem) => void;
 }) {
-  const supabase = createClient();
-  const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState("");
-  const [catId, setCatId] = useState(categories[0]?.id ?? "");
-  const [saving, setSaving] = useState(false);
+  const s = STAGE_COLORS[item.stage];
+  const stages: Stage[] = ["todo", "inprogress", "done"];
+  const nextStage = stages[(stages.indexOf(item.stage) + 1) % stages.length];
+  const assignees = team.filter((m) => item.assignee_ids.includes(m.id));
 
-  async function save() {
-    if (!title.trim()) return;
-    setSaving(true);
-    const status = colToStatus(colId);
-    const { data, error } = await supabase.from("articles")
-      .insert({ title: title.trim(), slug: slugify(title), status, content_type: "article", category_id: catId || null, body: {} })
-      .select("id").single();
-    if (error || !data) { toast.error("Failed"); setSaving(false); return; }
-    const cat = categories.find((c) => c.id === catId) ?? null;
-    onAdd({ id: data.id, title: title.trim(), slug: slugify(title), status, category_id: catId||null, published_at: null, scheduled_at: null, created_at: new Date().toISOString(), author: null, category: cat ? { name: cat.name, slug: cat.slug } : null });
-    setTitle(""); setOpen(false); setSaving(false);
-    toast.success("Added");
-  }
-
-  if (!open) {
-    return (
-      <button onClick={() => setOpen(true)}
-        className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-white/60 transition-all text-xs mt-1"
-        style={{ fontFamily: PJ }}>
-        <Plus size={12} /> Add card
-      </button>
-    );
+  function cycleStage(e: React.MouseEvent) {
+    e.stopPropagation();
+    onStageChange(item.id, item.type, nextStage);
   }
 
   return (
-    <div className="mt-1 p-2 bg-white rounded-lg border border-gray-200 shadow-sm space-y-2">
-      <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") setOpen(false); }}
-        placeholder="Card title..." className="w-full text-xs px-2 py-1.5 border border-gray-200 rounded-md outline-none focus:border-blue-400"
-        style={{ fontFamily: PJ }} />
-      <select value={catId} onChange={(e) => setCatId(e.target.value)}
-        className="w-full text-xs px-2 py-1.5 border border-gray-200 rounded-md outline-none focus:border-blue-400 bg-white"
-        style={{ fontFamily: PJ }}>
-        <option value="">No category</option>
-        {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-      </select>
-      <div className="flex gap-1.5">
-        <button onClick={save} disabled={saving || !title.trim()}
-          className="flex-1 py-1 text-xs font-semibold bg-gray-900 text-white rounded-md hover:opacity-80 disabled:opacity-40"
-          style={{ fontFamily: PJ }}>
-          {saving ? "..." : "Add"}
-        </button>
-        <button onClick={() => setOpen(false)} className="w-7 flex items-center justify-center rounded-md hover:bg-gray-100 text-gray-400">
-          <X size={13} />
-        </button>
+    <div draggable onDragStart={(e) => onDragStart(e, item)} onClick={() => onEdit(item)}
+      style={{ background: s.bg, border: "1px solid " + s.border, borderRadius: "8px", padding: "7px 8px", marginBottom: "4px", cursor: "grab", userSelect: "none", position: "relative" }}>
+
+      {/* Status dot — clickable to cycle */}
+      <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
+        <button onClick={cycleStage} title={"→ " + STAGE_COLORS[nextStage].label}
+          style={{ width: "10px", height: "10px", borderRadius: "50%", background: s.dot, border: "none", cursor: "pointer", flexShrink: 0, marginTop: "3px", padding: 0 }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: "11px", fontWeight: 600, color: "#1a1a1a", margin: 0, lineHeight: 1.5, fontFamily: textFont(item.title), wordBreak: "break-word" }}
+            dir={isDhivehi(item.title) ? "rtl" : "ltr"}>
+            {item.title}
+          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: "4px", marginTop: "4px", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "9px", fontWeight: 600, color: TYPE_COLORS[item.type], background: TYPE_COLORS[item.type] + "18", padding: "1px 5px", borderRadius: "4px", fontFamily: PJ }}>
+              {item.type}
+            </span>
+            {item.category && (
+              <span style={{ fontSize: "9px", color: "#9ca3af", fontFamily: PJ }}>{item.category}</span>
+            )}
+          </div>
+          {assignees.length > 0 && (
+            <div style={{ display: "flex", gap: "2px", marginTop: "4px" }}>
+              {assignees.slice(0, 3).map((m) => <MemberAvatar key={m.id} member={m} size={16} />)}
+              {assignees.length > 3 && <span style={{ fontSize: "9px", color: "#9ca3af", fontFamily: PJ }}>+{assignees.length - 3}</span>}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-// ── Kanban Card ──────────────────────────────────────────────────────────────
-function KanbanCard({ article, onArchive, onDelete }: {
-  article: Article;
-  onArchive: (id: string) => void;
-  onDelete: (id: string) => void;
+// ── New / Edit Item Modal ─────────────────────────────────────────────────────
+function ItemModal({ categories, team, articles, item, defaultDate, onClose, onSave }: {
+  categories: Category[]; team: TeamMember[]; articles: Article[];
+  item?: BoardItem | null; defaultDate?: string;
+  onClose: () => void; onSave: (item: BoardItem) => void;
 }) {
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const date = formatShort(article.scheduled_at ?? article.published_at);
+  const supabase = createClient();
+  const [type, setType] = useState<ItemType>(item?.type ?? "article");
+  const [title, setTitle] = useState(item?.title ?? "");
+  const [stage, setStage] = useState<Stage>((item?.stage as Stage) ?? "todo");
+  const [date, setDate] = useState(item?.date ?? defaultDate ?? "");
+  const [catId, setCatId] = useState("");
+  const [assigneeIds, setAssigneeIds] = useState<string[]>(item?.assignee_ids ?? []);
+  const [linkedArticle, setLinkedArticle] = useState("");
+  const [description, setDescription] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  function toggleAssignee(id: string) {
+    setAssigneeIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  }
+
+  async function handleSave() {
+    if (!title.trim()) return;
+    setSaving(true);
+    const toastId = toast.loading("Saving...");
+
+    if (type === "article") {
+      const { data, error } = await supabase.from("articles")
+        .insert({ title: title.trim(), slug: slugify(title), status: stage === "done" ? "published" : "draft", content_type: "article", category_id: catId || null, scheduled_at: date || null, body: {} })
+        .select("id").single();
+      if (error || !data) { toast.error("Failed", { id: toastId }); setSaving(false); return; }
+      const cat = categories.find((c) => c.id === catId);
+      toast.success("Created", { id: toastId });
+      onSave({ id: data.id, type: "article", title: title.trim(), stage, date: date || null, assignee_ids: assigneeIds, category: cat?.name ?? null });
+    } else if (type === "task") {
+      const payload = { title: title.trim(), stage, due_date: date || null, assignee_ids: assigneeIds, article_id: linkedArticle || null, is_done: stage === "done" };
+      const { data, error } = item?.id
+        ? await supabase.from("production_tasks").update(payload).eq("id", item.id).select("id").single()
+        : await supabase.from("production_tasks").insert(payload).select("id").single();
+      if (error || !data) { toast.error("Failed", { id: toastId }); setSaving(false); return; }
+      toast.success(item ? "Saved" : "Created", { id: toastId });
+      onSave({ id: data.id, type: "task", title: title.trim(), stage, date: date || null, assignee_ids: assigneeIds });
+    } else {
+      const payload = { title: title.trim(), description: description || null, stage, due_date: date || null, assignee_ids: assigneeIds };
+      const { data, error } = item?.id
+        ? await supabase.from("production_projects").update(payload).eq("id", item.id).select("id").single()
+        : await supabase.from("production_projects").insert(payload).select("id").single();
+      if (error || !data) { toast.error("Failed", { id: toastId }); setSaving(false); return; }
+      toast.success(item ? "Saved" : "Created", { id: toastId });
+      onSave({ id: data.id, type: "project", title: title.trim(), stage, date: date || null, assignee_ids: assigneeIds });
+    }
+    onClose();
+  }
 
   return (
-    <div
-      draggable
-      onDragStart={(e) => { e.dataTransfer.setData("articleId", article.id); e.dataTransfer.effectAllowed = "move"; }}
-      className="group relative bg-white rounded-lg border border-gray-100 p-2.5 cursor-grab active:cursor-grabbing hover:border-gray-300 hover:shadow-md transition-all select-none"
-    >
-      {/* Actions */}
-      <div className="absolute top-1.5 left-1.5 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button onClick={() => onArchive(article.id)} title="Archive"
-          className="w-5 h-5 flex items-center justify-center rounded text-gray-300 hover:text-orange-400 hover:bg-orange-50 transition-all">
-          <Archive size={10} />
-        </button>
-        {confirmDelete ? (
-          <div className="flex items-center gap-0.5">
-            <button onClick={() => onDelete(article.id)}
-              className="text-[9px] px-1.5 py-0.5 bg-red-500 text-white rounded font-semibold" style={{ fontFamily: PJ }}>
-              Delete
+    <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}
+      onClick={onClose}>
+      <div style={{ background: "white", borderRadius: "14px", width: "100%", maxWidth: "400px", overflow: "hidden", maxHeight: "90vh", overflowY: "auto" }}
+        onClick={(e) => e.stopPropagation()}>
+
+        {/* Header */}
+        <div style={{ padding: "16px 20px 12px", borderBottom: "0.5px solid #e5e7eb" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+            <p style={{ fontFamily: PJ, fontSize: "14px", fontWeight: 600, color: "#111827", margin: 0 }}>
+              {item ? "Edit item" : "New item"}
+            </p>
+            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", padding: 0 }}>
+              <X size={15} />
             </button>
-            <button onClick={() => setConfirmDelete(false)} className="text-[9px] px-1 text-gray-400 hover:text-gray-600" style={{ fontFamily: PJ }}>
+          </div>
+          {!item && (
+            <div style={{ display: "flex", gap: "6px" }}>
+              {(["article", "task", "project"] as ItemType[]).map((t) => (
+                <button key={t} onClick={() => setType(t)}
+                  style={{ flex: 1, padding: "6px 0", borderRadius: "8px", fontSize: "12px", fontFamily: PJ, fontWeight: 500, border: "0.5px solid", cursor: "pointer", borderColor: type === t ? "#d1d5db" : "#f3f4f6", background: type === t ? "white" : "#f9fafb", color: type === t ? "#111827" : "#9ca3af", transition: "all 0.15s" }}>
+                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: "12px" }}>
+
+          <div>
+            <label style={{ fontFamily: PJ, fontSize: "11px", color: "#6b7280", display: "block", marginBottom: "5px" }}>Title *</label>
+            <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSave()}
+              placeholder={type === "article" ? "Article title..." : type === "task" ? "What needs to be done?" : "Project name..."}
+              style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", border: "0.5px solid #d1d5db", borderRadius: "8px", fontSize: "13px", fontFamily: PJ, outline: "none" }} />
+          </div>
+
+          {type === "article" && (
+            <div>
+              <label style={{ fontFamily: PJ, fontSize: "11px", color: "#6b7280", display: "block", marginBottom: "5px" }}>Category</label>
+              <select value={catId} onChange={(e) => setCatId(e.target.value)}
+                style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", border: "0.5px solid #d1d5db", borderRadius: "8px", fontSize: "13px", fontFamily: PJ, outline: "none", background: "white" }}>
+                <option value="">No category</option>
+                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+          )}
+
+          {type === "task" && (
+            <div>
+              <label style={{ fontFamily: PJ, fontSize: "11px", color: "#6b7280", display: "block", marginBottom: "5px" }}>Linked article</label>
+              <select value={linkedArticle} onChange={(e) => setLinkedArticle(e.target.value)}
+                style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", border: "0.5px solid #d1d5db", borderRadius: "8px", fontSize: "13px", fontFamily: PJ, outline: "none", background: "white" }}>
+                <option value="">None</option>
+                {articles.slice(0, 50).map((a) => <option key={a.id} value={a.id}>{a.title}</option>)}
+              </select>
+            </div>
+          )}
+
+          {type === "project" && (
+            <div>
+              <label style={{ fontFamily: PJ, fontSize: "11px", color: "#6b7280", display: "block", marginBottom: "5px" }}>Description</label>
+              <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2}
+                style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", border: "0.5px solid #d1d5db", borderRadius: "8px", fontSize: "13px", fontFamily: PJ, outline: "none", resize: "none" }} />
+            </div>
+          )}
+
+          <div>
+            <label style={{ fontFamily: PJ, fontSize: "11px", color: "#6b7280", display: "block", marginBottom: "5px" }}>
+              {type === "task" ? "Due date" : "Target date"}
+            </label>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
+              style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", border: "0.5px solid #d1d5db", borderRadius: "8px", fontSize: "13px", fontFamily: PJ, outline: "none" }} />
+          </div>
+
+          {/* Assignees */}
+          {(type === "task" || type === "project") && team.length > 0 && (
+            <div>
+              <label style={{ fontFamily: PJ, fontSize: "11px", color: "#6b7280", display: "block", marginBottom: "7px" }}>Crew</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                {team.filter((m) => m.is_active).map((m) => {
+                  const selected = assigneeIds.includes(m.id);
+                  return (
+                    <button key={m.id} onClick={() => toggleAssignee(m.id)}
+                      style={{ display: "flex", alignItems: "center", gap: "5px", padding: "4px 8px", borderRadius: "20px", border: "0.5px solid", borderColor: selected ? "#374151" : "#e5e7eb", background: selected ? "#111827" : "white", cursor: "pointer", transition: "all 0.15s" }}>
+                      {selected && <Check size={9} color="white" />}
+                      <span style={{ fontSize: "11px", fontWeight: 500, fontFamily: PJ, color: selected ? "white" : "#6b7280" }}>
+                        {m.full_name.split(" ")[0]}
+                      </span>
+                      {m.role && (
+                        <span style={{ fontSize: "9px", color: selected ? "rgba(255,255,255,0.6)" : "#d1d5db", fontFamily: PJ }}>
+                          {m.role}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Stage */}
+          <div>
+            <label style={{ fontFamily: PJ, fontSize: "11px", color: "#6b7280", display: "block", marginBottom: "7px" }}>Status</label>
+            <div style={{ display: "flex", gap: "6px" }}>
+              {(Object.entries(STAGE_COLORS) as [Stage, typeof STAGE_COLORS[Stage]][]).map(([s, cfg]) => (
+                <button key={s} onClick={() => setStage(s)}
+                  style={{ flex: 1, padding: "6px 0", borderRadius: "8px", fontSize: "11px", fontFamily: PJ, fontWeight: 500, border: "1px solid", cursor: "pointer", borderColor: stage === s ? cfg.dot : "#f3f4f6", background: stage === s ? cfg.bg : "#f9fafb", color: stage === s ? cfg.dot : "#9ca3af", transition: "all 0.15s" }}>
+                  {cfg.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+        </div>
+
+        <div style={{ padding: "12px 20px", borderTop: "0.5px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <button onClick={onClose} style={{ fontFamily: PJ, fontSize: "13px", color: "#9ca3af", background: "none", border: "none", cursor: "pointer" }}>Cancel</button>
+          <button onClick={handleSave} disabled={saving || !title.trim()}
+            style={{ fontFamily: PJ, fontSize: "13px", fontWeight: 600, padding: "8px 20px", borderRadius: "8px", background: "#111827", color: "white", border: "none", cursor: "pointer", opacity: saving || !title.trim() ? 0.4 : 1 }}>
+            {saving ? "Saving..." : item ? "Save" : "Create"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Crew Panel ────────────────────────────────────────────────────────────────
+function CrewPanel({ team: initial, onClose }: { team: TeamMember[]; onClose: () => void; }) {
+  const supabase = createClient();
+  const [team, setTeam] = useState<TeamMember[]>(initial);
+  const [showAdd, setShowAdd] = useState(false);
+  const [name, setName] = useState("");
+  const [role, setRole] = useState(CREW_ROLES[0]);
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function handleAdd() {
+    if (!name.trim()) return;
+    setSaving(true);
+    const { data, error } = await supabase.from("team")
+      .insert({ full_name: name.trim(), role, phone: phone || null, email: email || null, is_active: true })
+      .select("*").single();
+    if (!error && data) { setTeam((prev) => [...prev, data]); toast.success("Added"); }
+    else toast.error("Failed");
+    setName(""); setPhone(""); setEmail(""); setShowAdd(false); setSaving(false);
+  }
+
+  async function handleRemove(id: string) {
+    await supabase.from("team").update({ is_active: false }).eq("id", id);
+    setTeam((prev) => prev.filter((m) => m.id !== id));
+    toast.success("Removed");
+  }
+
+  return (
+    <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: "280px", background: "white", borderLeft: "0.5px solid #e5e7eb", zIndex: 40, display: "flex", flexDirection: "column", boxShadow: "-4px 0 24px rgba(0,0,0,0.08)" }}>
+      <div style={{ padding: "16px 20px", borderBottom: "0.5px solid #e5e7eb", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <p style={{ fontFamily: PJ, fontSize: "14px", fontWeight: 600, color: "#111827", margin: 0 }}>Crew</p>
+        <div style={{ display: "flex", gap: "6px" }}>
+          <button onClick={() => setShowAdd(!showAdd)}
+            style={{ width: "28px", height: "28px", borderRadius: "8px", background: "#111827", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Plus size={13} color="white" />
+          </button>
+          <button onClick={onClose}
+            style={{ width: "28px", height: "28px", borderRadius: "8px", background: "#f9fafb", border: "0.5px solid #e5e7eb", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <X size={13} />
+          </button>
+        </div>
+      </div>
+
+      {showAdd && (
+        <div style={{ padding: "14px 20px", borderBottom: "0.5px solid #e5e7eb", background: "#f9fafb", display: "flex", flexDirection: "column", gap: "8px" }}>
+          <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name"
+            style={{ padding: "7px 10px", border: "0.5px solid #d1d5db", borderRadius: "7px", fontSize: "12px", fontFamily: PJ, outline: "none" }} />
+          <select value={role} onChange={(e) => setRole(e.target.value)}
+            style={{ padding: "7px 10px", border: "0.5px solid #d1d5db", borderRadius: "7px", fontSize: "12px", fontFamily: PJ, outline: "none", background: "white" }}>
+            {CREW_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+          </select>
+          <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone (optional)"
+            style={{ padding: "7px 10px", border: "0.5px solid #d1d5db", borderRadius: "7px", fontSize: "12px", fontFamily: PJ, outline: "none" }} />
+          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email (optional)"
+            style={{ padding: "7px 10px", border: "0.5px solid #d1d5db", borderRadius: "7px", fontSize: "12px", fontFamily: PJ, outline: "none" }} />
+          <div style={{ display: "flex", gap: "6px" }}>
+            <button onClick={handleAdd} disabled={saving || !name.trim()}
+              style={{ flex: 1, padding: "7px", borderRadius: "7px", background: "#111827", color: "white", border: "none", cursor: "pointer", fontSize: "12px", fontFamily: PJ, fontWeight: 600, opacity: saving || !name.trim() ? 0.4 : 1 }}>
+              Add
+            </button>
+            <button onClick={() => setShowAdd(false)}
+              style={{ flex: 1, padding: "7px", borderRadius: "7px", background: "white", border: "0.5px solid #e5e7eb", cursor: "pointer", fontSize: "12px", fontFamily: PJ, color: "#6b7280" }}>
               Cancel
             </button>
           </div>
-        ) : (
-          <button onClick={() => setConfirmDelete(true)} title="Delete"
-            className="w-5 h-5 flex items-center justify-center rounded text-gray-300 hover:text-red-400 hover:bg-red-50 transition-all">
-            <Trash2 size={10} />
-          </button>
-        )}
-      </div>
-
-      {/* Edit link */}
-      <Link href={"/admin/articles/" + article.id}
-        className="absolute top-1.5 right-1.5 w-5 h-5 flex items-center justify-center rounded text-gray-200 hover:text-blue-400 hover:bg-blue-50 opacity-0 group-hover:opacity-100 transition-all"
-        onClick={(e) => e.stopPropagation()}>
-        <ExternalLink size={10} />
-      </Link>
-
-      <p className="text-[11px] font-semibold text-gray-800 leading-snug line-clamp-2 mt-0.5 mb-2 pr-4" dir="rtl"
-        style={{ fontFamily: PJ }}>
-        {article.title}
-      </p>
-
-      <div className="flex items-center gap-1.5 flex-wrap">
-        {article.category && (
-          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 font-medium" style={{ fontFamily: PJ }}>
-            {article.category.name}
-          </span>
-        )}
-        {date && (
-          <span className="text-[9px] text-gray-400" style={{ fontFamily: PJ }}>{date}</span>
-        )}
-        {article.author && (
-          <span className="text-[9px] text-gray-400 mr-auto" style={{ fontFamily: PJ }}>{article.author.full_name}</span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── Column ───────────────────────────────────────────────────────────────────
-function KanbanColumn({ col, articles, categories, onDrop, onArchive, onDelete, onAdd }: {
-  col: typeof ALL_COLS[0];
-  articles: Article[];
-  categories: Category[];
-  onDrop: (articleId: string, colId: string) => void;
-  onArchive: (id: string) => void;
-  onDelete: (id: string) => void;
-  onAdd: (a: Article) => void;
-}) {
-  const [isOver, setIsOver] = useState(false);
-
-  return (
-    <div
-      onDragOver={(e) => { e.preventDefault(); setIsOver(true); }}
-      onDragLeave={() => setIsOver(false)}
-      onDrop={(e) => { e.preventDefault(); const id = e.dataTransfer.getData("articleId"); if (id) onDrop(id, col.id); setIsOver(false); }}
-      className="flex flex-col min-w-0 rounded-xl transition-all"
-      style={{
-        background: isOver ? col.bg : "transparent",
-        border: "1px solid " + (isOver ? col.border : "transparent"),
-        padding: "6px",
-      }}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-2 px-1">
-        <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: col.dot }} />
-          <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: col.accent, fontFamily: PJ }}>
-            {col.label}
-          </span>
         </div>
-        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: col.bg, color: col.accent, border: "1px solid " + col.border, fontFamily: PJ }}>
-          {articles.length}
-        </span>
-      </div>
+      )}
 
-      {/* Cards */}
-      <div className="flex-1 space-y-1.5 overflow-y-auto min-h-[60px]">
-        {articles.map((a) => (
-          <KanbanCard key={a.id} article={a} onArchive={onArchive} onDelete={onDelete} />
-        ))}
-        {articles.length === 0 && (
-          <div className="h-12 flex items-center justify-center rounded-lg border border-dashed border-gray-200">
-            <span className="text-[10px] text-gray-300" style={{ fontFamily: PJ }}>Drop here</span>
+      <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
+        {team.filter((m) => m.is_active).map((m) => (
+          <div key={m.id} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 20px" }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#f9fafb")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+            <MemberAvatar member={m} size={32} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontFamily: PJ, fontSize: "12px", fontWeight: 600, color: "#111827", margin: 0 }}>{m.full_name}</p>
+              {m.role && <p style={{ fontFamily: PJ, fontSize: "10px", color: "#9ca3af", margin: 0 }}>{m.role}</p>}
+            </div>
+            <button onClick={() => handleRemove(m.id)}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "#d1d5db", padding: 0, flexShrink: 0 }}
+              onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#ef4444")}
+              onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "#d1d5db")}>
+              <X size={13} />
+            </button>
           </div>
+        ))}
+        {team.filter((m) => m.is_active).length === 0 && (
+          <p style={{ fontFamily: PJ, fontSize: "12px", color: "#d1d5db", textAlign: "center", padding: "2rem" }}>No crew yet</p>
         )}
       </div>
-
-      {/* Add */}
-      <InlineAdd colId={col.id} categories={categories} onAdd={onAdd} />
     </div>
   );
 }
 
-// ── Mini Calendar ─────────────────────────────────────────────────────────────
-function MiniCalendar({ articles }: { articles: Article[] }) {
+// ── Calendar Board ────────────────────────────────────────────────────────────
+export default function ProductionClient({ articles: initialArticles, categories, team: initialTeam, tasks: initialTasks, projects: initialProjects }: {
+  articles: Article[]; categories: Category[]; team: TeamMember[];
+  tasks: Task[]; projects: Project[];
+}) {
+  const supabase = createClient();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
-  const days: Date[] = [];
-  const d = new Date(year, month, 1);
-  while (d.getMonth() === month) { days.push(new Date(d)); d.setDate(d.getDate()+1); }
-  const blanks = Array.from({ length: new Date(year, month, 1).getDay() });
-  const byDate: Record<string, Article[]> = {};
-  for (const a of articles) {
-    const dt = a.scheduled_at ?? a.published_at;
-    if (!dt) continue;
-    const key = dt.slice(0,10);
-    if (!byDate[key]) byDate[key] = [];
-    byDate[key].push(a);
-  }
-  const todayKey = now.toISOString().slice(0,10);
-
-  return (
-    <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-bold text-gray-700" style={{ fontFamily: PJ }}>
-          {new Date(year, month).toLocaleDateString("en", { month: "long", year: "numeric" })}
-        </span>
-        <div className="flex items-center gap-0.5">
-          <button onClick={() => month === 0 ? (setYear(y=>y-1),setMonth(11)) : setMonth(m=>m-1)}
-            className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100 text-gray-400"><ChevronLeft size={12}/></button>
-          <button onClick={() => month === 11 ? (setYear(y=>y+1),setMonth(0)) : setMonth(m=>m+1)}
-            className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100 text-gray-400"><ChevronRight size={12}/></button>
-        </div>
-      </div>
-      <div className="grid grid-cols-7 gap-0.5 mb-1">
-        {["S","M","T","W","T","F","S"].map((d,i) => <div key={i} className="text-[9px] font-bold text-gray-300 text-center" style={{ fontFamily: PJ }}>{d}</div>)}
-      </div>
-      <div className="grid grid-cols-7 gap-0.5">
-        {blanks.map((_,i) => <div key={"b"+i} />)}
-        {days.map((day) => {
-          const key = day.toISOString().slice(0,10);
-          const items = byDate[key] ?? [];
-          const isToday = key === todayKey;
-          const hasItems = items.length > 0;
-          return (
-            <div key={key} className={"relative flex flex-col items-center justify-center rounded-md aspect-square cursor-default transition-all " + (isToday ? "bg-blue-500" : hasItems ? "bg-gray-50 hover:bg-gray-100" : "hover:bg-gray-50")}>
-              <span className={"text-[10px] font-semibold " + (isToday ? "text-white" : "text-gray-600")} style={{ fontFamily: PJ }}>{day.getDate()}</span>
-              {hasItems && !isToday && (
-                <div className="flex gap-0.5 mt-0.5">
-                  {items.slice(0,3).map((a,i) => <div key={i} className="w-1 h-1 rounded-full" style={{ background: a.status === "published" ? "#22c55e" : "#3b82f6" }} />)}
-                </div>
-              )}
-              {hasItems && isToday && <div className="w-1 h-1 rounded-full bg-white mt-0.5" />}
-            </div>
-          );
-        })}
-      </div>
-      <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-100">
-        <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-blue-400" /><span className="text-[9px] text-gray-400" style={{ fontFamily: PJ }}>Scheduled</span></div>
-        <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-green-400" /><span className="text-[9px] text-gray-400" style={{ fontFamily: PJ }}>Published</span></div>
-      </div>
-    </div>
-  );
-}
-
-// ── Main ─────────────────────────────────────────────────────────────────────
-export default function ProductionClient({ articles: initial, categories }: {
-  articles: Article[]; categories: Category[];
-}) {
-  const supabase = createClient();
-  const [articles, setArticles] = useState<Article[]>(initial);
-  const [colMap, setColMap] = useState<Record<string, string>>(() => {
-    const m: Record<string, string> = {};
-    for (const a of initial) m[a.id] = statusToCol(a.status);
-    return m;
+  const [items, setItems] = useState<BoardItem[]>(() => {
+    const all: BoardItem[] = [];
+    for (const a of initialArticles) {
+      const d = a.scheduled_at ?? a.published_at;
+      if (!d && a.status === "archived") continue;
+      all.push({ id: a.id, type: "article", title: a.title, stage: a.status === "published" ? "done" : a.status === "scheduled" ? "inprogress" : "todo", date: d ? d.slice(0, 10) : null, assignee_ids: [], category: a.category?.name ?? null });
+    }
+    for (const t of initialTasks) {
+      all.push({ id: t.id, type: "task", title: t.title, stage: (t.stage as Stage) ?? "todo", date: t.due_date ? t.due_date.slice(0, 10) : null, assignee_ids: t.assignee_ids ?? [] });
+    }
+    for (const p of initialProjects) {
+      all.push({ id: p.id, type: "project", title: p.title, stage: (p.stage as Stage) ?? "todo", date: p.due_date ? p.due_date.slice(0, 10) : null, assignee_ids: p.assignee_ids ?? [] });
+    }
+    return all;
   });
-  const [filter, setFilter] = useState("");
+  const [unscheduled, setUnscheduled] = useState<BoardItem[]>([]);
+  const [team, setTeam] = useState<TeamMember[]>(initialTeam);
+  const [showCrew, setShowCrew] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [editItem, setEditItem] = useState<BoardItem | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [dragging, setDragging] = useState<BoardItem | null>(null);
+  const [overDate, setOverDate] = useState<string | null>(null);
 
-  const filtered = articles.filter((a) =>
-    a.status !== "archived" && (!filter || a.title.toLowerCase().includes(filter.toLowerCase()) || a.category?.name.toLowerCase().includes(filter.toLowerCase()))
-  );
+  const days = getDaysInMonth(year, month);
+  const blanks = Array.from({ length: new Date(year, month, 1).getDay() });
+  const todayKey = formatDate(now);
 
-  function getColArticles(colId: string) {
-    return filtered.filter((a) => (colMap[a.id] ?? statusToCol(a.status)) === colId);
+  const byDate: Record<string, BoardItem[]> = {};
+  for (const item of items) {
+    if (!item.date) continue;
+    const key = item.date;
+    if (!byDate[key]) byDate[key] = [];
+    byDate[key].push(item);
+  }
+  const noDate = items.filter((i) => !i.date);
+
+  function prev() { if (month === 0) { setYear((y) => y - 1); setMonth(11); } else setMonth((m) => m - 1); }
+  function next() { if (month === 11) { setYear((y) => y + 1); setMonth(0); } else setMonth((m) => m + 1); }
+
+  async function handleStageChange(id: string, type: ItemType, stage: Stage) {
+    setItems((prev) => prev.map((i) => i.id === id ? { ...i, stage } : i));
+    if (type === "article") {
+      const statusMap: Record<Stage, string> = { todo: "draft", inprogress: "scheduled", done: "published" };
+      await supabase.from("articles").update({ status: statusMap[stage] }).eq("id", id);
+    } else if (type === "task") {
+      await supabase.from("production_tasks").update({ stage, is_done: stage === "done" }).eq("id", id);
+    } else {
+      await supabase.from("production_projects").update({ stage }).eq("id", id);
+    }
   }
 
-  async function handleDrop(articleId: string, colId: string) {
-    const prev = colMap[articleId];
-    if (prev === colId) return;
-    setColMap((m) => ({ ...m, [articleId]: colId }));
-    const newStatus = colToStatus(colId);
-    const { error } = await supabase.from("articles").update({ status: newStatus }).eq("id", articleId);
-    if (error) { setColMap((m) => ({ ...m, [articleId]: prev })); toast.error("Failed to move"); }
+  async function handleDateDrop(newDate: string) {
+    if (!dragging) return;
+    const item = dragging;
+    setItems((prev) => prev.map((i) => i.id === item.id ? { ...i, date: newDate } : i));
+    setDragging(null); setOverDate(null);
+    if (item.type === "article") await supabase.from("articles").update({ scheduled_at: newDate }).eq("id", item.id);
+    else if (item.type === "task") await supabase.from("production_tasks").update({ due_date: newDate }).eq("id", item.id);
+    else await supabase.from("production_projects").update({ due_date: newDate }).eq("id", item.id);
+    toast.success("Rescheduled");
   }
 
-  async function handleArchive(id: string) {
-    setArticles((prev) => prev.map((a) => a.id === id ? { ...a, status: "archived" } : a));
-    await supabase.from("articles").update({ status: "archived" }).eq("id", id);
-    toast.success("Archived");
+  function handleSaveItem(saved: BoardItem) {
+    setItems((prev) => {
+      const exists = prev.find((i) => i.id === saved.id);
+      if (exists) return prev.map((i) => i.id === saved.id ? saved : i);
+      return [saved, ...prev];
+    });
   }
 
-  async function handleDelete(id: string) {
-    setArticles((prev) => prev.filter((a) => a.id !== id));
-    const { error } = await supabase.from("articles").delete().eq("id", id);
-    if (error) toast.error("Failed to delete");
-    else toast.success("Deleted");
-  }
-
-  function handleAdd(article: Article) {
-    setArticles((prev) => [article, ...prev]);
-    setColMap((m) => ({ ...m, [article.id]: statusToCol(article.status) }));
-  }
-
-  const counts = {
-    total: filtered.length,
-    scheduled: filtered.filter((a) => a.status === "scheduled").length,
-    published: filtered.filter((a) => a.status === "published").length,
-  };
+  const monthLabel = new Date(year, month).toLocaleDateString("en", { month: "long", year: "numeric" });
 
   return (
-    <div className="flex flex-col h-full overflow-hidden" style={{ fontFamily: PJ }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", fontFamily: PJ, background: "#fafafa" }}>
 
       {/* Header */}
-      <div className="flex-shrink-0 bg-white border-b border-gray-100 px-5 py-2.5 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-5">
-          <h1 className="text-sm font-bold text-gray-800" style={{ fontFamily: PJ }}>Production</h1>
-          <div className="flex items-center gap-3 text-xs text-gray-400">
-            <span><span className="font-bold text-gray-700">{counts.total}</span> active</span>
-            <span><span className="font-bold text-blue-500">{counts.scheduled}</span> scheduled</span>
-            <span><span className="font-bold text-green-500">{counts.published}</span> published</span>
+      <div style={{ flexShrink: 0, background: "white", borderBottom: "0.5px solid #e5e7eb", padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <h1 style={{ fontFamily: PJ, fontSize: "14px", fontWeight: 700, color: "#111827", margin: 0 }}>Production</h1>
+          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <button onClick={prev} style={{ width: "26px", height: "26px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "6px", border: "0.5px solid #e5e7eb", background: "white", cursor: "pointer", color: "#6b7280" }}>
+              <ChevronLeft size={13} />
+            </button>
+            <span style={{ fontFamily: PJ, fontSize: "13px", fontWeight: 600, color: "#374151", minWidth: "130px", textAlign: "center" }}>{monthLabel}</span>
+            <button onClick={next} style={{ width: "26px", height: "26px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "6px", border: "0.5px solid #e5e7eb", background: "white", cursor: "pointer", color: "#6b7280" }}>
+              <ChevronRight size={13} />
+            </button>
+            <button onClick={() => { setYear(now.getFullYear()); setMonth(now.getMonth()); }}
+              style={{ fontFamily: PJ, fontSize: "11px", color: "#9ca3af", background: "none", border: "none", cursor: "pointer", padding: "0 4px" }}>Today</button>
+          </div>
+          <div style={{ display: "flex", items: "center", gap: "10px", fontSize: "11px", color: "#9ca3af", fontFamily: PJ }}>
+            {(Object.entries(STAGE_COLORS) as [Stage, typeof STAGE_COLORS[Stage]][]).map(([s, cfg]) => (
+              <span key={s} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: cfg.dot, display: "inline-block" }} />
+                {cfg.label}
+              </span>
+            ))}
           </div>
         </div>
-        <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filter..."
-          className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 w-40 outline-none focus:border-blue-400 bg-gray-50" style={{ fontFamily: PJ }} />
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <button onClick={() => setShowCrew(!showCrew)}
+            style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px", borderRadius: "8px", border: "0.5px solid #e5e7eb", background: showCrew ? "#111827" : "white", color: showCrew ? "white" : "#374151", cursor: "pointer", fontSize: "12px", fontFamily: PJ, fontWeight: 500 }}>
+            <Users size={13} /> Crew {team.filter((m) => m.is_active).length > 0 && "(" + team.filter((m) => m.is_active).length + ")"}
+          </button>
+          <button onClick={() => { setEditItem(null); setSelectedDate(null); setShowModal(true); }}
+            style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px", borderRadius: "8px", background: "#111827", color: "white", border: "none", cursor: "pointer", fontSize: "12px", fontFamily: PJ, fontWeight: 600 }}>
+            <Plus size={13} /> New Item
+          </button>
+        </div>
       </div>
 
-      {/* Board */}
-      <div className="flex-1 overflow-hidden flex gap-4 p-4">
+      {/* Calendar */}
+      <div style={{ flex: 1, overflow: "auto", padding: "12px 16px" }}>
 
-        {/* Portfolio section */}
-        <div className="flex flex-col flex-shrink-0" style={{ width: "520px" }}>
-          <div className="flex items-center gap-2 mb-2 px-1">
-            <div className="h-px flex-1 bg-gray-100" />
-            <span className="text-[9px] font-bold uppercase tracking-widest text-gray-300" style={{ fontFamily: PJ }}>Portfolio</span>
-            <div className="h-px flex-1 bg-gray-100" />
-          </div>
-          <div className="flex gap-2 flex-1 overflow-hidden">
-            {PORTFOLIO_COLS.map((col) => (
-              <div key={col.id} className="flex-1">
-                <KanbanColumn col={col} articles={getColArticles(col.id)} categories={categories}
-                  onDrop={handleDrop} onArchive={handleArchive} onDelete={handleDelete} onAdd={handleAdd} />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="flex flex-col items-center gap-1 flex-shrink-0 pt-6">
-          <div className="w-px flex-1 bg-gray-100" />
-        </div>
-
-        {/* Active section */}
-        <div className="flex flex-col flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2 px-1">
-            <div className="h-px flex-1 bg-gray-100" />
-            <span className="text-[9px] font-bold uppercase tracking-widest text-gray-300" style={{ fontFamily: PJ }}>Active</span>
-            <div className="h-px flex-1 bg-gray-100" />
-          </div>
-          <div className="flex gap-2 flex-1 overflow-hidden">
-            {ACTIVE_COLS.map((col) => (
-              <div key={col.id} className="flex-1">
-                <KanbanColumn col={col} articles={getColArticles(col.id)} categories={categories}
-                  onDrop={handleDrop} onArchive={handleArchive} onDelete={handleDelete} onAdd={handleAdd} />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="flex flex-col items-center gap-1 flex-shrink-0 pt-6">
-          <div className="w-px flex-1 bg-gray-100" />
-        </div>
-
-        {/* Done + Calendar */}
-        <div className="flex flex-col flex-shrink-0 gap-3" style={{ width: "200px" }}>
-          <div className="flex items-center gap-2 px-1">
-            <div className="h-px flex-1 bg-gray-100" />
-            <span className="text-[9px] font-bold uppercase tracking-widest text-gray-300" style={{ fontFamily: PJ }}>Done</span>
-            <div className="h-px flex-1 bg-gray-100" />
-          </div>
-          {DONE_COLS.map((col) => (
-            <KanbanColumn key={col.id} col={col} articles={getColArticles(col.id)} categories={categories}
-              onDrop={handleDrop} onArchive={handleArchive} onDelete={handleDelete} onAdd={handleAdd} />
+        {/* Day headers */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "4px", marginBottom: "4px" }}>
+          {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d) => (
+            <div key={d} style={{ fontFamily: PJ, fontSize: "10px", fontWeight: 700, color: "#9ca3af", textAlign: "center", padding: "4px 0", textTransform: "uppercase", letterSpacing: "0.05em" }}>{d}</div>
           ))}
-          <MiniCalendar articles={filtered} />
         </div>
 
+        {/* Day cells */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "4px" }}>
+          {blanks.map((_, i) => <div key={"b" + i} />)}
+          {days.map((day) => {
+            const key = formatDate(day);
+            const dayItems = byDate[key] ?? [];
+            const isToday = key === todayKey;
+            const isOver = overDate === key;
+
+            return (
+              <div key={key}
+                onDragOver={(e) => { e.preventDefault(); setOverDate(key); }}
+                onDragLeave={() => setOverDate(null)}
+                onDrop={() => handleDateDrop(key)}
+                onClick={() => { setSelectedDate(key); setEditItem(null); setShowModal(true); }}
+                style={{ minHeight: "100px", borderRadius: "10px", padding: "6px", border: "1px solid", borderColor: isOver ? "#94a3b8" : isToday ? "#3b82f6" : "#e5e7eb", background: isOver ? "#f1f5f9" : isToday ? "#eff6ff" : "white", cursor: "pointer", transition: "all 0.15s", position: "relative" }}>
+
+                <p style={{ fontFamily: PJ, fontSize: "11px", fontWeight: isToday ? 700 : 500, color: isToday ? "#2563eb" : "#6b7280", margin: "0 0 4px", textAlign: "right" }}>
+                  {day.getDate()}
+                </p>
+
+                <div onClick={(e) => e.stopPropagation()}>
+                  {dayItems.map((item) => (
+                    <StickyCard key={item.id} item={item} team={team}
+                      onStageChange={handleStageChange}
+                      onEdit={(i) => { setEditItem(i); setShowModal(true); }}
+                      onDragStart={(e, i) => { e.stopPropagation(); setDragging(i); }} />
+                  ))}
+                </div>
+
+                {dayItems.length > 0 && (
+                  <button style={{ width: "100%", background: "none", border: "none", cursor: "pointer", padding: "2px 0", display: "flex", alignItems: "center", justifyContent: "center" }}
+                    onClick={(e) => { e.stopPropagation(); setSelectedDate(key); setEditItem(null); setShowModal(true); }}>
+                    <Plus size={11} color="#d1d5db" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Unscheduled tray */}
+        {noDate.length > 0 && (
+          <div style={{ marginTop: "16px", background: "white", border: "0.5px solid #e5e7eb", borderRadius: "12px", padding: "12px 16px" }}>
+            <p style={{ fontFamily: PJ, fontSize: "11px", fontWeight: 600, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>
+              Unscheduled ({noDate.length})
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+              {noDate.map((item) => {
+                const s = STAGE_COLORS[item.stage];
+                return (
+                  <button key={item.id} onClick={() => { setEditItem(item); setShowModal(true); }}
+                    style={{ display: "flex", alignItems: "center", gap: "6px", padding: "5px 10px", borderRadius: "20px", border: "1px solid " + s.border, background: s.bg, cursor: "pointer" }}>
+                    <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: s.dot, flexShrink: 0 }} />
+                    <span style={{ fontSize: "11px", fontWeight: 500, color: "#374151", fontFamily: textFont(item.title) }}>{item.title}</span>
+                    <span style={{ fontSize: "9px", color: TYPE_COLORS[item.type], fontFamily: PJ }}>{item.type}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
       </div>
+
+      {/* Modals */}
+      {showModal && (
+        <ItemModal categories={categories} team={team} articles={initialArticles}
+          item={editItem} defaultDate={selectedDate ?? undefined}
+          onClose={() => { setShowModal(false); setEditItem(null); setSelectedDate(null); }}
+          onSave={handleSaveItem} />
+      )}
+
+      {showCrew && <CrewPanel team={team} onClose={() => setShowCrew(false)} />}
+
     </div>
   );
 }
