@@ -7,7 +7,6 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead,
   TableHeader, TableRow,
@@ -69,11 +68,11 @@ interface Props {
   categories: Category[];
 }
 
-const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  published: { label: "ލައިވް",   variant: "default" },
-  draft:     { label: "ޑްރާފްޓް", variant: "secondary" },
-  scheduled: { label: "ޝެޑިއުލް", variant: "outline" },
-  archived:  { label: "އާރކައިވް", variant: "outline" },
+const STATUS_CONFIG: Record<string, { label: string; color: string; dot?: string }> = {
+  published: { label: "ލައިވް",   color: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500" },
+  draft:     { label: "ޑްރާފްޓް", color: "bg-neutral-100 text-neutral-500 border-neutral-200" },
+  scheduled: { label: "ޝެޑިއުލް", color: "bg-amber-50 text-amber-600 border-amber-200" },
+  archived:  { label: "އާރކައިވް", color: "bg-neutral-100 text-neutral-400 border-neutral-200" },
 };
 
 const STATUS_FILTER_OPTIONS = [
@@ -84,10 +83,10 @@ const STATUS_FILTER_OPTIONS = [
 ];
 
 const PLACEMENT_CONFIG: Record<string, { label: string; color: string }> = {
-  hero:           { label: "ހީރޯ",    color: "bg-purple-100 text-purple-700 border-purple-200" },
-  editors_choice: { label: "ޗޮއިސް",  color: "bg-blue-100 text-blue-700 border-blue-200" },
-  people:         { label: "މީހުން",   color: "bg-orange-100 text-orange-700 border-orange-200" },
-  review:         { label: "ރިވިއު",   color: "bg-green-100 text-green-700 border-green-200" },
+  hero:           { label: "ހީރޯ",    color: "bg-purple-50 text-purple-600 border-purple-200" },
+  editors_choice: { label: "ޗޮއިސް",  color: "bg-blue-50 text-blue-600 border-blue-200" },
+  people:         { label: "މީހުން",   color: "bg-orange-50 text-orange-600 border-orange-200" },
+  review:         { label: "ރިވިއު",   color: "bg-teal-50 text-teal-600 border-teal-200" },
 };
 
 function formatDate(iso: string | null): string {
@@ -102,6 +101,33 @@ function formatViews(n: number | null): string {
   if (n >= 1000000) return (n / 1000000).toFixed(1) + "M";
   if (n >= 1000) return (n / 1000).toFixed(1) + "K";
   return n.toLocaleString();
+}
+
+function StatusPill({ status }: { status: string }) {
+  const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.draft;
+  return (
+    <span
+      className={"inline-flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-full border font-semibold " + cfg.color}
+      style={{ fontFamily: "MVTypewriter, serif" }}>
+      {cfg.dot && (
+        <span className={"w-1.5 h-1.5 rounded-full flex-none " + cfg.dot} />
+      )}
+      {cfg.label}
+    </span>
+  );
+}
+
+function PlacementPill({ placement, slot }: { placement: string; slot: number | null }) {
+  const cfg = PLACEMENT_CONFIG[placement];
+  if (!cfg) return null;
+  return (
+    <span
+      className={"inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border font-medium " + cfg.color}
+      style={{ fontFamily: "MVTypewriter, serif" }}>
+      {cfg.label}
+      {slot && <span className="opacity-60">{"· " + slot}</span>}
+    </span>
+  );
 }
 
 export default function ArticlesClient({
@@ -252,11 +278,8 @@ export default function ArticlesClient({
                   </TableCell>
                 </TableRow>
               ) : articles.map((article) => {
-                const statusCfg = STATUS_CONFIG[article.status] ?? STATUS_CONFIG.draft;
                 const displayDate = article.status === "published"
                   ? formatDate(article.published_at) : formatDate(article.created_at);
-                const placementCfg = article.homepage_placement
-                  ? PLACEMENT_CONFIG[article.homepage_placement] : null;
                 const avatarSrc = getAvatarUrl(article.author?.avatar_url ?? null);
 
                 return (
@@ -267,22 +290,18 @@ export default function ArticlesClient({
                         <p className="text-sm font-semibold text-foreground leading-snug text-right line-clamp-2">
                           {article.title}
                         </p>
-                        {placementCfg && (
+                        {article.homepage_placement && (
                           <div className="mt-1.5 flex items-center gap-1.5 justify-end">
-                            <span className={"inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border font-medium " + placementCfg.color}
-                              style={{ fontFamily: "MVTypewriter, serif" }}>
-                              {placementCfg.label}
-                              {article.homepage_slot && (
-                                <span className="opacity-70">{"· " + article.homepage_slot}</span>
-                              )}
-                            </span>
+                            <PlacementPill
+                              placement={article.homepage_placement}
+                              slot={article.homepage_slot} />
                           </div>
                         )}
                       </Link>
                     </TableCell>
 
                     <TableCell className="text-right">
-                      <Badge variant={statusCfg.variant} className="text-xs">{statusCfg.label}</Badge>
+                      <StatusPill status={article.status} />
                     </TableCell>
 
                     <TableCell className="text-right">
