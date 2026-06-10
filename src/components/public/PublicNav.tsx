@@ -32,12 +32,12 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   const catBarRef         = useRef<HTMLDivElement>(null);
   const compactDesktopRef = useRef<HTMLDivElement>(null);
   const compactMobileRef  = useRef<HTMLDivElement>(null);
-  const staticWrapperRef  = useRef<HTMLDivElement>(null);
+  const staticMobileRef   = useRef<HTMLDivElement>(null);
 
   const phaseRef          = useRef<"rising" | "merged">("rising");
   const homeCompactRef    = useRef(false);
   const lastScrollY       = useRef(0);
-  const staticCompactRef  = useRef(false);
+  const staticMobileCompactRef = useRef(false);
   const lastScrollYStatic = useRef(0);
   const iconNodesRef      = useRef<HTMLElement[]>([]);
 
@@ -53,7 +53,6 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   useEffect(() => {
     if (isStatic) return;
 
-    // Cache icon nodes once on mount
     if (logoBarRef.current) {
       iconNodesRef.current = Array.from(
         logoBarRef.current.querySelectorAll<HTMLElement>(".nav-icon")
@@ -62,7 +61,6 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
 
     const heroHeight = window.innerHeight;
 
-    // Set initial cat bar position
     if (catBarRef.current) {
       const naturalY = Math.round(heroHeight - CAT_BAR_HEIGHT);
       catBarRef.current.style.transform = `translateY(${naturalY}px) ${GPU}`;
@@ -76,7 +74,6 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
       const scrollY  = window.scrollY;
       const vh       = window.innerHeight;
       const naturalY = vh - CAT_BAR_HEIGHT - scrollY;
-      // Round to nearest pixel to prevent subpixel jitter
       const clampedY = Math.round(Math.max(LOGO_BAR_HEIGHT, naturalY));
       const merged   = naturalY <= LOGO_BAR_HEIGHT;
       const offset   = LOGO_BAR_HEIGHT + CAT_BAR_HEIGHT;
@@ -95,7 +92,6 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         if (merged) {
           phaseRef.current = "merged";
           if (catBarRef.current) {
-            // Exactly at LOGO_BAR_HEIGHT — no subpixel gap
             catBarRef.current.style.transform = `translateY(${LOGO_BAR_HEIGHT}px) ${GPU}`;
           }
         }
@@ -150,29 +146,30 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
     };
   }, [isStatic]);
 
-  // ── Static page scroll handler ────────────────────────────────────────────
+  // ── Static page mobile scroll handler (hide/show on scroll) ──────────────
   useEffect(() => {
     if (!isStatic) return;
 
-    const offset = LOGO_BAR_HEIGHT + CAT_BAR_HEIGHT;
     let ticking = false;
 
     const update = () => {
-      const scrollY      = window.scrollY;
+      const scrollY       = window.scrollY;
       const shouldCompact = scrollY > 80 && scrollY > lastScrollYStatic.current;
 
-      if (shouldCompact !== staticCompactRef.current) {
-        staticCompactRef.current = shouldCompact;
-        if (staticWrapperRef.current) {
-          staticWrapperRef.current.style.transform = shouldCompact
-            ? `translateY(-${offset}px) ${GPU}`
+      if (shouldCompact !== staticMobileCompactRef.current) {
+        staticMobileCompactRef.current = shouldCompact;
+
+        // Mobile: hide two-bar, show compact
+        if (staticMobileRef.current) {
+          staticMobileRef.current.style.transform = shouldCompact
+            ? `translateY(-${LOGO_BAR_HEIGHT}px) ${GPU}`
             : `translateY(0px) ${GPU}`;
         }
-        const co = shouldCompact
-          ? `translateY(0px) ${GPU}`
-          : `translateY(-${COMPACT_HEIGHT}px) ${GPU}`;
-        if (compactDesktopRef.current) compactDesktopRef.current.style.transform = co;
-        if (compactMobileRef.current)  compactMobileRef.current.style.transform  = co;
+        if (compactMobileRef.current) {
+          compactMobileRef.current.style.transform = shouldCompact
+            ? `translateY(0px) ${GPU}`
+            : `translateY(-${COMPACT_HEIGHT}px) ${GPU}`;
+        }
       }
 
       lastScrollYStatic.current = scrollY;
@@ -195,7 +192,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
     searchTimer.current = setTimeout(async () => {
       setSearchLoading(true);
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(val.trim())}`);
+        const res = await fetch("/api/search?q=" + encodeURIComponent(val.trim()));
         const data = await res.json();
         setSearchResults(data.results ?? []);
       } catch { setSearchResults([]); }
@@ -219,12 +216,11 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") closeSearch();
     if (e.key === "Enter" && searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      router.push("/search?q=" + encodeURIComponent(searchQuery.trim()));
       closeSearch();
     }
   };
 
-  // Shared style for GPU-composited elements
   const gpuBase: React.CSSProperties = {
     backfaceVisibility: "hidden",
     WebkitBackfaceVisibility: "hidden" as any,
@@ -234,80 +230,26 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   if (isStatic) {
     return (
       <>
+        {/* DESKTOP: always-compact single bar */}
         <div
-          ref={staticWrapperRef}
-          className="fixed top-0 right-0 left-0 z-50 will-change-transform"
-          style={{ ...gpuBase, transform: `translateY(0px) ${GPU}`, transition: "transform 0.3s ease" }}
-        >
-          <header style={{ height: `${LOGO_BAR_HEIGHT}px`, backgroundColor: "rgb(249,248,245)" }}>
-            <div className="max-w-7xl mx-auto px-5 md:px-6 h-full flex items-center justify-center relative">
-              <Link href="/" className="flex items-center">
-                <Image src="/logo.svg" alt="މެރިހާނaa" width={60} height={60} priority className="object-contain" />
-              </Link>
-              <div className="absolute right-5 md:hidden">
-                <button type="button" onClick={() => setMobileMenuOpen(true)}
-                  className="p-2 rounded-full hover:bg-black/5 transition-colors"
-                  style={{ color: "rgb(26,26,26)" }}>
-                  <Menu className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="absolute left-5 md:hidden">
-                <button type="button" aria-label="ހޯދާ" onClick={openSearch}
-                  className="p-2 rounded-full hover:bg-black/5 transition-colors"
-                  style={{ color: "rgb(26,26,26)" }}>
-                  <Search className="w-[18px] h-[18px]" />
-                </button>
-              </div>
-              <div className="absolute left-5 md:left-6 hidden md:flex items-center gap-3">
-                <button type="button" aria-label="ހޯދާ" onClick={openSearch}
-                  className="p-2 rounded-full hover:bg-black/5 transition-colors"
-                  style={{ color: "rgb(26,26,26)" }}>
-                  <Search className="w-[18px] h-[18px]" />
-                </button>
-                <Link href="/login" className="p-2 rounded-full hover:bg-black/5 transition-colors" style={{ color: "rgb(26,26,26)" }}>
-                  <User className="w-[18px] h-[18px]" />
-                </Link>
-              </div>
-            </div>
-          </header>
-          <div className="hidden md:block" style={{ height: `${CAT_BAR_HEIGHT}px`, backgroundColor: "rgb(249,248,245)", borderBottom: "1px solid rgb(224,221,214)" }}>
-            <div className="max-w-7xl mx-auto px-6 h-full">
-              <div className="flex items-center justify-center gap-1 h-full">
-                {categories.map((cat) => (
-                  <Link key={cat.id} href={`/${cat.slug}`}
-                    target={cat.slug === "originals" ? "_blank" : undefined}
-                    rel={cat.slug === "originals" ? "noopener noreferrer" : undefined}
-                    className="whitespace-nowrap px-4 py-2 transition-colors hover:text-[rgb(26,26,26)]"
-                    style={{ fontFamily: "'MVTypewriter','MV Boli',sans-serif", fontSize: "13px", color: "rgb(153,153,153)" }}>
-                    {cat.name}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Desktop compact */}
-        <div
-          ref={compactDesktopRef}
-          className="fixed top-0 right-0 left-0 z-50 hidden md:block will-change-transform"
+          className="hidden md:block fixed top-0 right-0 left-0 z-50"
           style={{
             ...gpuBase,
             height: `${COMPACT_HEIGHT}px`,
             backgroundColor: "rgb(249,248,245)",
             borderBottom: "1px solid rgb(224,221,214)",
-            transform: `translateY(-${COMPACT_HEIGHT}px) ${GPU}`,
-            transition: "none",
           }}
         >
           <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between" dir="rtl">
             <Link href="/" className="flex items-center flex-shrink-0">
-              <Image src="/logo.svg" alt="މެރިހާنaa" width={32} height={32} className="object-contain" />
+              <Image src="/logo.svg" alt="މެރިހާނaa" width={32} height={32} className="object-contain" />
             </Link>
             <div className="flex items-center overflow-x-auto no-scrollbar">
               {categories.map((cat, i) => (
                 <span key={cat.id} className="flex items-center">
-                  <Link href={`/${cat.slug}`}
+                  <Link href={"/" + cat.slug}
+                    target={cat.slug === "originals" ? "_blank" : undefined}
+                    rel={cat.slug === "originals" ? "noopener noreferrer" : undefined}
                     className="whitespace-nowrap px-3 py-1 transition-colors hover:text-[rgb(26,26,26)]"
                     style={{ fontFamily: "'MVTypewriter','MV Boli',sans-serif", fontSize: "12px", color: "rgb(153,153,153)" }}>
                     {cat.name}
@@ -318,18 +260,52 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
                 </span>
               ))}
             </div>
-            <button type="button" aria-label="ހޯދާ" onClick={openSearch}
-              className="p-2 rounded-full hover:bg-black/5 transition-colors flex-shrink-0"
-              style={{ color: "rgb(26,26,26)" }}>
-              <Search className="w-[16px] h-[16px]" />
-            </button>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <button type="button" aria-label="ހޯދާ" onClick={openSearch}
+                className="p-2 rounded-full hover:bg-black/5 transition-colors"
+                style={{ color: "rgb(26,26,26)" }}>
+                <Search className="w-[16px] h-[16px]" />
+              </button>
+              <Link href="/login" className="p-2 rounded-full hover:bg-black/5 transition-colors" style={{ color: "rgb(26,26,26)" }}>
+                <User className="w-[16px] h-[16px]" />
+              </Link>
+            </div>
           </div>
         </div>
 
-        {/* Mobile compact */}
+        {/* MOBILE: two-bar (logo + hamburger), hides on scroll down */}
+        <div
+          ref={staticMobileRef}
+          className="md:hidden fixed top-0 right-0 left-0 z-50 will-change-transform"
+          style={{ ...gpuBase, transform: `translateY(0px) ${GPU}`, transition: "transform 0.3s ease" }}
+        >
+          <header style={{ height: `${LOGO_BAR_HEIGHT}px`, backgroundColor: "rgb(249,248,245)", borderBottom: "1px solid rgb(224,221,214)" }}>
+            <div className="px-5 h-full flex items-center justify-center relative">
+              <Link href="/" className="flex items-center">
+                <Image src="/logo.svg" alt="މެރިހާنaa" width={48} height={48} priority className="object-contain" />
+              </Link>
+              <div className="absolute right-5">
+                <button type="button" onClick={() => setMobileMenuOpen(true)}
+                  className="p-2 rounded-full hover:bg-black/5 transition-colors"
+                  style={{ color: "rgb(26,26,26)" }}>
+                  <Menu className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="absolute left-5">
+                <button type="button" aria-label="ހޯދާ" onClick={openSearch}
+                  className="p-2 rounded-full hover:bg-black/5 transition-colors"
+                  style={{ color: "rgb(26,26,26)" }}>
+                  <Search className="w-[18px] h-[18px]" />
+                </button>
+              </div>
+            </div>
+          </header>
+        </div>
+
+        {/* MOBILE compact — slides in on scroll down */}
         <div
           ref={compactMobileRef}
-          className="fixed top-0 right-0 left-0 z-50 md:hidden will-change-transform"
+          className="md:hidden fixed top-0 right-0 left-0 z-50 will-change-transform"
           style={{
             ...gpuBase,
             height: `${COMPACT_HEIGHT}px`,
@@ -363,14 +339,14 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
             searchRef={searchRef} searchQuery={searchQuery} searchResults={searchResults}
             searchLoading={searchLoading} onInput={handleSearchInput} onKeyDown={handleKeyDown}
             onClose={closeSearch}
-            topOffset={staticCompactRef.current ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT + CAT_BAR_HEIGHT}
+            topOffset={staticMobileCompactRef.current ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT}
           />
         )}
         {searchOpen && <div className="fixed inset-0 z-[55]" onClick={closeSearch} />}
         <MobileMenu
           categories={categories} open={mobileMenuOpen}
           onClose={() => setMobileMenuOpen(false)}
-          topOffset={staticCompactRef.current ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT}
+          topOffset={staticMobileCompactRef.current ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT}
         />
       </>
     );
@@ -427,7 +403,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           </div>
         </div>
 
-        {/* Cat bar — extra 1px height + negative margin to prevent subpixel gap */}
+        {/* Cat bar */}
         <div
           ref={catBarRef}
           className="hidden md:block will-change-transform"
@@ -446,7 +422,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           <div className="max-w-7xl mx-auto px-6 h-full">
             <div className="flex items-center justify-center gap-1 h-full">
               {categories.map((cat) => (
-                <Link key={cat.id} href={`/${cat.slug}`}
+                <Link key={cat.id} href={"/" + cat.slug}
                   target={cat.slug === "originals" ? "_blank" : undefined}
                   rel={cat.slug === "originals" ? "noopener noreferrer" : undefined}
                   className="whitespace-nowrap px-4 py-2 transition-colors hover:text-[rgb(26,26,26)]"
@@ -479,7 +455,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           <div className="flex items-center overflow-x-auto no-scrollbar">
             {categories.map((cat, i) => (
               <span key={cat.id} className="flex items-center">
-                <Link href={`/${cat.slug}`}
+                <Link href={"/" + cat.slug}
                   className="whitespace-nowrap px-3 py-1 transition-colors hover:text-[rgb(26,26,26)]"
                   style={{ fontFamily: "'MVTypewriter','MV Boli',sans-serif", fontSize: "12px", color: "rgb(153,153,153)" }}>
                   {cat.name}
@@ -564,7 +540,7 @@ function SearchDropdown({
 }) {
   const router = useRouter();
   return (
-    <div className="fixed left-0 right-0 z-[60] bg-[#F5F3EF] border-b border-black/10 shadow-sm" style={{ top: `${topOffset}px` }}>
+    <div className="fixed left-0 right-0 z-[60] bg-[#F5F3EF] border-b border-black/10 shadow-sm" style={{ top: topOffset + "px" }}>
       <div className="max-w-2xl mx-auto px-6 py-4">
         <div className="flex items-center gap-3 border border-black/15 rounded-full px-4 py-2.5 bg-white">
           <Search className="w-4 h-4 text-black/30 flex-shrink-0" />
@@ -591,7 +567,7 @@ function SearchDropdown({
                 <p className="mb-2" style={{ fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif', fontSize: "11px", color: "rgb(160,158,152)", lineHeight: 2 }}>ނަތީޖާ</p>
                 <div className="space-y-0">
                   {searchResults.slice(0, 5).map((result) => (
-                    <Link key={result.id} href={`/${result.category?.slug ?? "article"}/${result.slug}`} onClick={onClose}
+                    <Link key={result.id} href={"/" + (result.category?.slug ?? "article") + "/" + result.slug} onClick={onClose}
                       className="flex items-center justify-between py-3 border-b border-black/6 hover:opacity-60 transition-opacity">
                       <h3 style={{ fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif', fontSize: "14px", fontWeight: 700, color: "rgb(26,26,26)", lineHeight: 1.6 }}>
                         {result.title}
@@ -608,7 +584,7 @@ function SearchDropdown({
                   ))}
                 </div>
                 <div className="mt-4 text-center">
-                  <Link href={`/search?q=${encodeURIComponent(searchQuery.trim())}`} onClick={onClose}
+                  <Link href={"/search?q=" + encodeURIComponent(searchQuery.trim())} onClick={onClose}
                     className="inline-flex items-center justify-center px-6 py-2.5 rounded-full transition-colors hover:opacity-80"
                     style={{ backgroundColor: "rgb(26,26,26)", color: "rgb(249,248,245)", fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif', fontSize: "12px", fontWeight: 700 }}>
                     އިތުރު އާޓިކަލް ބެލުމަށް
@@ -638,7 +614,7 @@ function MobileMenu({ categories, open, onClose, topOffset }: {
       className="fixed inset-0 z-[55] transition-opacity duration-300"
       style={{
         backgroundColor: "rgb(249,248,245)",
-        top: `${topOffset}px`,
+        top: topOffset + "px",
         opacity: open ? 1 : 0,
         pointerEvents: open ? "auto" : "none",
       }}
@@ -652,9 +628,9 @@ function MobileMenu({ categories, open, onClose, topOffset }: {
             <div key={cat.id} style={{
               opacity: open ? 1 : 0,
               transform: open ? "translateX(0)" : "translateX(20px)",
-              transition: `opacity 0.3s ease ${i * 0.04}s, transform 0.3s ease ${i * 0.04}s`,
+              transition: "opacity 0.3s ease " + (i * 0.04) + "s, transform 0.3s ease " + (i * 0.04) + "s",
             }}>
-              <Link href={`/${cat.slug}`}
+              <Link href={"/" + cat.slug}
                 onClick={cat.slug === "originals" ? undefined : onClose}
                 target={cat.slug === "originals" ? "_blank" : undefined}
                 rel={cat.slug === "originals" ? "noopener noreferrer" : undefined}
@@ -668,7 +644,7 @@ function MobileMenu({ categories, open, onClose, topOffset }: {
         <div className="pt-6 mt-6 border-t border-[#e0ddd6]/60" style={{
           opacity: open ? 1 : 0,
           transform: open ? "translateX(0)" : "translateX(20px)",
-          transition: `opacity 0.3s ease ${categories.length * 0.04 + 0.1}s, transform 0.3s ease ${categories.length * 0.04 + 0.1}s`,
+          transition: "opacity 0.3s ease " + (categories.length * 0.04 + 0.1) + "s, transform 0.3s ease " + (categories.length * 0.04 + 0.1) + "s",
         }}>
           <Link href="/login" onClick={onClose}
             className="flex items-center gap-3 py-3 transition-colors text-[#999] hover:text-[#333]"
