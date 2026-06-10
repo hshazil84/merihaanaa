@@ -182,7 +182,6 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
       { data: seriesRaw },
       { data: shortRaw, count: shortCount },
     ] = await Promise.all([
-      // Active series — ordered by most recently updated
       supabase
         .from("series")
         .select("id, title, slug, description, thumbnail, category_id")
@@ -190,7 +189,6 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         .eq("is_active", true)
         .order("created_at", { ascending: false }),
 
-      // Short stories — no series_id, most recent first
       supabase
         .from("articles")
         .select("id, title, slug, cover_portrait_url, featured_image, reading_time_minutes, published_at, chapter_number, series_id, author:authors!author_id(full_name)", { count: "exact" })
@@ -201,7 +199,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         .range(shortFrom, shortTo),
     ]);
 
-    // Enrich series with latest chapter + cover fallback
+    // Enrich series with latest chapter + first chapter slug + cover fallback
     const seriesWithChapters = await Promise.all(
       (seriesRaw ?? []).map(async (s: any) => {
         const [{ data: latest }, { count: chapterCount }, { data: firstChapter }] = await Promise.all([
@@ -220,7 +218,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
             .eq("series_id", s.id),
           supabase
             .from("articles")
-            .select("cover_portrait_url, featured_image")
+            .select("slug, cover_portrait_url, featured_image")
             .eq("status", "published")
             .eq("series_id", s.id)
             .order("chapter_number", { ascending: true })
@@ -231,6 +229,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
           ...s,
           latest_chapter:      latest?.chapter_number ?? null,
           latest_slug:         latest?.slug ?? null,
+          first_slug:          (firstChapter as any)?.slug ?? null,
           latest_published_at: latest?.published_at ?? null,
           chapter_count:       chapterCount ?? 0,
           thumbnail:           s.thumbnail ?? (firstChapter as any)?.cover_portrait_url ?? (firstChapter as any)?.featured_image ?? null,
