@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Pagination } from "./Pagination";
 import { formatDhivehiDate } from "@/lib/formatDhivehiDate";
 
@@ -55,15 +56,16 @@ function ColLabel({ children }: { children: string }) {
 function RecentArticleCard({ article, categorySlug, isLast }: { article: any; categorySlug: string; isLast: boolean }) {
   return (
     <Link
-      href={`/${categorySlug}/${article.slug}`}
-      style={{ display: "block", textDecoration: "none", paddingBottom: isLast ? "0" : "14px", marginBottom: isLast ? "0" : "14px", borderBottom: isLast ? "none" : `0.5px solid ${DIVIDER}`, textAlign: "center" }}
+      href={"/" + categorySlug + "/" + article.slug}
+      style={{ display: "block", textDecoration: "none", paddingBottom: isLast ? "0" : "14px", marginBottom: isLast ? "0" : "14px", borderBottom: isLast ? "none" : "0.5px solid " + DIVIDER, textAlign: "center" }}
       className="recent-card"
     >
-      <div style={{ width: "88px", height: "88px", borderRadius: "999px", overflow: "hidden", backgroundColor: BG_CARD, margin: "0 auto 10px" }}>
-        {article.featured_image
-          ? <img src={article.featured_image} alt={article.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          : <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
-        }
+      <div style={{ width: "88px", height: "88px", borderRadius: "999px", overflow: "hidden", backgroundColor: BG_CARD, margin: "0 auto 10px", position: "relative" }}>
+        {article.featured_image ? (
+          <Image src={article.featured_image} alt={article.title} fill sizes="88px" className="object-cover" />
+        ) : (
+          <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
+        )}
       </div>
       <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: 0 }} className="line-clamp-2">
         {article.title}
@@ -129,12 +131,21 @@ export function MeehunCategoryPage({
         {/* CENTER: Featured */}
         <div>
           {featuredArticle ? (
-            <Link href={`/${category.slug}/${featuredArticle.slug}`} style={{ display: "block", textDecoration: "none" }} className="featured-link">
-              <div style={{ width: "100%", aspectRatio: "3/2", borderRadius: "12px", overflow: "hidden", backgroundColor: BG_CARD, marginBottom: "14px" }}>
-                {featuredArticle.featured_image
-                  ? <img src={featuredArticle.featured_image} alt={featuredArticle.title} style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.7s ease" }} />
-                  : <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
-                }
+            <Link href={"/" + category.slug + "/" + featuredArticle.slug} style={{ display: "block", textDecoration: "none" }} className="featured-link">
+              <div style={{ width: "100%", aspectRatio: "3/2", borderRadius: "12px", overflow: "hidden", backgroundColor: BG_CARD, marginBottom: "14px", position: "relative" }}>
+                {featuredArticle.featured_image ? (
+                  <Image
+                    src={featuredArticle.featured_image}
+                    alt={featuredArticle.title}
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 600px"
+                    className="object-cover"
+                    priority
+                    style={{ transition: "transform 0.7s ease" }}
+                  />
+                ) : (
+                  <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
+                )}
               </div>
               <TagLabel tags={featuredArticle.tags} />
               <h2 style={{ fontFamily: FONT_THAANA, fontSize: "clamp(1.1rem, 2.5vw, 1.45rem)", fontWeight: 700, color: TEXT_PRIMARY, lineHeight: 1.9, margin: "0 0 8px", transition: "opacity 0.2s" }}>
@@ -159,8 +170,8 @@ export function MeehunCategoryPage({
         <div className="meehun-col-right">
           <ColLabel>އެންމެ ގިނައިން ކިޔާ</ColLabel>
           {mostRead.map((article, i) => (
-            <Link key={article.id} href={`/${category.slug}/${article.slug}`} className="recent-card"
-              style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "9px 0", borderBottom: i < mostRead.length - 1 ? `0.5px solid ${DIVIDER}` : "none", textDecoration: "none" }}>
+            <Link key={article.id} href={"/" + category.slug + "/" + article.slug} className="recent-card"
+              style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "9px 0", borderBottom: i < mostRead.length - 1 ? "0.5px solid " + DIVIDER : "none", textDecoration: "none" }}>
               <MostReadPill rank={i + 1} />
               <div>
                 <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: "0 0 2px" }} className="line-clamp-2">
@@ -183,36 +194,27 @@ export function MeehunCategoryPage({
 
         {/* Recent circles scroll */}
         {recentArticles.length > 0 && (
-          <div style={{ marginTop: "1.5rem", paddingTop: "1.25rem", borderTop: `0.5px solid ${DIVIDER}` }}>
+          <div style={{ marginTop: "1.5rem", paddingTop: "1.25rem", borderTop: "0.5px solid " + DIVIDER }}>
             <ColLabel>ފަހުގެ ލިޔުންތައް</ColLabel>
-            <div style={{
-              display: "flex",
-              flexDirection: "row",
-              overflowX: "auto",
-              overflowY: "hidden",
-              WebkitOverflowScrolling: "touch" as any,
-              scrollbarWidth: "none" as any,
-              paddingBottom: "8px",
-            }}>
+            <div style={{ display: "flex", flexDirection: "row", overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch" as any, scrollbarWidth: "none" as any, paddingBottom: "8px" }}>
               {recentArticles.map((article, i) => (
                 <Link
                   key={article.id}
-                  href={`/${category.slug}/${article.slug}`}
+                  href={"/" + category.slug + "/" + article.slug}
                   style={{
-                    flex: "0 0 calc(65vw - 32px)",
-                    textAlign: "center",
-                    textDecoration: "none",
+                    flex: "0 0 calc(65vw - 32px)", textAlign: "center", textDecoration: "none",
                     paddingLeft: i === recentArticles.length - 1 ? "0" : "16px",
                     paddingRight: i === 0 ? "0" : "16px",
-                    borderLeft: i === 0 ? "none" : `0.5px solid ${DIVIDER}`,
+                    borderLeft: i === 0 ? "none" : "0.5px solid " + DIVIDER,
                   }}
                   className="recent-card"
                 >
-                  <div style={{ width: "80px", height: "80px", borderRadius: "999px", overflow: "hidden", backgroundColor: BG_CARD, margin: "0 auto 10px" }}>
-                    {article.featured_image
-                      ? <img src={article.featured_image} alt={article.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      : <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
-                    }
+                  <div style={{ width: "80px", height: "80px", borderRadius: "999px", overflow: "hidden", backgroundColor: BG_CARD, margin: "0 auto 10px", position: "relative" }}>
+                    {article.featured_image ? (
+                      <Image src={article.featured_image} alt={article.title} fill sizes="80px" className="object-cover" />
+                    ) : (
+                      <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
+                    )}
                   </div>
                   <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_PRIMARY, lineHeight: 1.6, margin: 0 }} className="line-clamp-2">
                     {article.title}
@@ -225,26 +227,18 @@ export function MeehunCategoryPage({
 
         {/* Most read scroll */}
         {mostRead.length > 0 && (
-          <div style={{ marginTop: "1.5rem", paddingTop: "1.25rem", borderTop: `0.5px solid ${DIVIDER}` }}>
+          <div style={{ marginTop: "1.5rem", paddingTop: "1.25rem", borderTop: "0.5px solid " + DIVIDER }}>
             <ColLabel>އެންމެ ގިނައިން ކިޔާ</ColLabel>
-            <div style={{
-              display: "flex",
-              flexDirection: "row",
-              overflowX: "auto",
-              WebkitOverflowScrolling: "touch" as any,
-              scrollbarWidth: "none" as any,
-              paddingBottom: "8px",
-            }}>
+            <div style={{ display: "flex", flexDirection: "row", overflowX: "auto", WebkitOverflowScrolling: "touch" as any, scrollbarWidth: "none" as any, paddingBottom: "8px" }}>
               {mostRead.map((article, i) => (
                 <Link
                   key={article.id}
-                  href={`/${category.slug}/${article.slug}`}
+                  href={"/" + category.slug + "/" + article.slug}
                   style={{
-                    flex: "0 0 160px",
-                    textDecoration: "none",
+                    flex: "0 0 160px", textDecoration: "none",
                     paddingLeft: i === mostRead.length - 1 ? "0" : "12px",
                     paddingRight: i === 0 ? "0" : "12px",
-                    borderLeft: i === 0 ? "none" : `0.5px solid ${DIVIDER}`,
+                    borderLeft: i === 0 ? "none" : "0.5px solid " + DIVIDER,
                   }}
                 >
                   <div style={{ marginBottom: "6px" }}><MostReadPill rank={i + 1} /></div>
@@ -266,23 +260,31 @@ export function MeehunCategoryPage({
 
       {/* Divider */}
       <div style={{ maxWidth: "72rem", margin: "2rem auto 1.5rem", padding: "0 1.5rem" }}>
-        <div style={{ borderTop: `0.5px solid ${DIVIDER}` }} />
+        <div style={{ borderTop: "0.5px solid " + DIVIDER }} />
       </div>
 
       {/* Card grid */}
       {articles.length > 0 && (
         <div style={{ maxWidth: "72rem", margin: "0 auto", padding: "0 1.5rem 4rem" }}>
-          <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "16px", fontWeight: 600, borderRight: `2px solid ${CORAL}`, paddingRight: "8px" }}>
+          <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "16px", fontWeight: 600, borderRight: "2px solid " + CORAL, paddingRight: "8px" }}>
             ހުރިހާ ލިޔުންތައް
           </p>
           <div className="card-grid">
             {articles.map((article) => (
-              <Link key={article.id} href={`/${category.slug}/${article.slug}`} style={{ textDecoration: "none", display: "block" }} className="card-link">
-                <div style={{ aspectRatio: "4/3", overflow: "hidden", borderRadius: "8px", backgroundColor: BG_CARD, marginBottom: "10px" }}>
-                  {article.featured_image
-                    ? <img src={article.featured_image} alt={article.title} style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.5s ease" }} />
-                    : <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
-                  }
+              <Link key={article.id} href={"/" + category.slug + "/" + article.slug} style={{ textDecoration: "none", display: "block" }} className="card-link">
+                <div style={{ aspectRatio: "4/3", overflow: "hidden", borderRadius: "8px", backgroundColor: BG_CARD, marginBottom: "10px", position: "relative" }}>
+                  {article.featured_image ? (
+                    <Image
+                      src={article.featured_image}
+                      alt={article.title}
+                      fill
+                      sizes="(max-width: 480px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      className="object-cover"
+                      style={{ transition: "transform 0.5s ease" }}
+                    />
+                  ) : (
+                    <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
+                  )}
                 </div>
                 <TagLabel tags={article.tags} />
                 <h3 className="line-clamp-2" style={{ fontFamily: FONT_THAANA, fontWeight: 700, fontSize: "13px", color: TEXT_PRIMARY, lineHeight: 1.9, margin: "0 0 4px" }}>
