@@ -4,7 +4,7 @@ export default function MainWrapper({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const isHome = pathname === "/";
   return (
-    <main className={isHome ? "" : "pt-[56px] md:pt-[48px]"}>
+    <main className={isHome ? "" : "pt-[48px] md:pt-[48px]"}>
       {children}
     </main>
   );
