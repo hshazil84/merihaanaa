@@ -1,5 +1,7 @@
+"use client";
 import Link from "next/link";
 import Image from "next/image";
+import { Eye } from "lucide-react";
 import { Pagination } from "./Pagination";
 import { formatDhivehiDate } from "@/lib/formatDhivehiDate";
 
@@ -45,9 +47,18 @@ function MostReadPill({ rank }: { rank: number }) {
   );
 }
 
+function ViewCount({ count }: { count: number }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "3px", fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_MUTED, lineHeight: 1 }}>
+      <Eye size={10} style={{ opacity: 0.5, flexShrink: 0 }} />
+      {count.toLocaleString()}
+    </span>
+  );
+}
+
 function ColLabel({ children }: { children: string }) {
   return (
-    <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "14px", fontWeight: 600, borderRight: `2px solid ${CORAL}`, paddingRight: "8px" }}>
+    <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.08em", color: TEXT_MUTED, marginBottom: "14px", fontWeight: 600, borderRight: "2px solid " + CORAL, paddingRight: "8px" }}>
       {children}
     </p>
   );
@@ -174,14 +185,10 @@ export function MeehunCategoryPage({
               style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "9px 0", borderBottom: i < mostRead.length - 1 ? "0.5px solid " + DIVIDER : "none", textDecoration: "none" }}>
               <MostReadPill rank={i + 1} />
               <div>
-                <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: "0 0 2px" }} className="line-clamp-2">
+                <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: "0 0 3px" }} className="line-clamp-2">
                   {article.title}
                 </p>
-                {article.view_count != null && (
-                  <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_MUTED, margin: 0, lineHeight: 2 }}>
-                    {article.view_count.toLocaleString()} ކިޔާ
-                  </p>
-                )}
+                {article.view_count != null && <ViewCount count={article.view_count} />}
               </div>
             </Link>
           ))}
@@ -245,11 +252,7 @@ export function MeehunCategoryPage({
                   <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: "0 0 3px" }} className="line-clamp-3">
                     {article.title}
                   </p>
-                  {article.view_count != null && (
-                    <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_MUTED, margin: 0, lineHeight: 2 }}>
-                      {article.view_count.toLocaleString()} ކިޔާ
-                    </p>
-                  )}
+                  {article.view_count != null && <ViewCount count={article.view_count} />}
                 </Link>
               ))}
             </div>
