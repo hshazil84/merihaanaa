@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { formatDhivehiDate } from "@/lib/formatDhivehiDate";
 
 interface BookCoverProps {
@@ -26,11 +27,10 @@ export function BookCover({ article, categorySlug }: BookCoverProps) {
         style={{
           aspectRatio: "3/4",
           borderRadius: "6px 2px 2px 6px",
-          backgroundImage: coverImage
-            ? "url(" + coverImage + ")"
+          overflow: "hidden",
+          background: coverImage
+            ? "rgb(195,175,120)"
             : "linear-gradient(160deg, rgb(220,205,165), rgb(195,175,120))",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
           boxShadow: [
             "inset 1px 1px 0 1px rgba(255,255,255,0.2)",
             "inset 0 0 0 1px rgba(0,0,0,0.1)",
@@ -55,6 +55,18 @@ export function BookCover({ article, categorySlug }: BookCoverProps) {
           ].join(", ");
         }}
       >
+        {/* Cover image via next/image */}
+        {coverImage && (
+          <Image
+            src={coverImage}
+            alt={article.title}
+            fill
+            sizes="(max-width: 768px) 45vw, 200px"
+            className="object-cover"
+            style={{ borderRadius: "inherit" }}
+          />
+        )}
+
         {/* Spine overlay */}
         <div
           style={{
@@ -63,6 +75,7 @@ export function BookCover({ article, categorySlug }: BookCoverProps) {
             borderRadius: "inherit",
             backgroundImage: "linear-gradient(to left, rgba(0,0,0,0.2), rgba(255,255,255,0.3) 1%, transparent 6%, rgba(0,0,0,0.15) 8%, rgba(255,255,255,0.2) 9%, transparent 20%)",
             pointerEvents: "none",
+            zIndex: 1,
           }}
         />
 
@@ -73,6 +86,7 @@ export function BookCover({ article, categorySlug }: BookCoverProps) {
             display: "flex", flexDirection: "column",
             alignItems: "center", justifyContent: "center",
             padding: "20px",
+            zIndex: 1,
           }}>
             <span style={{ fontSize: "28px", marginBottom: "12px", opacity: 0.4 }}>{"📖"}</span>
             <p style={{
@@ -93,6 +107,7 @@ export function BookCover({ article, categorySlug }: BookCoverProps) {
             background: "linear-gradient(to top, rgba(40,28,8,0.75) 0%, transparent 55%)",
             borderRadius: "inherit",
             pointerEvents: "none",
+            zIndex: 2,
           }}
         >
           <div className="absolute bottom-0 left-0 right-0 p-4">
@@ -106,7 +121,7 @@ export function BookCover({ article, categorySlug }: BookCoverProps) {
         </div>
       </div>
 
-      {/* Below cover — title + meta on same line */}
+      {/* Below cover — title + meta */}
       <div className="mt-3 px-1">
         <h3 className="line-clamp-2 group-hover:opacity-60 transition-opacity" style={{
           fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
