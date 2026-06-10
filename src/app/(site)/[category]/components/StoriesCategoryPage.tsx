@@ -22,7 +22,7 @@ function SeriesBookCover({ series, categorySlug }: { series: any; categorySlug: 
   const articleProp = {
     id: series.id,
     title: series.title,
-    slug: series.latest_slug ?? series.slug,
+    slug: series.first_slug ?? series.slug,
     cover_portrait_url: series.thumbnail ?? null,
     featured_image: series.thumbnail ?? null,
     published_at: null,
