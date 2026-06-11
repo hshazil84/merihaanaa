@@ -98,19 +98,20 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
       }
 
       if (phaseRef.current === "merged") {
-        const shouldCompact = scrollY > lastScrollY.current;
-        if (shouldCompact !== homeCompactRef.current) {
-          homeCompactRef.current = shouldCompact;
-          if (navWrapperRef.current) {
-            navWrapperRef.current.style.transform = shouldCompact
-              ? `translateY(-${offset}px) ${GPU}`
-              : `translateY(0px) ${GPU}`;
-          }
-          const co = shouldCompact
-            ? `translateY(0px) ${GPU}`
-            : `translateY(-${COMPACT_HEIGHT}px) ${GPU}`;
-          if (compactDesktopRef.current) compactDesktopRef.current.style.transform = co;
-          if (compactMobileRef.current)  compactMobileRef.current.style.transform  = co;
+        const delta = scrollY - lastScrollY.current;
+        const shouldCompact = delta > 0 && Math.abs(delta) > 4;
+        const shouldExpand  = delta < 0 && Math.abs(delta) > 4;
+
+        if (shouldCompact && !homeCompactRef.current) {
+          homeCompactRef.current = true;
+          if (navWrapperRef.current) navWrapperRef.current.style.transform = `translateY(-${offset}px) ${GPU}`;
+          if (compactDesktopRef.current) compactDesktopRef.current.style.transform = `translateY(0px) ${GPU}`;
+          if (compactMobileRef.current)  compactMobileRef.current.style.transform  = `translateY(0px) ${GPU}`;
+        } else if (shouldExpand && homeCompactRef.current) {
+          homeCompactRef.current = false;
+          if (navWrapperRef.current) navWrapperRef.current.style.transform = `translateY(0px) ${GPU}`;
+          if (compactDesktopRef.current) compactDesktopRef.current.style.transform = `translateY(-${COMPACT_HEIGHT}px) ${GPU}`;
+          if (compactMobileRef.current)  compactMobileRef.current.style.transform  = `translateY(-${COMPACT_HEIGHT}px) ${GPU}`;
         }
 
         if (naturalY > LOGO_BAR_HEIGHT) {
@@ -146,30 +147,26 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
     };
   }, [isStatic]);
 
-  // ── Static page mobile scroll handler (hide/show on scroll) ──────────────
+  // ── Static page mobile scroll handler ────────────────────────────────────
   useEffect(() => {
     if (!isStatic) return;
 
     let ticking = false;
 
     const update = () => {
-      const scrollY       = window.scrollY;
-      const shouldCompact = scrollY > 80 && scrollY > lastScrollYStatic.current;
+      const scrollY = window.scrollY;
+      const delta   = scrollY - lastScrollYStatic.current;
+      const shouldCompact = scrollY > 80 && delta > 0 && Math.abs(delta) > 4;
+      const shouldExpand  = delta < 0 && Math.abs(delta) > 4;
 
-      if (shouldCompact !== staticMobileCompactRef.current) {
-        staticMobileCompactRef.current = shouldCompact;
-
-        // Mobile: hide two-bar, show compact
-        if (staticMobileRef.current) {
-          staticMobileRef.current.style.transform = shouldCompact
-            ? `translateY(-${LOGO_BAR_HEIGHT}px) ${GPU}`
-            : `translateY(0px) ${GPU}`;
-        }
-        if (compactMobileRef.current) {
-          compactMobileRef.current.style.transform = shouldCompact
-            ? `translateY(0px) ${GPU}`
-            : `translateY(-${COMPACT_HEIGHT}px) ${GPU}`;
-        }
+      if (shouldCompact && !staticMobileCompactRef.current) {
+        staticMobileCompactRef.current = true;
+        if (staticMobileRef.current)  staticMobileRef.current.style.transform  = `translateY(-${LOGO_BAR_HEIGHT}px) ${GPU}`;
+        if (compactMobileRef.current) compactMobileRef.current.style.transform = `translateY(0px) ${GPU}`;
+      } else if (shouldExpand && staticMobileCompactRef.current) {
+        staticMobileCompactRef.current = false;
+        if (staticMobileRef.current)  staticMobileRef.current.style.transform  = `translateY(0px) ${GPU}`;
+        if (compactMobileRef.current) compactMobileRef.current.style.transform = `translateY(-${COMPACT_HEIGHT}px) ${GPU}`;
       }
 
       lastScrollYStatic.current = scrollY;
@@ -273,7 +270,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           </div>
         </div>
 
-        {/* MOBILE: two-bar (logo + hamburger), hides on scroll down */}
+        {/* MOBILE: logo bar, hides on scroll down */}
         <div
           ref={staticMobileRef}
           className="md:hidden fixed top-0 right-0 left-0 z-50 will-change-transform"
@@ -302,7 +299,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           </header>
         </div>
 
-        {/* MOBILE compact — slides in on scroll down */}
+        {/* MOBILE compact */}
         <div
           ref={compactMobileRef}
           className="md:hidden fixed top-0 right-0 left-0 z-50 will-change-transform"
