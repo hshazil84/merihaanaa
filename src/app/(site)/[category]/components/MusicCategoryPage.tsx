@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface Article {
   id: string; title: string; slug: string; excerpt: string | null;
@@ -102,8 +103,8 @@ function SongModal({ entry, onClose }: { entry: ChartEntry; onClose: () => void 
         <div style={{ height: "0.5px", background: DIVIDER, margin: "0 20px" }} />
         <div style={{ display: "flex", gap: "16px", padding: "20px", alignItems: "flex-start" }}>
           {entry.featured_image && (
-            <div style={{ width: "88px", height: "88px", borderRadius: "10px", overflow: "hidden", flexShrink: 0, background: BG_CARD, boxShadow: SHADOW }}>
-              <img src={entry.featured_image} alt={entry.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <div style={{ width: "88px", height: "88px", borderRadius: "10px", overflow: "hidden", flexShrink: 0, background: BG_CARD, boxShadow: SHADOW, position: "relative" }}>
+              <Image src={entry.featured_image} alt={entry.title} fill sizes="88px" className="object-cover" />
             </div>
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -145,8 +146,8 @@ function EventModal({ entry, onClose }: { entry: ChartEntry; onClose: () => void
             )}
           </div>
           {entry.featured_image && (
-            <div style={{ width: "96px", height: "96px", borderRadius: "10px", overflow: "hidden", flexShrink: 0, background: BG_CARD, boxShadow: SHADOW }}>
-              <img src={entry.featured_image} alt={entry.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <div style={{ width: "96px", height: "96px", borderRadius: "10px", overflow: "hidden", flexShrink: 0, background: BG_CARD, boxShadow: SHADOW, position: "relative" }}>
+              <Image src={entry.featured_image} alt={entry.title} fill sizes="96px" className="object-cover" />
             </div>
           )}
         </div>
@@ -171,23 +172,17 @@ function TrendingSongsSidebar({ entries, onEntryClick }: { entries: ChartEntry[]
               <span style={{ fontFamily: "Georgia,serif", fontSize: "15px", fontWeight: 700, color: i < 3 ? GREEN : "rgba(255,255,255,0.15)", minWidth: "20px", textAlign: "center", flexShrink: 0 }}>
                 {entry.rank}
               </span>
-              <div style={{ width: "42px", height: "42px", borderRadius: "7px", overflow: "hidden", flexShrink: 0, background: BG_CARD }}>
+              <div style={{ width: "42px", height: "42px", borderRadius: "7px", overflow: "hidden", flexShrink: 0, background: BG_CARD, position: "relative" }}>
                 {entry.featured_image
-                  ? <img src={entry.featured_image} alt={entry.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ? <Image src={entry.featured_image} alt={entry.title} fill sizes="42px" className="object-cover" />
                   : <div style={{ width: "100%", height: "100%", background: BG_CARD, display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
                     </div>
                 }
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: TEXT, margin: "0 0 3px", lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} dir="rtl">
-                  {entry.title}
-                </p>
-                {entry.subtitle && (
-                  <p style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {entry.subtitle}
-                  </p>
-                )}
+                <p style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: TEXT, margin: "0 0 3px", lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} dir="rtl">{entry.title}</p>
+                {entry.subtitle && <p style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.subtitle}</p>}
               </div>
             </button>
           );
@@ -225,14 +220,8 @@ function MusicEventsSidebar({ entries, onEntryClick }: { entries: ChartEntry[]; 
                 </div>
               )}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: TEXT, margin: "0 0 3px", lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} dir="rtl">
-                  {entry.title}
-                </p>
-                {entry.subtitle && (
-                  <p style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {entry.subtitle}
-                  </p>
-                )}
+                <p style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: TEXT, margin: "0 0 3px", lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} dir="rtl">{entry.title}</p>
+                {entry.subtitle && <p style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.subtitle}</p>}
               </div>
             </button>
           );
@@ -247,11 +236,9 @@ function ArticleCard({ article, categorySlug }: { article: Article; categorySlug
   const tag = getFirstTag(article.tags);
   return (
     <Link href={"/" + slug + "/" + article.slug} style={{ textDecoration: "none", display: "block" }}>
-      <div style={{ aspectRatio: "4/3", overflow: "hidden", borderRadius: "8px", backgroundColor: BG_CARD, marginBottom: "10px" }}>
+      <div style={{ aspectRatio: "4/3", overflow: "hidden", borderRadius: "8px", backgroundColor: BG_CARD, marginBottom: "10px", position: "relative" }}>
         {article.featured_image
-          ? <img src={article.featured_image} alt={article.title} style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.5s ease" }}
-              onMouseOver={function(e) { (e.currentTarget as HTMLImageElement).style.transform = "scale(1.04)"; }}
-              onMouseOut={function(e) { (e.currentTarget as HTMLImageElement).style.transform = "scale(1)"; }} />
+          ? <Image src={article.featured_image} alt={article.title} fill sizes="(max-width: 480px) 100vw, (max-width: 1024px) 50vw, 25vw" className="object-cover" style={{ transition: "transform 0.5s ease" }} />
           : <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
         }
       </div>
@@ -293,11 +280,9 @@ export default function MusicCategoryPage({ articles, trendingSongs, musicEvents
               <>
                 <div className="music-featured" style={{ marginBottom: "1.5rem" }}>
                   <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug} style={{ textDecoration: "none", display: "block" }}>
-                    <div style={{ aspectRatio: "1/1", overflow: "hidden", borderRadius: "10px", background: BG_CARD }}>
+                    <div style={{ aspectRatio: "1/1", overflow: "hidden", borderRadius: "10px", background: BG_CARD, position: "relative" }}>
                       {featured.featured_image
-                        ? <img src={featured.featured_image} alt={featured.title} style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.6s ease" }}
-                            onMouseOver={function(e) { (e.currentTarget as HTMLImageElement).style.transform = "scale(1.04)"; }}
-                            onMouseOut={function(e) { (e.currentTarget as HTMLImageElement).style.transform = "scale(1)"; }} />
+                        ? <Image src={featured.featured_image} alt={featured.title} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" priority />
                         : <div style={{ width: "100%", height: "100%", background: BG_CARD }} />
                       }
                     </div>
@@ -370,8 +355,8 @@ export default function MusicCategoryPage({ articles, trendingSongs, musicEvents
                           <Link key={article.id} href={"/" + (article.category?.slug ?? categorySlug) + "/" + article.slug} style={{ textDecoration: "none", display: "block" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 0", borderBottom: "0.5px solid rgba(255,255,255,0.06)" }}>
                               <span style={{ fontFamily: "Georgia,serif", fontSize: "20px", fontWeight: 700, color: i < 2 ? GREEN : "rgba(255,255,255,0.15)", minWidth: "26px", lineHeight: 1 }}>{i + 1}</span>
-                              <div style={{ width: "52px", height: "52px", borderRadius: "6px", overflow: "hidden", flexShrink: 0, background: BG_CARD }}>
-                                {article.featured_image && <img src={article.featured_image} alt={article.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+                              <div style={{ width: "52px", height: "52px", borderRadius: "6px", overflow: "hidden", flexShrink: 0, background: BG_CARD, position: "relative" }}>
+                                {article.featured_image && <Image src={article.featured_image} alt={article.title} fill sizes="52px" className="object-cover" />}
                               </div>
                               <div style={{ flex: 1 }}>
                                 {tag && <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, color: GREEN, display: "block", marginBottom: "3px" }}>{tag}</span>}
