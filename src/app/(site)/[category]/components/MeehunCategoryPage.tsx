@@ -110,13 +110,13 @@ export function MeehunCategoryPage({
           gap: 2.5rem;
           align-items: start;
         }
-        .meehun-col-left, .meehun-col-right { display: block; }
+        .meehun-col-left, .meehun-col-center, .meehun-col-right { display: block; }
         .meehun-mobile-only { display: none; }
         .card-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
 
         @media (max-width: 1024px) {
           .meehun-grid { display: block; }
-          .meehun-col-left, .meehun-col-right { display: none; }
+          .meehun-col-left, .meehun-col-center, .meehun-col-right { display: none; }
           .meehun-mobile-only { display: block; }
           .card-grid { grid-template-columns: repeat(2, 1fr); }
         }
@@ -150,43 +150,21 @@ export function MeehunCategoryPage({
         </div>
 
         {/* CENTER: Featured with gradient overlay */}
-        <div>
+        <div className="meehun-col-center">
           {featuredArticle ? (
             <Link href={"/" + category.slug + "/" + featuredArticle.slug} style={{ display: "block", textDecoration: "none", position: "relative" }} className="featured-link">
-              {/* Image container */}
               <div style={{ width: "100%", aspectRatio: "3/2", borderRadius: "12px", overflow: "hidden", backgroundColor: BG_CARD, position: "relative" }}>
                 {featuredArticle.featured_image ? (
-                  <Image
-                    src={featuredArticle.featured_image}
-                    alt={featuredArticle.title}
-                    fill
-                    sizes="(max-width: 1024px) 100vw, 600px"
-                    className="object-cover"
-                    priority
-                  />
+                  <Image src={featuredArticle.featured_image} alt={featuredArticle.title} fill sizes="(max-width: 1024px) 100vw, 600px" className="object-cover" priority />
                 ) : (
                   <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
                 )}
-
-                {/* Dark gradient overlay — bottom 60% */}
-                <div style={{
-                  position: "absolute", inset: 0, borderRadius: "inherit",
-                  background: "linear-gradient(to top, rgba(10,8,6,0.88) 0%, rgba(10,8,6,0.55) 35%, rgba(10,8,6,0.0) 65%)",
-                  pointerEvents: "none",
-                }} />
-
-                {/* Text overlaid on gradient */}
+                <div style={{ position: "absolute", inset: 0, borderRadius: "inherit", background: "linear-gradient(to top, rgba(10,8,6,0.88) 0%, rgba(10,8,6,0.55) 35%, rgba(10,8,6,0.0) 65%)", pointerEvents: "none" }} />
                 <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "20px 20px 18px" }}>
                   <TagLabel tags={featuredArticle.tags} />
-                  <h2 className="featured-title" style={{
-                    fontFamily: FONT_THAANA, fontSize: "clamp(1rem, 2.2vw, 1.35rem)",
-                    fontWeight: 700, color: "rgba(255,255,255,0.95)", lineHeight: 1.8,
-                    margin: "0 0 10px", transition: "opacity 0.2s",
-                  }}>
+                  <h2 className="featured-title" style={{ fontFamily: FONT_THAANA, fontSize: "clamp(1rem, 2.2vw, 1.35rem)", fontWeight: 700, color: "rgba(255,255,255,0.95)", lineHeight: 1.8, margin: "0 0 10px", transition: "opacity 0.2s" }}>
                     {featuredArticle.title}
                   </h2>
-
-                  {/* Byline with avatar */}
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     {authorAvatar ? (
                       <div style={{ width: "26px", height: "26px", borderRadius: "50%", overflow: "hidden", flexShrink: 0, position: "relative", border: "1.5px solid rgba(255,255,255,0.4)" }}>
@@ -198,9 +176,7 @@ export function MeehunCategoryPage({
                       </div>
                     ) : null}
                     <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: "rgba(255,255,255,0.65)", margin: 0, lineHeight: 1 }}>
-                      {authorName}
-                      {authorName && featuredArticle.reading_time_minutes ? " · " : ""}
-                      {featuredArticle.reading_time_minutes ? featuredArticle.reading_time_minutes + " މިނެޓު" : ""}
+                      {authorName}{authorName && featuredArticle.reading_time_minutes ? " · " : ""}{featuredArticle.reading_time_minutes ? featuredArticle.reading_time_minutes + " މިނެޓު" : ""}
                     </p>
                   </div>
                 </div>
@@ -230,22 +206,18 @@ export function MeehunCategoryPage({
 
       </div>
 
-      {/* Mobile only: recent scroll + most read scroll */}
+      {/* Mobile only */}
       <div className="meehun-mobile-only" style={{ maxWidth: "72rem", margin: "0 auto", padding: "0 1.5rem" }}>
 
         {/* Featured on mobile */}
         {featuredArticle && (
-          <div style={{ marginTop: "1rem" }}>
+          <div style={{ marginTop: "1rem", background: "rgba(0,0,0,0.03)", borderRadius: "12px", padding: "10px" }}>
             <Link href={"/" + category.slug + "/" + featuredArticle.slug} style={{ display: "block", textDecoration: "none" }} className="featured-link">
-              <div style={{ width: "100%", aspectRatio: "3/2", borderRadius: "10px", overflow: "hidden", backgroundColor: BG_CARD, position: "relative" }}>
+              <div style={{ width: "100%", aspectRatio: "3/2", borderRadius: "8px", overflow: "hidden", backgroundColor: BG_CARD, position: "relative" }}>
                 {featuredArticle.featured_image && (
                   <Image src={featuredArticle.featured_image} alt={featuredArticle.title} fill sizes="100vw" className="object-cover" priority />
                 )}
-                <div style={{
-                  position: "absolute", inset: 0,
-                  background: "linear-gradient(to top, rgba(10,8,6,0.88) 0%, rgba(10,8,6,0.55) 35%, transparent 65%)",
-                  pointerEvents: "none",
-                }} />
+                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(10,8,6,0.88) 0%, rgba(10,8,6,0.55) 35%, transparent 65%)", pointerEvents: "none" }} />
                 <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "16px" }}>
                   <h2 className="featured-title" style={{ fontFamily: FONT_THAANA, fontSize: "15px", fontWeight: 700, color: "rgba(255,255,255,0.95)", lineHeight: 1.8, margin: "0 0 8px", transition: "opacity 0.2s" }}>
                     {featuredArticle.title}
@@ -266,21 +238,26 @@ export function MeehunCategoryPage({
           </div>
         )}
 
-        {/* Recent circles scroll */}
+        {/* Recent circles scroll — larger, tighter gap */}
         {recentArticles.length > 0 && (
           <div style={{ marginTop: "1.5rem", paddingTop: "1.25rem", borderTop: "0.5px solid " + DIVIDER }}>
             <ColLabel>ފަހުގެ ލިޔުންތައް</ColLabel>
-            <div style={{ display: "flex", flexDirection: "row", overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch" as any, scrollbarWidth: "none" as any, paddingBottom: "8px" }}>
-              {recentArticles.map((article, i) => (
-                <Link key={article.id} href={"/" + category.slug + "/" + article.slug}
-                  style={{ flex: "0 0 calc(65vw - 32px)", textAlign: "center", textDecoration: "none", paddingLeft: i === recentArticles.length - 1 ? "0" : "16px", paddingRight: i === 0 ? "0" : "16px", borderLeft: i === 0 ? "none" : "0.5px solid " + DIVIDER }}
-                  className="recent-card">
-                  <div style={{ width: "80px", height: "80px", borderRadius: "999px", overflow: "hidden", backgroundColor: BG_CARD, margin: "0 auto 10px", position: "relative" }}>
+            <div style={{ display: "flex", flexDirection: "row", overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch" as any, scrollbarWidth: "none" as any, paddingBottom: "8px", gap: "12px" }}>
+              {recentArticles.map((article) => (
+                <Link
+                  key={article.id}
+                  href={"/" + category.slug + "/" + article.slug}
+                  style={{ flex: "0 0 110px", textAlign: "center", textDecoration: "none" }}
+                  className="recent-card"
+                >
+                  <div style={{ width: "110px", height: "110px", borderRadius: "999px", overflow: "hidden", backgroundColor: BG_CARD, margin: "0 auto 8px", position: "relative" }}>
                     {article.featured_image ? (
-                      <Image src={article.featured_image} alt={article.title} fill sizes="80px" className="object-cover" />
+                      <Image src={article.featured_image} alt={article.title} fill sizes="110px" className="object-cover" />
                     ) : <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />}
                   </div>
-                  <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_PRIMARY, lineHeight: 1.6, margin: 0 }} className="line-clamp-2">{article.title}</p>
+                  <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_PRIMARY, lineHeight: 1.6, margin: 0 }} className="line-clamp-2">
+                    {article.title}
+                  </p>
                 </Link>
               ))}
             </div>
@@ -291,12 +268,17 @@ export function MeehunCategoryPage({
         {mostRead.length > 0 && (
           <div style={{ marginTop: "1.5rem", paddingTop: "1.25rem", borderTop: "0.5px solid " + DIVIDER }}>
             <ColLabel>އެންމެ ގިނައިން ކިޔާ</ColLabel>
-            <div style={{ display: "flex", flexDirection: "row", overflowX: "auto", WebkitOverflowScrolling: "touch" as any, scrollbarWidth: "none" as any, paddingBottom: "8px" }}>
-              {mostRead.map((article, i) => (
-                <Link key={article.id} href={"/" + category.slug + "/" + article.slug}
-                  style={{ flex: "0 0 160px", textDecoration: "none", paddingLeft: i === mostRead.length - 1 ? "0" : "12px", paddingRight: i === 0 ? "0" : "12px", borderLeft: i === 0 ? "none" : "0.5px solid " + DIVIDER }}>
-                  <div style={{ marginBottom: "6px" }}><MostReadPill rank={i + 1} /></div>
-                  <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: "0 0 3px" }} className="line-clamp-3">{article.title}</p>
+            <div style={{ display: "flex", flexDirection: "row", overflowX: "auto", WebkitOverflowScrolling: "touch" as any, scrollbarWidth: "none" as any, paddingBottom: "8px", gap: "12px" }}>
+              {mostRead.map((article) => (
+                <Link
+                  key={article.id}
+                  href={"/" + category.slug + "/" + article.slug}
+                  style={{ flex: "0 0 150px", textDecoration: "none" }}
+                >
+                  <div style={{ marginBottom: "6px" }}><MostReadPill rank={mostRead.indexOf(article) + 1} /></div>
+                  <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: "0 0 3px" }} className="line-clamp-3">
+                    {article.title}
+                  </p>
                   {article.view_count != null && <ViewCount count={article.view_count} />}
                 </Link>
               ))}
