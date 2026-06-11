@@ -211,7 +211,7 @@ export function MeehunCategoryPage({
 
         {/* Featured on mobile */}
         {featuredArticle && (
-          <div style={{ marginTop: "1rem", background: "rgba(0,0,0,0.03)", borderRadius: "12px", padding: "10px" }}>
+          <div style={{ marginTop: "1rem" }}>
             <Link href={"/" + category.slug + "/" + featuredArticle.slug} style={{ display: "block", textDecoration: "none" }} className="featured-link">
               <div style={{ width: "100%", aspectRatio: "3/2", borderRadius: "8px", overflow: "hidden", backgroundColor: BG_CARD, position: "relative" }}>
                 {featuredArticle.featured_image && (
@@ -242,7 +242,7 @@ export function MeehunCategoryPage({
         {recentArticles.length > 0 && (
           <div style={{ marginTop: "1.5rem", paddingTop: "1.25rem", borderTop: "0.5px solid " + DIVIDER }}>
             <ColLabel>ފަހުގެ ލިޔުންތައް</ColLabel>
-            <div style={{ display: "flex", flexDirection: "row", overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch" as any, scrollbarWidth: "none" as any, paddingBottom: "8px", gap: "12px" }}>
+            <div style={{ display: "flex", flexDirection: "row", overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch" as any, scrollbarWidth: "none" as any, paddingBottom: "8px", gap: "20px", paddingRight: "4px", paddingLeft: "4px" }}>
               {recentArticles.map((article) => (
                 <Link
                   key={article.id}
