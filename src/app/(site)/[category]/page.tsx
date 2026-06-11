@@ -45,7 +45,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   if (category.slug === "meehun") {
     const { data: featuredArticle } = await supabase
       .from("articles")
-      .select("id, title, slug, excerpt, featured_image, reading_time_minutes, published_at, view_count, tags, author:authors!author_id(full_name)")
+      .select("id, title, slug, excerpt, featured_image, reading_time_minutes, published_at, view_count, tags, author:authors!author_id(full_name, avatar)")
       .eq("status", "published")
       .eq("category_id", category.id)
       .eq("homepage_featured", true)
