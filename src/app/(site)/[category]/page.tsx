@@ -5,6 +5,7 @@ import { ReviewsCategoryPage } from "./components/ReviewsCategoryPage";
 import { StoriesCategoryPage } from "./components/StoriesCategoryPage";
 import { MeehunCategoryPage } from "./components/MeehunCategoryPage";
 import FilmCategoryPage from "./components/FilmCategoryPage";
+import MusicCategoryPage from "./components/MusicCategoryPage";
 
 interface PageProps {
   params: { category: string };
