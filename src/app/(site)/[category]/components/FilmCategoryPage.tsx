@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface Article {
   id: string; title: string; slug: string; excerpt: string | null;
@@ -126,8 +127,8 @@ function CinemaModal({ entry, onClose }: { entry: CinemaEntry; onClose: () => vo
             )}
           </div>
           {entry.featured_image && (
-            <div style={{ width: "96px", height: "96px", borderRadius: "10px", overflow: "hidden", flexShrink: 0, background: BG_CARD, boxShadow: SHADOW }}>
-              <img src={entry.featured_image} alt={entry.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <div style={{ width: "96px", height: "96px", borderRadius: "10px", overflow: "hidden", flexShrink: 0, background: BG_CARD, boxShadow: SHADOW, position: "relative" }}>
+              <Image src={entry.featured_image} alt={entry.title} fill sizes="96px" className="object-cover" />
             </div>
           )}
         </div>
@@ -182,8 +183,8 @@ function OTTModal({ entry, onClose }: { entry: OTTEntry; onClose: () => void }) 
             </div>
           </div>
           {entry.poster_url && (
-            <div style={{ width: "96px", height: "132px", borderRadius: "10px", overflow: "hidden", flexShrink: 0, background: BG_CARD, boxShadow: SHADOW }}>
-              <img src={entry.poster_url} alt={entry.title_dv} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <div style={{ width: "96px", height: "132px", borderRadius: "10px", overflow: "hidden", flexShrink: 0, background: BG_CARD, boxShadow: SHADOW, position: "relative" }}>
+              <Image src={entry.poster_url} alt={entry.title_dv} fill sizes="96px" className="object-cover" />
             </div>
           )}
         </div>
@@ -202,8 +203,6 @@ function CinemaSidebar({ entries, onEntryClick }: { entries: CinemaEntry[]; onEn
 
   return (
     <div style={{ background: "white", border: "0.5px solid rgba(0,0,0,0.07)", borderRadius: "16px", overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
-
-      {/* Header */}
       <div style={{ padding: "12px 16px 10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", gap: "5px" }}>
           {carousel.length > 1 && carousel.map(function(_, i) {
@@ -213,18 +212,14 @@ function CinemaSidebar({ entries, onEntryClick }: { entries: CinemaEntry[]; onEn
         </div>
         <p style={{ fontFamily: FONT, fontSize: "11px", fontWeight: 700, color: RED, margin: 0 }}>ސިނަމާ</p>
       </div>
-
       <div style={{ height: "0.5px", background: "rgba(0,0,0,0.05)", margin: "0 16px" }} />
-
-      {/* 1:1 Poster */}
       <button onClick={function() { onEntryClick(active); }}
         style={{ display: "block", width: "100%", background: "none", border: "none", cursor: "pointer", padding: "14px 16px 10px" }}>
         <div style={{ position: "relative", width: "100%", aspectRatio: "1/1", borderRadius: "10px", overflow: "hidden", background: BG_CARD, boxShadow: SHADOW, marginBottom: "10px" }}>
           {active.featured_image
-            ? <img src={active.featured_image} alt={active.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ? <Image src={active.featured_image} alt={active.title} fill sizes="208px" className="object-cover" />
             : <div style={{ width: "100%", height: "100%", background: BG_CARD }} />
           }
-          {/* Overlay badge */}
           <div style={{ position: "absolute", top: "8px", right: "8px", display: "flex", gap: "4px" }}>
             <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, padding: "2px 7px", borderRadius: "10px",
               background: active.chart_type === "cinema_now" ? RED : "rgba(0,0,0,0.55)",
@@ -232,7 +227,6 @@ function CinemaSidebar({ entries, onEntryClick }: { entries: CinemaEntry[]; onEn
               {active.chart_type === "cinema_now" ? "މިހާރު ދައްކަނީ" : "އަންނަނީ"}
             </span>
           </div>
-          {/* Performance overlay */}
           {active.performance && (
             <div style={{ position: "absolute", top: "8px", left: "8px" }}>
               {active.performance === "hit" && <span style={{ fontSize: "16px" }}>{"🔥"}</span>}
@@ -258,8 +252,6 @@ function CinemaSidebar({ entries, onEntryClick }: { entries: CinemaEntry[]; onEn
         )}
         <p style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: RED, margin: 0, textAlign: "right" }}>{"ތަފްސީލު ←"}</p>
       </button>
-
-      {/* Upcoming strip */}
       {upcoming.length > 0 && (
         <>
           <div style={{ height: "0.5px", background: "rgba(0,0,0,0.05)", margin: "0 16px" }} />
@@ -269,8 +261,8 @@ function CinemaSidebar({ entries, onEntryClick }: { entries: CinemaEntry[]; onEn
               {upcoming.slice(0, 3).map(function(e) {
                 return (
                   <button key={e.id} onClick={function() { onEntryClick(e); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
-                    <div style={{ width: "32px", height: "32px", borderRadius: "5px", overflow: "hidden", background: BG_CARD, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
-                      {e.featured_image && <img src={e.featured_image} alt={e.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+                    <div style={{ width: "32px", height: "32px", borderRadius: "5px", overflow: "hidden", background: BG_CARD, boxShadow: "0 2px 8px rgba(0,0,0,0.1)", position: "relative" }}>
+                      {e.featured_image && <Image src={e.featured_image} alt={e.title} fill sizes="32px" className="object-cover" />}
                     </div>
                   </button>
                 );
@@ -301,9 +293,9 @@ function OTTSidebar({ entries, onEntryClick }: { entries: OTTEntry[]; onEntryCli
               <span style={{ fontFamily: "Georgia,serif", fontSize: "15px", fontWeight: 700, color: i < 3 ? RED : "rgba(0,0,0,0.2)", minWidth: "20px", textAlign: "center", flexShrink: 0 }}>
                 {entry.rank}
               </span>
-              <div style={{ width: "42px", height: "58px", borderRadius: "7px", overflow: "hidden", flexShrink: 0, background: BG_CARD, boxShadow: "0 2px 10px rgba(0,0,0,0.12)" }}>
+              <div style={{ width: "42px", height: "58px", borderRadius: "7px", overflow: "hidden", flexShrink: 0, background: BG_CARD, boxShadow: "0 2px 10px rgba(0,0,0,0.12)", position: "relative" }}>
                 {entry.poster_url
-                  ? <img src={entry.poster_url} alt={entry.title_dv} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ? <Image src={entry.poster_url} alt={entry.title_dv} fill sizes="42px" className="object-cover" />
                   : <div style={{ width: "100%", height: "100%", background: BG_CARD }} />
                 }
               </div>
@@ -323,25 +315,14 @@ function OTTSidebar({ entries, onEntryClick }: { entries: OTTEntry[]; onEntryCli
   );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
-      <div style={{ width: "3px", height: "14px", background: RED, borderRadius: "2px", flexShrink: 0 }} />
-      <p style={{ fontFamily: FONT, fontSize: "11px", fontWeight: 700, color: TEXT, margin: 0, letterSpacing: "0.04em" }}>{children}</p>
-    </div>
-  );
-}
-
 function ArticleCard({ article, categorySlug }: { article: Article; categorySlug: string }) {
   const slug = article.category?.slug ?? categorySlug;
   const tag = getFirstTag(article.tags);
   return (
     <Link href={"/" + slug + "/" + article.slug} style={{ textDecoration: "none", display: "block" }}>
-      <div style={{ aspectRatio: "4/3", overflow: "hidden", borderRadius: "8px", backgroundColor: BG_CARD, marginBottom: "10px" }}>
+      <div style={{ aspectRatio: "4/3", overflow: "hidden", borderRadius: "8px", backgroundColor: BG_CARD, marginBottom: "10px", position: "relative" }}>
         {article.featured_image
-          ? <img src={article.featured_image} alt={article.title} style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.5s ease" }}
-              onMouseOver={function(e) { (e.currentTarget as HTMLImageElement).style.transform = "scale(1.04)"; }}
-              onMouseOut={function(e) { (e.currentTarget as HTMLImageElement).style.transform = "scale(1)"; }} />
+          ? <Image src={article.featured_image} alt={article.title} fill sizes="(max-width: 480px) 100vw, (max-width: 1024px) 50vw, 25vw" className="object-cover" style={{ transition: "transform 0.5s ease" }} />
           : <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
         }
       </div>
@@ -383,11 +364,9 @@ export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, 
               <>
                 <div className="film-featured" style={{ marginBottom: "1.5rem" }}>
                   <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug} style={{ textDecoration: "none", display: "block" }}>
-                    <div style={{ aspectRatio: "1/1", overflow: "hidden", borderRadius: "10px", background: BG_CARD }}>
+                    <div style={{ aspectRatio: "1/1", overflow: "hidden", borderRadius: "10px", background: BG_CARD, position: "relative" }}>
                       {featured.featured_image
-                        ? <img src={featured.featured_image} alt={featured.title} style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.6s ease" }}
-                            onMouseOver={function(e) { (e.currentTarget as HTMLImageElement).style.transform = "scale(1.04)"; }}
-                            onMouseOut={function(e) { (e.currentTarget as HTMLImageElement).style.transform = "scale(1)"; }} />
+                        ? <Image src={featured.featured_image} alt={featured.title} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" priority />
                         : <div style={{ width: "100%", height: "100%", background: BG_CARD }} />
                       }
                     </div>
@@ -460,8 +439,8 @@ export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, 
                           <Link key={article.id} href={"/" + (article.category?.slug ?? categorySlug) + "/" + article.slug} style={{ textDecoration: "none", display: "block" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 0", borderBottom: "0.5px solid rgba(255,255,255,0.07)" }}>
                               <span style={{ fontFamily: "Georgia,serif", fontSize: "20px", fontWeight: 700, color: i < 2 ? RED : "rgba(255,255,255,0.2)", minWidth: "26px", lineHeight: 1 }}>{i + 1}</span>
-                              <div style={{ width: "52px", height: "52px", borderRadius: "6px", overflow: "hidden", flexShrink: 0, background: "rgba(255,255,255,0.08)" }}>
-                                {article.featured_image && <img src={article.featured_image} alt={article.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+                              <div style={{ width: "52px", height: "52px", borderRadius: "6px", overflow: "hidden", flexShrink: 0, background: "rgba(255,255,255,0.08)", position: "relative" }}>
+                                {article.featured_image && <Image src={article.featured_image} alt={article.title} fill sizes="52px" className="object-cover" />}
                               </div>
                               <div style={{ flex: 1 }}>
                                 {tag && <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, color: RED, display: "block", marginBottom: "3px" }}>{tag}</span>}
