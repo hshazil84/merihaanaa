@@ -1,8 +1,7 @@
 "use client";
 // components/public/TodaysPicks.tsx
-// 4-article grid with MVTypewriter fonts, category pill, no author
-
 import Link from "next/link";
+import Image from "next/image";
 
 interface Article {
   id: string;
@@ -12,18 +11,14 @@ interface Article {
   featured_image: string | null;
   category: { name: string; slug: string } | null;
 }
-
 interface Props {
   articles: Article[];
 }
 
 export default function TodaysPicks({ articles }: Props) {
   if (!articles?.length) return null;
-
   return (
-    <section className="max-w-6xl mx-auto px-6 py-12">
-
-      {/* Section title */}
+    <section className="max-w-6xl mx-auto px-6 pt-4 pb-12">
       <h2
         className="text-center mb-10"
         style={{
@@ -36,8 +31,6 @@ export default function TodaysPicks({ articles }: Props) {
       >
         މިއަދުގެ ފާހަގަކޮށްލެވޭ
       </h2>
-
-      {/* 4-column grid */}
       <div
         className="md:grid md:grid-cols-4 md:gap-8 flex gap-4 overflow-x-auto pb-2 md:pb-0 md:overflow-visible no-scrollbar"
         style={{ scrollbarWidth: "none" }}
@@ -46,21 +39,20 @@ export default function TodaysPicks({ articles }: Props) {
         {articles.slice(0, 4).map((article) => (
           <Link
             key={article.id}
-            href={`/${article.category?.slug ?? "article"}/${article.slug}`}
+            href={"/" + (article.category?.slug ?? "article") + "/" + article.slug}
             className="group block flex-shrink-0 w-[68vw] md:w-auto"
           >
-            {/* Image */}
-            <div className="aspect-[4/3] overflow-hidden mb-3 rounded-lg bg-[#e8e5de]">
+            <div className="aspect-[4/3] overflow-hidden mb-3 rounded-lg bg-[#e8e5de] relative">
               {article.featured_image && (
-                <img
+                <Image
                   src={article.featured_image}
                   alt={article.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  fill
+                  sizes="(max-width: 768px) 68vw, 25vw"
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               )}
             </div>
-
-            {/* Category pill */}
             {article.category && (
               <div className="mb-2">
                 <span
@@ -76,8 +68,6 @@ export default function TodaysPicks({ articles }: Props) {
                 </span>
               </div>
             )}
-
-            {/* Title */}
             <h3
               className="leading-none line-clamp-2"
               style={{
@@ -90,8 +80,6 @@ export default function TodaysPicks({ articles }: Props) {
             >
               {article.title}
             </h3>
-
-            {/* Excerpt — subtle, smaller */}
             {article.excerpt && (
               <p
                 className="mt-1.5 text-sm line-clamp-2"
