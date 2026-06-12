@@ -16,11 +16,6 @@ interface HeroArticle {
   author: { full_name: string } | null;
 }
 
-const gpuOptimize: React.CSSProperties = {
-  willChange: "transform, opacity",
-  transform: "translateZ(0)",
-};
-
 export default function HeroSection({ article }: { article: HeroArticle }) {
   const [loaded, setLoaded] = useState(false);
 
@@ -43,18 +38,18 @@ export default function HeroSection({ article }: { article: HeroArticle }) {
   return (
     <section
       className="relative w-full overflow-hidden bg-black"
-      style={{ height: "100svh", minHeight: "600px", ...gpuOptimize }}
+      style={{ height: "100svh", minHeight: "600px" }}
     >
       {/* Full bleed image */}
       {image && (
-        <div className="absolute inset-0 z-0" style={gpuOptimize}>
+        <div className="absolute inset-0 z-0">
           <Image
             src={image}
             alt={article.title}
             fill
             sizes="100vw"
             priority
-            className={"w-full h-full object-cover transition-opacity duration-1000 " + (loaded ? "opacity-100" : "opacity-0")}
+            className={"object-cover transition-opacity duration-1000 " + (loaded ? "opacity-100" : "opacity-0")}
           />
         </div>
       )}
@@ -63,7 +58,6 @@ export default function HeroSection({ article }: { article: HeroArticle }) {
       <div
         className={"absolute inset-0 z-10 px-6 flex flex-col items-center justify-center text-center md:hidden transition-all duration-700 delay-300 " +
           (loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4")}
-        style={gpuOptimize}
       >
         {coverPill}
         <Link href={"/" + (article.category?.slug ?? "article") + "/" + article.slug} className="block">
@@ -88,7 +82,6 @@ export default function HeroSection({ article }: { article: HeroArticle }) {
       <div
         className={"hidden md:flex absolute top-0 bottom-0 right-0 z-10 w-1/2 flex-col items-center justify-center px-16 transition-all duration-700 delay-300 " +
           (loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4")}
-        style={gpuOptimize}
       >
         {coverPill}
         <Link href={"/" + (article.category?.slug ?? "article") + "/" + article.slug} className="block">
