@@ -89,7 +89,7 @@ export default function HeroSection({ article }: { article: HeroArticle }) {
         <Link href={"/" + (article.category?.slug ?? "article") + "/" + article.slug} className="block">
           <h1
             className="font-display text-white leading-snug hover:opacity-80 transition-opacity text-center max-w-lg"
-            style={{ fontSize: "clamp(2.2rem, 3.5vw, 2.75rem)" }}
+            style={{ fontSize: "clamp(2.2rem, 3.5vw, 2.75rem)", lineHeight: 1.6 }}
           >
             {article.title}
           </h1>
