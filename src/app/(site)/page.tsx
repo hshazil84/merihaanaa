@@ -45,7 +45,7 @@ async function getHomeData() {
     supabase.from("reels").select("id, title, slug, stream_video_id, thumbnail_url, duration_seconds, category:categories!category_id(name, slug)").eq("status", "published").eq("homepage_featured", true).order("published_at", { ascending: false }).limit(4),
     supabase.from("originals").select("id, title, slug, thumbnail_url, duration_seconds, type").eq("status", "published").order("published_at", { ascending: false }).limit(8),
     supabase.from("articles").select("id, title, slug, excerpt, featured_image, reading_time_minutes, category:categories!category_id(name, slug)").eq("status", "published").not("homepage_latest_slot", "is", null).order("homepage_latest_slot", { ascending: true }).limit(8),
-    supabase.from("categories").select("id, name, slug").eq("is_active", true).order("sort_order", { ascending: true }),
+    supabase.from("categories").select("id, name, slug").eq("is_visible", true).order("sort_order"),
   ]);
   return {
     hero,
