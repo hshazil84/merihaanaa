@@ -53,7 +53,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
 
     const update = () => {
       const scrollY    = window.scrollY;
-      const heroBottom = window.innerHeight - LOGO_BAR_HEIGHT;
+      const heroBottom = window.innerHeight - 56;
       const delta      = scrollY - lastScrollY.current;
       const current    = navStateRef.current;
 
