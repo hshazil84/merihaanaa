@@ -376,7 +376,7 @@ export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, 
   const totalPages = Math.ceil(totalCount / 12);
 
   const reviewArticles = articles
-    .filter(function(a) { return hasTag(a.tags, "Review"); })
+    .filter(function(a) { return hasTag(a.tags, "ރިވިއު"); })
     .sort(function(a, b) {
       const dateA = a.created_at ?? a.published_at ?? "";
       const dateB = b.created_at ?? b.published_at ?? "";
