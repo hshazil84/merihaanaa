@@ -262,15 +262,16 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   // ── Home page render: hero logo bar only ─────────────────────────────────
   return (
     <>
-      <div
-        className="fixed top-0 right-0 left-0 z-50"
-        style={{
-          height: LOGO_BAR_HEIGHT + "px",
-          opacity: heroVisible ? 1 : 0,
-          pointerEvents: heroVisible ? "auto" : "none",
-          transition: "opacity 0.3s ease",
-        }}
-      >
+        <div
+          className="fixed top-0 right-0 left-0 z-50"
+          style={{
+            height: LOGO_BAR_HEIGHT + "px",
+            opacity: heroVisible || mobileMenuOpen ? 1 : 0,
+            pointerEvents: heroVisible || mobileMenuOpen ? "auto" : "none",
+            backgroundColor: mobileMenuOpen ? "rgb(249,248,245)" : "transparent",
+            transition: "opacity 0.3s ease, background-color 0.25s ease",
+          }}
+        >
         <div className="max-w-7xl mx-auto px-5 md:px-6 h-full flex items-center justify-center relative">
           <Link href="/" className="flex items-center">
             <Image src="/logo.svg" alt="މެރިހާނާ" width={60} height={60} priority className="object-contain" />
