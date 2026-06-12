@@ -39,8 +39,8 @@ export default function HeroSection({ article }: { article: HeroArticle }) {
 
   return (
     <section
-      className="relative w-full overflow-hidden bg-black"
-      style={{ height: "calc(100svh - 56px)", minHeight: "560px" }}
+      className="relative w-full overflow-hidden bg-black h-[100svh] md:h-[calc(100svh-56px)]"
+      style={{ minHeight: "560px" }}
     >
       {/* Full bleed image */}
       {image && (
