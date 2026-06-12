@@ -1,5 +1,7 @@
 "use client";
 // components/public/PublicNav.tsx
+// New Yorker pattern: nav elements toggle between discrete states,
+// no continuous per-frame transform chasing.
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
@@ -20,26 +22,20 @@ interface SearchResult {
 }
 
 const LOGO_BAR_HEIGHT = 72;
-const CAT_BAR_HEIGHT  = 56;
 const COMPACT_HEIGHT  = 48;
-const GPU             = "translateZ(0)";
 
 export default function PublicNav({ categories, static: isStatic = false }: Props) {
   const router = useRouter();
 
-  const navWrapperRef     = useRef<HTMLDivElement>(null);
-  const logoBarRef        = useRef<HTMLDivElement>(null);
-  const catBarRef         = useRef<HTMLDivElement>(null);
-  const compactDesktopRef = useRef<HTMLDivElement>(null);
-  const compactMobileRef  = useRef<HTMLDivElement>(null);
-  const staticMobileRef   = useRef<HTMLDivElement>(null);
+  // Discrete nav states:
+  // "hero"    — over the hero: transparent logo bar, white icons, no compact bar
+  // "compact" — scrolled past hero: compact bar visible
+  // "hidden"  — scrolling down within content: everything hidden
+  const [navState, setNavState] = useState<"hero" | "compact" | "hidden">(isStatic ? "compact" : "hero");
+  const navStateRef = useRef(navState);
+  navStateRef.current = navState;
 
-  const phaseRef          = useRef<"rising" | "merged">("rising");
-  const homeCompactRef    = useRef(false);
-  const lastScrollY       = useRef(0);
-  const staticMobileCompactRef = useRef(false);
-  const lastScrollYStatic = useRef(0);
-  const iconNodesRef      = useRef<HTMLElement[]>([]);
+  const lastScrollY = useRef(0);
 
   const [searchOpen, setSearchOpen]         = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -49,84 +45,31 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   const searchRef   = useRef<HTMLInputElement>(null);
   const searchTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // ── Home page scroll handler ──────────────────────────────────────────────
+  // ── Home page scroll: discrete state machine ─────────────────────────────
   useEffect(() => {
     if (isStatic) return;
-
-    if (logoBarRef.current) {
-      iconNodesRef.current = Array.from(
-        logoBarRef.current.querySelectorAll<HTMLElement>(".nav-icon")
-      );
-    }
-
-    const heroHeight = window.innerHeight;
-
-    if (catBarRef.current) {
-      const naturalY = Math.round(heroHeight - CAT_BAR_HEIGHT);
-      catBarRef.current.style.transform = `translateY(${naturalY}px) ${GPU}`;
-      catBarRef.current.style.visibility = "visible";
-      catBarRef.current.style.opacity = "1";
-    }
 
     let ticking = false;
 
     const update = () => {
-      const scrollY  = window.scrollY;
-      const vh       = window.innerHeight;
-      const naturalY = vh - CAT_BAR_HEIGHT - scrollY;
-      const clampedY = Math.round(Math.max(LOGO_BAR_HEIGHT, naturalY));
-      const merged   = naturalY <= LOGO_BAR_HEIGHT;
-      const offset   = LOGO_BAR_HEIGHT + CAT_BAR_HEIGHT;
+      const scrollY    = window.scrollY;
+      const heroBottom = window.innerHeight - LOGO_BAR_HEIGHT;
+      const delta      = scrollY - lastScrollY.current;
+      const current    = navStateRef.current;
 
-      if (phaseRef.current === "rising") {
-        if (catBarRef.current) {
-          catBarRef.current.style.transform = `translateY(${clampedY}px) ${GPU}`;
-        }
-        if (logoBarRef.current) {
-          logoBarRef.current.style.backgroundColor = merged
-            ? "rgb(249,248,245)"
-            : "transparent";
-          const color = merged ? "rgb(26,26,26)" : "rgb(255,255,255)";
-          iconNodesRef.current.forEach((el) => { el.style.color = color; });
-        }
-        if (merged) {
-          phaseRef.current = "merged";
-          if (catBarRef.current) {
-            catBarRef.current.style.transform = `translateY(${LOGO_BAR_HEIGHT}px) ${GPU}`;
-          }
-        }
-      }
-
-      if (phaseRef.current === "merged") {
-        const delta = scrollY - lastScrollY.current;
-        const shouldCompact = delta > 0 && Math.abs(delta) > 4;
-        const shouldExpand  = delta < 0 && Math.abs(delta) > 4;
-
-        if (shouldCompact && !homeCompactRef.current) {
-          homeCompactRef.current = true;
-          if (navWrapperRef.current) navWrapperRef.current.style.transform = `translateY(-${offset}px) ${GPU}`;
-          if (compactDesktopRef.current) compactDesktopRef.current.style.transform = `translateY(0px) ${GPU}`;
-          if (compactMobileRef.current)  compactMobileRef.current.style.transform  = `translateY(0px) ${GPU}`;
-        } else if (shouldExpand && homeCompactRef.current) {
-          homeCompactRef.current = false;
-          if (navWrapperRef.current) navWrapperRef.current.style.transform = `translateY(0px) ${GPU}`;
-          if (compactDesktopRef.current) compactDesktopRef.current.style.transform = `translateY(-${COMPACT_HEIGHT}px) ${GPU}`;
-          if (compactMobileRef.current)  compactMobileRef.current.style.transform  = `translateY(-${COMPACT_HEIGHT}px) ${GPU}`;
-        }
-
-        if (naturalY > LOGO_BAR_HEIGHT) {
-          phaseRef.current = "rising";
-          homeCompactRef.current = false;
-          if (navWrapperRef.current)     navWrapperRef.current.style.transform     = `translateY(0px) ${GPU}`;
-          if (compactDesktopRef.current) compactDesktopRef.current.style.transform = `translateY(-${COMPACT_HEIGHT}px) ${GPU}`;
-          if (compactMobileRef.current)  compactMobileRef.current.style.transform  = `translateY(-${COMPACT_HEIGHT}px) ${GPU}`;
-          if (logoBarRef.current) {
-            logoBarRef.current.style.backgroundColor = "transparent";
-            iconNodesRef.current.forEach((el) => { el.style.color = "rgb(255,255,255)"; });
-          }
-          if (catBarRef.current) {
-            catBarRef.current.style.transform = `translateY(${clampedY}px) ${GPU}`;
-          }
+      if (scrollY < heroBottom) {
+        // Over the hero — always show transparent logo bar
+        if (current !== "hero") setNavState("hero");
+      } else {
+        // Past the hero — New Yorker behavior:
+        // scroll down = hide, scroll up = show compact
+        if (delta > 6 && current !== "hidden") {
+          setNavState("hidden");
+        } else if (delta < -6 && current !== "compact") {
+          setNavState("compact");
+        } else if (current === "hero") {
+          // Just crossed the boundary scrolling down fast
+          setNavState("hidden");
         }
       }
 
@@ -140,14 +83,14 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
 
     update();
     window.addEventListener("scroll", requestTick, { passive: true });
-    window.addEventListener("resize", requestTick, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", requestTick);
-      window.removeEventListener("resize", requestTick);
-    };
+    return () => window.removeEventListener("scroll", requestTick);
   }, [isStatic]);
 
-  // ── Static page mobile scroll handler ────────────────────────────────────
+  // ── Static pages: hide on scroll down, show on scroll up ─────────────────
+  const [staticVisible, setStaticVisible] = useState(true);
+  const staticVisibleRef = useRef(true);
+  staticVisibleRef.current = staticVisible;
+
   useEffect(() => {
     if (!isStatic) return;
 
@@ -155,21 +98,15 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
 
     const update = () => {
       const scrollY = window.scrollY;
-      const delta   = scrollY - lastScrollYStatic.current;
-      const shouldCompact = scrollY > 80 && delta > 0 && Math.abs(delta) > 4;
-      const shouldExpand  = delta < 0 && Math.abs(delta) > 4;
+      const delta   = scrollY - lastScrollY.current;
 
-      if (shouldCompact && !staticMobileCompactRef.current) {
-        staticMobileCompactRef.current = true;
-        if (staticMobileRef.current)  staticMobileRef.current.style.transform  = `translateY(-${LOGO_BAR_HEIGHT}px) ${GPU}`;
-        if (compactMobileRef.current) compactMobileRef.current.style.transform = `translateY(0px) ${GPU}`;
-      } else if (shouldExpand && staticMobileCompactRef.current) {
-        staticMobileCompactRef.current = false;
-        if (staticMobileRef.current)  staticMobileRef.current.style.transform  = `translateY(0px) ${GPU}`;
-        if (compactMobileRef.current) compactMobileRef.current.style.transform = `translateY(-${COMPACT_HEIGHT}px) ${GPU}`;
+      if (scrollY > 80 && delta > 6 && staticVisibleRef.current) {
+        setStaticVisible(false);
+      } else if ((delta < -6 || scrollY <= 80) && !staticVisibleRef.current) {
+        setStaticVisible(true);
       }
 
-      lastScrollYStatic.current = scrollY;
+      lastScrollY.current = scrollY;
       ticking = false;
     };
 
@@ -218,10 +155,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
     }
   };
 
-  const gpuBase: React.CSSProperties = {
-    backfaceVisibility: "hidden",
-    WebkitBackfaceVisibility: "hidden" as any,
-  };
+  const searchTopOffset = COMPACT_HEIGHT;
 
   // ── Static pages render ───────────────────────────────────────────────────
   if (isStatic) {
@@ -231,15 +165,14 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         <div
           className="hidden md:block fixed top-0 right-0 left-0 z-50"
           style={{
-            ...gpuBase,
-            height: `${COMPACT_HEIGHT}px`,
+            height: COMPACT_HEIGHT + "px",
             backgroundColor: "rgb(249,248,245)",
             borderBottom: "1px solid rgb(224,221,214)",
           }}
         >
           <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between" dir="rtl">
             <Link href="/" className="flex items-center flex-shrink-0">
-              <Image src="/logo.svg" alt="މެރިހާނaa" width={32} height={32} className="object-contain" />
+              <Image src="/logo.svg" alt="މެރިހާނާ" width={32} height={32} className="object-contain" />
             </Link>
             <div className="flex items-center overflow-x-auto no-scrollbar">
               {categories.map((cat, i) => (
@@ -270,16 +203,18 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           </div>
         </div>
 
-        {/* MOBILE: logo bar, hides on scroll down */}
+        {/* MOBILE: logo bar, slides away on scroll down */}
         <div
-          ref={staticMobileRef}
-          className="md:hidden fixed top-0 right-0 left-0 z-50 will-change-transform"
-          style={{ ...gpuBase, transform: `translateY(0px) ${GPU}`, transition: "transform 0.3s ease" }}
+          className="md:hidden fixed top-0 right-0 left-0 z-50"
+          style={{
+            transform: staticVisible ? "translateY(0)" : "translateY(-100%)",
+            transition: "transform 0.28s ease",
+          }}
         >
-          <header style={{ height: `${LOGO_BAR_HEIGHT}px`, backgroundColor: "rgb(249,248,245)", borderBottom: "1px solid rgb(224,221,214)" }}>
+          <header style={{ height: LOGO_BAR_HEIGHT + "px", backgroundColor: "rgb(249,248,245)", borderBottom: "1px solid rgb(224,221,214)" }}>
             <div className="px-5 h-full flex items-center justify-center relative">
               <Link href="/" className="flex items-center">
-                <Image src="/logo.svg" alt="މެރިހާنaa" width={48} height={48} priority className="object-contain" />
+                <Image src="/logo.svg" alt="މެرިހާނާ" width={48} height={48} priority className="object-contain" />
               </Link>
               <div className="absolute right-5">
                 <button type="button" onClick={() => setMobileMenuOpen(true)}
@@ -299,51 +234,19 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           </header>
         </div>
 
-        {/* MOBILE compact */}
-        <div
-          ref={compactMobileRef}
-          className="md:hidden fixed top-0 right-0 left-0 z-50 will-change-transform"
-          style={{
-            ...gpuBase,
-            height: `${COMPACT_HEIGHT}px`,
-            backgroundColor: "rgb(249,248,245)",
-            borderBottom: "1px solid rgb(224,221,214)",
-            transform: `translateY(-${COMPACT_HEIGHT}px) ${GPU}`,
-            transition: "none",
-          }}
-        >
-          <div className="px-5 h-full flex items-center justify-between" dir="rtl">
-            <Link href="/" className="flex items-center flex-shrink-0">
-              <Image src="/logo.svg" alt="މެރިހާنaa" width={32} height={32} className="object-contain" />
-            </Link>
-            <div className="flex items-center gap-1">
-              <button type="button" aria-label="ހޯދާ" onClick={openSearch}
-                className="p-2 rounded-full hover:bg-black/5 transition-colors"
-                style={{ color: "rgb(26,26,26)" }}>
-                <Search className="w-[16px] h-[16px]" />
-              </button>
-              <button type="button" onClick={() => setMobileMenuOpen(true)}
-                className="p-2 rounded-full hover:bg-black/5 transition-colors"
-                style={{ color: "rgb(26,26,26)" }}>
-                <Menu className="w-[18px] h-[18px]" />
-              </button>
-            </div>
-          </div>
-        </div>
-
         {searchOpen && (
           <SearchDropdown
             searchRef={searchRef} searchQuery={searchQuery} searchResults={searchResults}
             searchLoading={searchLoading} onInput={handleSearchInput} onKeyDown={handleKeyDown}
             onClose={closeSearch}
-            topOffset={staticMobileCompactRef.current ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT}
+            topOffset={LOGO_BAR_HEIGHT}
           />
         )}
         {searchOpen && <div className="fixed inset-0 z-[55]" onClick={closeSearch} />}
         <MobileMenu
           categories={categories} open={mobileMenuOpen}
           onClose={() => setMobileMenuOpen(false)}
-          topOffset={staticMobileCompactRef.current ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT}
+          topOffset={LOGO_BAR_HEIGHT}
         />
       </>
     );
@@ -352,102 +255,64 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   // ── Home page render ──────────────────────────────────────────────────────
   return (
     <>
+      {/* HERO logo bar — transparent, white icons, only over the hero */}
       <div
-        ref={navWrapperRef}
-        className="fixed top-0 right-0 left-0 z-50 will-change-transform"
-        style={{ ...gpuBase, transform: `translateY(0px) ${GPU}`, transition: "none" }}
+        className="fixed top-0 right-0 left-0 z-50"
+        style={{
+          height: LOGO_BAR_HEIGHT + "px",
+          opacity: navState === "hero" ? 1 : 0,
+          pointerEvents: navState === "hero" ? "auto" : "none",
+          transition: "opacity 0.25s ease",
+        }}
       >
-        {/* Logo bar */}
-        <div
-          ref={logoBarRef}
-          style={{
-            ...gpuBase,
-            height: `${LOGO_BAR_HEIGHT}px`,
-            backgroundColor: "transparent",
-            transition: "background-color 0.25s ease",
-          }}
-        >
-          <div className="max-w-7xl mx-auto px-5 md:px-6 h-full flex items-center justify-center relative">
-            <Link href="/" className="flex items-center">
-              <Image src="/logo.svg" alt="މެރިހާنaa" width={60} height={60} priority className="object-contain" />
-            </Link>
-            <div className="absolute right-5 md:hidden">
-              <button type="button" onClick={() => setMobileMenuOpen(true)}
-                className="nav-icon p-2 rounded-full hover:bg-white/10 transition-colors"
-                style={{ color: "rgb(255,255,255)" }}>
-                <Menu className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="absolute left-5 md:hidden">
-              <button type="button" aria-label="ހޯދާ" onClick={openSearch}
-                className="nav-icon p-2 rounded-full hover:bg-white/10 transition-colors"
-                style={{ color: "rgb(255,255,255)" }}>
-                <Search className="w-[18px] h-[18px]" />
-              </button>
-            </div>
-            <div className="absolute left-5 md:left-6 hidden md:flex items-center gap-3">
-              <button type="button" aria-label="ހޯދާ" onClick={openSearch}
-                className="nav-icon p-2 rounded-full hover:bg-black/5 transition-colors"
-                style={{ color: "rgb(255,255,255)" }}>
-                <Search className="w-[18px] h-[18px]" />
-              </button>
-              <Link href="/login"
-                className="nav-icon p-2 rounded-full hover:bg-black/5 transition-colors"
-                style={{ color: "rgb(255,255,255)" }}>
-                <User className="w-[18px] h-[18px]" />
-              </Link>
-            </div>
+        <div className="max-w-7xl mx-auto px-5 md:px-6 h-full flex items-center justify-center relative">
+          <Link href="/" className="flex items-center">
+            <Image src="/logo.svg" alt="މެރިހާނާ" width={60} height={60} priority className="object-contain" />
+          </Link>
+          <div className="absolute right-5 md:hidden">
+            <button type="button" onClick={() => setMobileMenuOpen(true)}
+              className="p-2 rounded-full hover:bg-white/10 transition-colors"
+              style={{ color: "rgb(255,255,255)" }}>
+              <Menu className="w-5 h-5" />
+            </button>
           </div>
-        </div>
-
-        {/* Cat bar */}
-        <div
-          ref={catBarRef}
-          className="hidden md:block will-change-transform"
-          style={{
-            ...gpuBase,
-            position: "absolute", top: 0, left: 0, right: 0,
-            height: `${CAT_BAR_HEIGHT + 1}px`,
-            marginTop: "-1px",
-            backgroundColor: "rgb(249,248,245)",
-            borderBottom: "1px solid rgb(224,221,214)",
-            transform: `translateY(110vh) ${GPU}`,
-            visibility: "hidden",
-            opacity: 0,
-          }}
-        >
-          <div className="max-w-7xl mx-auto px-6 h-full">
-            <div className="flex items-center justify-center gap-1 h-full">
-              {categories.map((cat) => (
-                <Link key={cat.id} href={"/" + cat.slug}
-                  target={cat.slug === "originals" ? "_blank" : undefined}
-                  rel={cat.slug === "originals" ? "noopener noreferrer" : undefined}
-                  className="whitespace-nowrap px-4 py-2 transition-colors hover:text-[rgb(26,26,26)]"
-                  style={{ fontFamily: "'MVTypewriter','MV Boli',sans-serif", fontSize: "13px", color: "rgb(153,153,153)" }}>
-                  {cat.name}
-                </Link>
-              ))}
-            </div>
+          <div className="absolute left-5 md:hidden">
+            <button type="button" aria-label="ހޯދާ" onClick={openSearch}
+              className="p-2 rounded-full hover:bg-white/10 transition-colors"
+              style={{ color: "rgb(255,255,255)" }}>
+              <Search className="w-[18px] h-[18px]" />
+            </button>
+          </div>
+          <div className="absolute left-5 md:left-6 hidden md:flex items-center gap-3">
+            <button type="button" aria-label="ހޯދާ" onClick={openSearch}
+              className="p-2 rounded-full hover:bg-white/10 transition-colors"
+              style={{ color: "rgb(255,255,255)" }}>
+              <Search className="w-[18px] h-[18px]" />
+            </button>
+            <Link href="/login"
+              className="p-2 rounded-full hover:bg-white/10 transition-colors"
+              style={{ color: "rgb(255,255,255)" }}>
+              <User className="w-[18px] h-[18px]" />
+            </Link>
           </div>
         </div>
       </div>
 
-      {/* Compact desktop */}
+      {/* COMPACT bar — slides in when scrolling up past the hero */}
       <div
-        ref={compactDesktopRef}
-        className="fixed top-0 right-0 left-0 z-50 hidden md:block will-change-transform"
+        className="fixed top-0 right-0 left-0 z-50"
         style={{
-          ...gpuBase,
-          height: `${COMPACT_HEIGHT}px`,
+          height: COMPACT_HEIGHT + "px",
           backgroundColor: "rgb(249,248,245)",
           borderBottom: "1px solid rgb(224,221,214)",
-          transform: `translateY(-${COMPACT_HEIGHT}px) ${GPU}`,
-          transition: "none",
+          transform: navState === "compact" ? "translateY(0)" : "translateY(-100%)",
+          transition: "transform 0.28s ease",
         }}
       >
-        <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between" dir="rtl">
+        {/* Desktop compact */}
+        <div className="hidden md:flex max-w-7xl mx-auto px-6 h-full items-center justify-between" dir="rtl">
           <Link href="/" className="flex items-center flex-shrink-0">
-            <Image src="/logo.svg" alt="މެރިހާنaa" width={32} height={32} className="object-contain" />
+            <Image src="/logo.svg" alt="މެރިހާނާ" width={32} height={32} className="object-contain" />
           </Link>
           <div className="flex items-center overflow-x-auto no-scrollbar">
             {categories.map((cat, i) => (
@@ -469,24 +334,10 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
             <Search className="w-[16px] h-[16px]" />
           </button>
         </div>
-      </div>
-
-      {/* Compact mobile */}
-      <div
-        ref={compactMobileRef}
-        className="fixed top-0 right-0 left-0 z-50 md:hidden will-change-transform"
-        style={{
-          ...gpuBase,
-          height: `${COMPACT_HEIGHT}px`,
-          backgroundColor: "rgb(249,248,245)",
-          borderBottom: "1px solid rgb(224,221,214)",
-          transform: `translateY(-${COMPACT_HEIGHT}px) ${GPU}`,
-          transition: "none",
-        }}
-      >
-        <div className="px-5 h-full flex items-center justify-between" dir="rtl">
+        {/* Mobile compact */}
+        <div className="md:hidden px-5 h-full flex items-center justify-between" dir="rtl">
           <Link href="/" className="flex items-center flex-shrink-0">
-            <Image src="/logo.svg" alt="މެރިހާنaa" width={32} height={32} className="object-contain" />
+            <Image src="/logo.svg" alt="މެރިހާނާ" width={32} height={32} className="object-contain" />
           </Link>
           <div className="flex items-center gap-1">
             <button type="button" aria-label="ހޯދާ" onClick={openSearch}
@@ -508,14 +359,14 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           searchRef={searchRef} searchQuery={searchQuery} searchResults={searchResults}
           searchLoading={searchLoading} onInput={handleSearchInput} onKeyDown={handleKeyDown}
           onClose={closeSearch}
-          topOffset={homeCompactRef.current ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT}
+          topOffset={searchTopOffset}
         />
       )}
       {searchOpen && <div className="fixed inset-0 z-[55]" onClick={closeSearch} />}
       <MobileMenu
         categories={categories} open={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
-        topOffset={homeCompactRef.current ? COMPACT_HEIGHT : LOGO_BAR_HEIGHT}
+        topOffset={navState === "hero" ? LOGO_BAR_HEIGHT : COMPACT_HEIGHT}
       />
     </>
   );
@@ -535,7 +386,6 @@ function SearchDropdown({
   onClose: () => void;
   topOffset: number;
 }) {
-  const router = useRouter();
   return (
     <div className="fixed left-0 right-0 z-[60] bg-[#F5F3EF] border-b border-black/10 shadow-sm" style={{ top: topOffset + "px" }}>
       <div className="max-w-2xl mx-auto px-6 py-4">
@@ -561,7 +411,7 @@ function SearchDropdown({
             )}
             {!searchLoading && searchResults.length > 0 && (
               <>
-                <p className="mb-2" style={{ fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif', fontSize: "11px", color: "rgb(160,158,152)", lineHeight: 2 }}>ނަތީޖާ</p>
+                <p className="mb-2" style={{ fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif', fontSize: "11px", color: "rgb(160,158,152)", lineHeight: 2 }}>ނަتީޖާ</p>
                 <div className="space-y-0">
                   {searchResults.slice(0, 5).map((result) => (
                     <Link key={result.id} href={"/" + (result.category?.slug ?? "article") + "/" + result.slug} onClick={onClose}
@@ -584,7 +434,7 @@ function SearchDropdown({
                   <Link href={"/search?q=" + encodeURIComponent(searchQuery.trim())} onClick={onClose}
                     className="inline-flex items-center justify-center px-6 py-2.5 rounded-full transition-colors hover:opacity-80"
                     style={{ backgroundColor: "rgb(26,26,26)", color: "rgb(249,248,245)", fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif', fontSize: "12px", fontWeight: 700 }}>
-                    އިތުރު އާޓިކަލް ބެލުމަށް
+                    އިތުރު އާޓިކަލް ބެلުމަށް
                   </Link>
                 </div>
               </>
