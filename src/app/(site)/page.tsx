@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import HeroSection from "@/components/public/HeroSection";
+import CategoryBar from "@/components/public/CategoryBar";
 import TodaysPicks from "@/components/public/TodaysPicks";
 import FeatureSplit from "@/components/public/FeatureSplit";
 import ReelsStrip from "@/components/public/ReelsStrip";
@@ -7,6 +8,7 @@ import ReviewsSection from "@/components/public/ReviewsSection";
 import OriginalsStrip from "@/components/public/OriginalsStrip";
 import NewsletterCTA from "@/components/public/NewsletterCTA";
 import Link from "next/link";
+import Image from "next/image";
 
 async function isAdminUser() {
   try {
@@ -34,6 +36,7 @@ async function getHomeData() {
     { data: reels },
     { data: originals },
     { data: latest },
+    { data: categories },
   ] = await Promise.all([
     supabase.from("articles").select("id, title, slug, excerpt, featured_image, cover_type, cover_video_thumbnail, category:categories!category_id(name, slug), author:authors!author_id(full_name)").eq("status", "published").eq("homepage_placement", "hero").order("published_at", { ascending: false }).limit(1).single(),
     supabase.from("articles").select("id, title, slug, excerpt, featured_image, category:categories!category_id(name, slug)").eq("status", "published").eq("homepage_placement", "editors_choice").order("homepage_slot", { ascending: true, nullsFirst: false }).limit(4),
@@ -42,6 +45,7 @@ async function getHomeData() {
     supabase.from("reels").select("id, title, slug, stream_video_id, thumbnail_url, duration_seconds, category:categories!category_id(name, slug)").eq("status", "published").eq("homepage_featured", true).order("published_at", { ascending: false }).limit(4),
     supabase.from("originals").select("id, title, slug, thumbnail_url, duration_seconds, type").eq("status", "published").order("published_at", { ascending: false }).limit(8),
     supabase.from("articles").select("id, title, slug, excerpt, featured_image, reading_time_minutes, category:categories!category_id(name, slug)").eq("status", "published").not("homepage_latest_slot", "is", null).order("homepage_latest_slot", { ascending: true }).limit(8),
+    supabase.from("categories").select("id, name, slug").eq("is_active", true).order("sort_order", { ascending: true }),
   ]);
   return {
     hero,
@@ -51,6 +55,7 @@ async function getHomeData() {
     reels: (reels ?? []) as any[],
     originals: (originals ?? []) as any[],
     latest: (latest ?? []) as any[],
+    categories: (categories ?? []) as any[],
   };
 }
 
@@ -77,7 +82,7 @@ export default async function HomePage() {
   const isAdmin = await isAdminUser();
   if (!isAdmin) return <ComingSoon />;
 
-  const { hero, todaysPicks, people, reviews, reels, originals, latest } = await getHomeData();
+  const { hero, todaysPicks, people, reviews, reels, originals, latest, categories } = await getHomeData();
 
   return (
     <div className="bg-[#F5F3EF]" dir="rtl">
@@ -90,6 +95,7 @@ export default async function HomePage() {
           </p>
         </div>
       )}
+      {categories.length > 0 && <CategoryBar categories={categories} />}
       {todaysPicks.length > 0 && <TodaysPicks articles={todaysPicks} />}
       {people.length > 0 && <FeatureSplit article={people[0]} />}
       {reviews.length > 0 && <ReviewsSection articles={reviews} />}
@@ -103,10 +109,10 @@ export default async function HomePage() {
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {latest.map((article: any) => (
-              <Link key={article.id} href={`/${article.category?.slug ?? "article"}/${article.slug}`} className="group block">
-                <div className="aspect-[4/3] overflow-hidden rounded-lg bg-[#e8e5de] mb-3">
+              <Link key={article.id} href={"/" + (article.category?.slug ?? "article") + "/" + article.slug} className="group block">
+                <div className="aspect-[4/3] overflow-hidden rounded-lg bg-[#e8e5de] mb-3 relative">
                   {article.featured_image ? (
-                    <img src={article.featured_image} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <Image src={article.featured_image} alt={article.title} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
                   ) : (
                     <div className="w-full h-full bg-[#dedad2]" />
                   )}
