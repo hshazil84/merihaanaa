@@ -10,6 +10,7 @@ interface Article {
   published_at: string | null; tags: any[] | null; view_count?: number | null;
   category: { name: string; slug: string } | null;
   author?: { full_name: string } | null;
+  created_at?: string | null;
 }
 interface CinemaEntry {
   id: string; chart_type: string; rank: number; title: string;
@@ -53,15 +54,20 @@ const CSS = [
   ".film-featured{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;}",
   ".film-3col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.25rem;}",
   ".film-4col{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1.25rem;}",
-  ".film-trending-grid{display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:start;}",
+  ".film-review-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1.25rem;}",
   ".lc2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}",
+  ".lc3{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}",
   ".lc4{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}",
   ".sheet-overlay{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,0.55);display:flex;align-items:flex-end;justify-content:center;}",
   ".sheet-inner{background:white;width:100%;max-width:520px;border-radius:20px 20px 0 0;overflow:hidden;max-height:90vh;overflow-y:auto;}",
   "@media(min-width:768px){.sheet-overlay{align-items:center!important;}.sheet-inner{border-radius:16px!important;max-height:82vh!important;}}",
-  "@media(max-width:1024px){.film-layout{grid-template-columns:1fr!important;}.film-sidebar-col{display:none!important;}.film-4col{grid-template-columns:1fr 1fr!important;}.film-trending-grid{grid-template-columns:1fr!important;}}",
-  "@media(max-width:768px){.film-featured{grid-template-columns:1fr!important;}.film-3col{grid-template-columns:1fr 1fr!important;}}",
-  "@media(max-width:480px){.film-3col,.film-4col{grid-template-columns:1fr!important;}}",
+  "@media(max-width:1024px){.film-layout{grid-template-columns:1fr!important;}.film-sidebar-col{display:none!important;}.film-4col{grid-template-columns:1fr 1fr!important;}}",
+  "@media(max-width:768px){.film-featured{grid-template-columns:1fr!important;}.film-3col{grid-template-columns:1fr 1fr!important;}",
+  ".film-review-grid{display:flex!important;grid-template-columns:none!important;overflow-x:auto;gap:1rem!important;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;margin:0 -1.5rem;padding:0 1.5rem;}",
+  ".film-review-grid::-webkit-scrollbar{display:none;}",
+  ".film-review-card{flex:0 0 70%;scroll-snap-align:start;}",
+  "}",
+  "@media(max-width:480px){.film-3col,.film-4col{grid-template-columns:1fr!important;}.film-review-card{flex:0 0 78%;}}",
 ].join("");
 
 function getYouTubeId(url: string) {
@@ -84,6 +90,13 @@ function getFirstTag(tags: any[] | null): string | null {
   if (typeof raw === "string") return raw;
   if (typeof raw === "object" && raw !== null) return raw.name ?? null;
   return null;
+}
+function hasTag(tags: any[] | null, name: string): boolean {
+  if (!tags || !Array.isArray(tags)) return false;
+  return tags.some(function(raw) {
+    const val = typeof raw === "string" ? raw : (raw && typeof raw === "object" ? raw.name : null);
+    return typeof val === "string" && val.toLowerCase() === name.toLowerCase();
+  });
 }
 
 function ModalClose({ onClose }: { onClose: () => void }) {
@@ -333,16 +346,43 @@ function ArticleCard({ article, categorySlug }: { article: Article; categorySlug
   );
 }
 
+function ReviewCard({ article, categorySlug }: { article: Article; categorySlug: string }) {
+  const slug = article.category?.slug ?? categorySlug;
+  return (
+    <Link href={"/" + slug + "/" + article.slug} className="film-review-card" style={{ textDecoration: "none", display: "block" }}>
+      <div style={{ aspectRatio: "3/4", overflow: "hidden", borderRadius: "10px", backgroundColor: BG_CARD, marginBottom: "10px", position: "relative" }}>
+        {article.featured_image
+          ? <Image src={article.featured_image} alt={article.title} fill sizes="(max-width: 480px) 78vw, (max-width: 768px) 70vw, (max-width: 1024px) 24vw, 16vw" className="object-cover" />
+          : <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
+        }
+        <div style={{ position: "absolute", top: "10px", right: "10px" }}>
+          <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, padding: "3px 10px", borderRadius: "20px", background: RED, color: "white" }}>ރިވިއު</span>
+        </div>
+      </div>
+      <h3 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "13px", color: TEXT, lineHeight: 1.9, margin: "0 0 5px" }} className="lc2">{article.title}</h3>
+      {article.excerpt && <p style={{ fontFamily: FONT, fontSize: "11px", color: TEXT_MUTED, lineHeight: 1.8, margin: 0 }} className="lc3">{article.excerpt}</p>}
+    </Link>
+  );
+}
+
 export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, featuredOriginal, categorySlug, totalCount, page }: Props) {
   const [selectedCinema, setSelectedCinema] = useState<CinemaEntry | null>(null);
   const [selectedOTT, setSelectedOTT]       = useState<OTTEntry | null>(null);
 
   const featured   = articles[0] ?? null;
   const grid3      = articles.slice(1, 4);
-  const trending   = articles.slice(4, 9);
   const grid4      = articles.slice(9, 13);
   const showSidebar = cinemaEntries.length > 0 || ottEntries.length > 0;
   const totalPages = Math.ceil(totalCount / 12);
+
+  const reviewArticles = articles
+    .filter(function(a) { return hasTag(a.tags, "Review"); })
+    .sort(function(a, b) {
+      const dateA = a.created_at ?? a.published_at ?? "";
+      const dateB = b.created_at ?? b.published_at ?? "";
+      return dateB.localeCompare(dateA);
+    })
+    .slice(0, 4);
 
   return (
     <div style={{ backgroundColor: BG, minHeight: "100vh" }} dir="rtl">
@@ -409,50 +449,14 @@ export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, 
               </>
             )}
 
-            {(trending.length > 0 || featuredOriginal) && (
-              <div style={{ background: "rgb(20,18,16)", margin: "0 -1.5rem", padding: "2rem 1.5rem", marginBottom: "1.5rem" }}>
+            {reviewArticles.length > 0 && (
+              <div style={{ margin: "1.5rem 0" }}>
                 <div style={{ marginBottom: "1.25rem", display: "flex", alignItems: "center", gap: "8px" }}>
                   <div style={{ width: "3px", height: "14px", background: RED, borderRadius: "2px", flexShrink: 0 }} />
-                  <p style={{ fontFamily: FONT, fontSize: "11px", fontWeight: 700, color: "rgba(255,255,255,0.7)", margin: 0, letterSpacing: "0.04em" }}>ފިލްމު ތެރޭ ޓްރެންޑިން</p>
+                  <p style={{ fontFamily: FONT, fontSize: "11px", fontWeight: 700, color: "rgba(0,0,0,0.5)", margin: 0, letterSpacing: "0.04em" }}>ފިލްމު ރިވިއު</p>
                 </div>
-                <div className="film-trending-grid">
-                  {featuredOriginal && featuredOriginal.cloudflare_stream_id && (
-                    <div>
-                      <div style={{ borderRadius: "10px", overflow: "hidden", aspectRatio: "16/9", marginBottom: "12px", background: "rgb(10,10,10)" }}>
-                        <iframe src={CF + "/" + featuredOriginal.cloudflare_stream_id + "/iframe"}
-                          style={{ width: "100%", height: "100%", border: "none", display: "block" }}
-                          allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" allowFullScreen />
-                      </div>
-                      <p style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: "rgba(255,255,255,0.9)", margin: "0 0 4px" }} dir="rtl">{featuredOriginal.title}</p>
-                      {featuredOriginal.description && <p style={{ fontFamily: FONT, fontSize: "11px", color: "rgba(255,255,255,0.45)", margin: "0 0 6px", lineHeight: 1.7 }} className="lc2" dir="rtl">{featuredOriginal.description}</p>}
-                      <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                        {featuredOriginal.type && <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, color: RED, border: "1px solid " + RED, padding: "1px 7px", borderRadius: "10px" }}>{featuredOriginal.type}</span>}
-                        {featuredOriginal.duration_seconds && <span style={{ fontFamily: FONT, fontSize: "10px", color: "rgba(255,255,255,0.4)" }}>{formatDuration(featuredOriginal.duration_seconds)}</span>}
-                      </div>
-                    </div>
-                  )}
-                  {trending.length > 0 && (
-                    <div>
-                      {trending.map(function(article, i) {
-                        const tag = getFirstTag(article.tags);
-                        return (
-                          <Link key={article.id} href={"/" + (article.category?.slug ?? categorySlug) + "/" + article.slug} style={{ textDecoration: "none", display: "block" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 0", borderBottom: "0.5px solid rgba(255,255,255,0.07)" }}>
-                              <span style={{ fontFamily: "Georgia,serif", fontSize: "20px", fontWeight: 700, color: i < 2 ? RED : "rgba(255,255,255,0.2)", minWidth: "26px", lineHeight: 1 }}>{i + 1}</span>
-                              <div style={{ width: "52px", height: "52px", borderRadius: "6px", overflow: "hidden", flexShrink: 0, background: "rgba(255,255,255,0.08)", position: "relative" }}>
-                                {article.featured_image && <Image src={article.featured_image} alt={article.title} fill sizes="52px" className="object-cover" />}
-                              </div>
-                              <div style={{ flex: 1 }}>
-                                {tag && <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, color: RED, display: "block", marginBottom: "3px" }}>{tag}</span>}
-                                <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: "12px", lineHeight: 1.7, margin: "0 0 2px", color: "rgba(255,255,255,0.85)" }} className="lc2">{article.title}</p>
-                                {article.author && <p style={{ fontFamily: FONT, fontSize: "10px", color: "rgba(255,255,255,0.35)", margin: 0 }}>{article.author.full_name}</p>}
-                              </div>
-                            </div>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
+                <div className="film-review-grid">
+                  {reviewArticles.map(function(a) { return <ReviewCard key={a.id} article={a} categorySlug={categorySlug} />; })}
                 </div>
               </div>
             )}
