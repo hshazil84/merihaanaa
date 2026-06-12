@@ -1,5 +1,7 @@
 "use client";
 // components/public/HeroSection.tsx
+// Height = 100svh minus the in-flow CategoryBar (56px) below it,
+// so hero + category bar exactly fill the first viewport.
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -38,7 +40,7 @@ export default function HeroSection({ article }: { article: HeroArticle }) {
   return (
     <section
       className="relative w-full overflow-hidden bg-black"
-      style={{ height: "100svh", minHeight: "600px" }}
+      style={{ height: "calc(100svh - 56px)", minHeight: "560px" }}
     >
       {/* Full bleed image */}
       {image && (
