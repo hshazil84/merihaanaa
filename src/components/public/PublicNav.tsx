@@ -1,7 +1,8 @@
 "use client";
 // components/public/PublicNav.tsx
-// New Yorker pattern: nav elements toggle between discrete states,
-// no continuous per-frame transform chasing.
+// Home: only the transparent hero logo bar — fades out as the in-flow
+// CategoryBar (sticky) approaches the top and takes over as the nav.
+// Static pages: unchanged compact/logo bars.
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
@@ -23,18 +24,20 @@ interface SearchResult {
 
 const LOGO_BAR_HEIGHT = 72;
 const COMPACT_HEIGHT  = 48;
+const CAT_BAR_HEIGHT  = 56;
 
 export default function PublicNav({ categories, static: isStatic = false }: Props) {
   const router = useRouter();
 
-  // Discrete nav states:
-  // "hero"    — over the hero: transparent logo bar, white icons, no compact bar
-  // "compact" — scrolled past hero: compact bar visible
-  // "hidden"  — scrolling down within content: everything hidden
-  const [navState, setNavState] = useState<"hero" | "compact" | "hidden">(isStatic ? "compact" : "hero");
-  const navStateRef = useRef(navState);
-  navStateRef.current = navState;
+  // Home: hero logo bar visible until the cat bar gets close to the top
+  const [heroVisible, setHeroVisible] = useState(true);
+  const heroVisibleRef = useRef(true);
+  heroVisibleRef.current = heroVisible;
 
+  // Static mobile: hide logo bar on scroll down
+  const [staticVisible, setStaticVisible] = useState(true);
+  const staticVisibleRef = useRef(true);
+  staticVisibleRef.current = staticVisible;
   const lastScrollY = useRef(0);
 
   const [searchOpen, setSearchOpen]         = useState(false);
@@ -45,35 +48,18 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   const searchRef   = useRef<HTMLInputElement>(null);
   const searchTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // ── Home page scroll: discrete state machine ─────────────────────────────
+  // ── Home scroll: fade hero logo bar before the cat bar arrives ───────────
   useEffect(() => {
     if (isStatic) return;
 
     let ticking = false;
 
     const update = () => {
-      const scrollY    = window.scrollY;
-      const heroBottom = window.innerHeight - 56;
-      const delta      = scrollY - lastScrollY.current;
-      const current    = navStateRef.current;
-
-      if (scrollY < heroBottom) {
-        // Over the hero — always show transparent logo bar
-        if (current !== "hero") setNavState("hero");
-      } else {
-        // Past the hero — New Yorker behavior:
-        // scroll down = hide, scroll up = show compact
-        if (delta > 6 && current !== "hidden") {
-          setNavState("hidden");
-        } else if (delta < -6 && current !== "compact") {
-          setNavState("compact");
-        } else if (current === "hero") {
-          // Just crossed the boundary scrolling down fast
-          setNavState("hidden");
-        }
-      }
-
-      lastScrollY.current = scrollY;
+      // Hero height is 100svh - CAT_BAR_HEIGHT. Fade the logo bar when the
+      // cat bar is within ~150px of the top, so the handoff feels natural.
+      const fadePoint = window.innerHeight - CAT_BAR_HEIGHT - 150;
+      const visible = window.scrollY < fadePoint;
+      if (visible !== heroVisibleRef.current) setHeroVisible(visible);
       ticking = false;
     };
 
@@ -83,14 +69,14 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
 
     update();
     window.addEventListener("scroll", requestTick, { passive: true });
-    return () => window.removeEventListener("scroll", requestTick);
+    window.addEventListener("resize", requestTick, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", requestTick);
+      window.removeEventListener("resize", requestTick);
+    };
   }, [isStatic]);
 
-  // ── Static pages: hide on scroll down, show on scroll up ─────────────────
-  const [staticVisible, setStaticVisible] = useState(true);
-  const staticVisibleRef = useRef(true);
-  staticVisibleRef.current = staticVisible;
-
+  // ── Static pages: mobile logo bar hides on scroll down ───────────────────
   useEffect(() => {
     if (!isStatic) return;
 
@@ -155,8 +141,6 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
     }
   };
 
-  const searchTopOffset = COMPACT_HEIGHT;
-
   // ── Static pages render ───────────────────────────────────────────────────
   if (isStatic) {
     return (
@@ -214,7 +198,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           <header style={{ height: LOGO_BAR_HEIGHT + "px", backgroundColor: "rgb(249,248,245)", borderBottom: "1px solid rgb(224,221,214)" }}>
             <div className="px-5 h-full flex items-center justify-center relative">
               <Link href="/" className="flex items-center">
-                <Image src="/logo.svg" alt="މެرިހާނާ" width={48} height={48} priority className="object-contain" />
+                <Image src="/logo.svg" alt="މެރިހާނާ" width={48} height={48} priority className="object-contain" />
               </Link>
               <div className="absolute right-5">
                 <button type="button" onClick={() => setMobileMenuOpen(true)}
@@ -252,17 +236,16 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
     );
   }
 
-  // ── Home page render ──────────────────────────────────────────────────────
+  // ── Home page render: hero logo bar only ─────────────────────────────────
   return (
     <>
-      {/* HERO logo bar — transparent, white icons, only over the hero */}
       <div
         className="fixed top-0 right-0 left-0 z-50"
         style={{
           height: LOGO_BAR_HEIGHT + "px",
-          opacity: navState === "hero" ? 1 : 0,
-          pointerEvents: navState === "hero" ? "auto" : "none",
-          transition: "opacity 0.25s ease",
+          opacity: heroVisible ? 1 : 0,
+          pointerEvents: heroVisible ? "auto" : "none",
+          transition: "opacity 0.3s ease",
         }}
       >
         <div className="max-w-7xl mx-auto px-5 md:px-6 h-full flex items-center justify-center relative">
@@ -298,75 +281,19 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         </div>
       </div>
 
-      {/* COMPACT bar — slides in when scrolling up past the hero */}
-      <div
-        className="fixed top-0 right-0 left-0 z-50"
-        style={{
-          height: COMPACT_HEIGHT + "px",
-          backgroundColor: "rgb(249,248,245)",
-          borderBottom: "1px solid rgb(224,221,214)",
-          transform: navState === "compact" ? "translateY(0)" : "translateY(-100%)",
-          transition: "transform 0.28s ease",
-        }}
-      >
-        {/* Desktop compact */}
-        <div className="hidden md:flex max-w-7xl mx-auto px-6 h-full items-center justify-between" dir="rtl">
-          <Link href="/" className="flex items-center flex-shrink-0">
-            <Image src="/logo.svg" alt="މެރިހާނާ" width={32} height={32} className="object-contain" />
-          </Link>
-          <div className="flex items-center overflow-x-auto no-scrollbar">
-            {categories.map((cat, i) => (
-              <span key={cat.id} className="flex items-center">
-                <Link href={"/" + cat.slug}
-                  className="whitespace-nowrap px-3 py-1 transition-colors hover:text-[rgb(26,26,26)]"
-                  style={{ fontFamily: "'MVTypewriter','MV Boli',sans-serif", fontSize: "12px", color: "rgb(153,153,153)" }}>
-                  {cat.name}
-                </Link>
-                {i < categories.length - 1 && (
-                  <span style={{ color: "rgb(210,207,200)", fontSize: "10px", userSelect: "none" }}>·</span>
-                )}
-              </span>
-            ))}
-          </div>
-          <button type="button" aria-label="ހޯދާ" onClick={openSearch}
-            className="p-2 rounded-full hover:bg-black/5 transition-colors flex-shrink-0"
-            style={{ color: "rgb(26,26,26)" }}>
-            <Search className="w-[16px] h-[16px]" />
-          </button>
-        </div>
-        {/* Mobile compact */}
-        <div className="md:hidden px-5 h-full flex items-center justify-between" dir="rtl">
-          <Link href="/" className="flex items-center flex-shrink-0">
-            <Image src="/logo.svg" alt="މެރިހާނާ" width={32} height={32} className="object-contain" />
-          </Link>
-          <div className="flex items-center gap-1">
-            <button type="button" aria-label="ހޯދާ" onClick={openSearch}
-              className="p-2 rounded-full hover:bg-black/5 transition-colors"
-              style={{ color: "rgb(26,26,26)" }}>
-              <Search className="w-[16px] h-[16px]" />
-            </button>
-            <button type="button" onClick={() => setMobileMenuOpen(true)}
-              className="p-2 rounded-full hover:bg-black/5 transition-colors"
-              style={{ color: "rgb(26,26,26)" }}>
-              <Menu className="w-[18px] h-[18px]" />
-            </button>
-          </div>
-        </div>
-      </div>
-
       {searchOpen && (
         <SearchDropdown
           searchRef={searchRef} searchQuery={searchQuery} searchResults={searchResults}
           searchLoading={searchLoading} onInput={handleSearchInput} onKeyDown={handleKeyDown}
           onClose={closeSearch}
-          topOffset={searchTopOffset}
+          topOffset={heroVisible ? LOGO_BAR_HEIGHT : CAT_BAR_HEIGHT}
         />
       )}
       {searchOpen && <div className="fixed inset-0 z-[55]" onClick={closeSearch} />}
       <MobileMenu
         categories={categories} open={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
-        topOffset={navState === "hero" ? LOGO_BAR_HEIGHT : COMPACT_HEIGHT}
+        topOffset={heroVisible ? LOGO_BAR_HEIGHT : CAT_BAR_HEIGHT}
       />
     </>
   );
@@ -411,7 +338,7 @@ function SearchDropdown({
             )}
             {!searchLoading && searchResults.length > 0 && (
               <>
-                <p className="mb-2" style={{ fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif', fontSize: "11px", color: "rgb(160,158,152)", lineHeight: 2 }}>ނަتީޖާ</p>
+                <p className="mb-2" style={{ fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif', fontSize: "11px", color: "rgb(160,158,152)", lineHeight: 2 }}>ނަތީޖާ</p>
                 <div className="space-y-0">
                   {searchResults.slice(0, 5).map((result) => (
                     <Link key={result.id} href={"/" + (result.category?.slug ?? "article") + "/" + result.slug} onClick={onClose}
@@ -434,7 +361,7 @@ function SearchDropdown({
                   <Link href={"/search?q=" + encodeURIComponent(searchQuery.trim())} onClick={onClose}
                     className="inline-flex items-center justify-center px-6 py-2.5 rounded-full transition-colors hover:opacity-80"
                     style={{ backgroundColor: "rgb(26,26,26)", color: "rgb(249,248,245)", fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif', fontSize: "12px", fontWeight: 700 }}>
-                    އިތުރު އާޓިކަލް ބެلުމަށް
+                    އިތުރު އާޓިކަލް ބެލުމަށް
                   </Link>
                 </div>
               </>
