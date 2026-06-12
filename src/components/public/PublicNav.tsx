@@ -34,6 +34,11 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   const heroVisibleRef = useRef(true);
   heroVisibleRef.current = heroVisible;
 
+  // Home mobile: compact bar slides in on scroll-up past the hero
+  const [mobileCompactVisible, setMobileCompactVisible] = useState(false);
+  const mobileCompactRef = useRef(false);
+  mobileCompactRef.current = mobileCompactVisible;
+
   // Static mobile: hide logo bar on scroll down
   const [staticVisible, setStaticVisible] = useState(true);
   const staticVisibleRef = useRef(true);
@@ -55,11 +60,29 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
     let ticking = false;
 
     const update = () => {
-      // Hero height is 100svh - CAT_BAR_HEIGHT. Fade the logo bar when the
-      // cat bar is within ~150px of the top, so the handoff feels natural.
-      const fadePoint = window.innerHeight - CAT_BAR_HEIGHT - 150;
-      const visible = window.scrollY < fadePoint;
+      const scrollY  = window.scrollY;
+      const isMobile = window.innerWidth < 768;
+
+      // Desktop: hero is 100svh - CAT_BAR_HEIGHT, fade before the cat bar arrives.
+      // Mobile: hero is full 100svh (no cat bar), fade near the hero bottom.
+      const fadePoint = isMobile
+        ? window.innerHeight - 150
+        : window.innerHeight - CAT_BAR_HEIGHT - 150;
+      const visible = scrollY < fadePoint;
       if (visible !== heroVisibleRef.current) setHeroVisible(visible);
+
+      // Mobile compact bar: show on scroll-up past the hero, hide on scroll-down
+      if (isMobile) {
+        const delta = scrollY - lastScrollY.current;
+        const pastHero = scrollY > window.innerHeight - 80;
+        if (pastHero && delta < -6 && !mobileCompactRef.current) {
+          setMobileCompactVisible(true);
+        } else if ((delta > 6 || !pastHero) && mobileCompactRef.current) {
+          setMobileCompactVisible(false);
+        }
+        lastScrollY.current = scrollY;
+      }
+
       ticking = false;
     };
 
@@ -277,6 +300,37 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
               style={{ color: "rgb(255,255,255)" }}>
               <User className="w-[18px] h-[18px]" />
             </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile compact bar — slides in on scroll-up past the hero */}
+      <div
+        className="md:hidden fixed top-0 right-0 left-0 z-50"
+        style={{
+          height: COMPACT_HEIGHT + "px",
+          backgroundColor: "rgb(249,248,245)",
+          borderBottom: "1px solid rgb(224,221,214)",
+          transform: mobileCompactVisible ? "translateY(0)" : "translateY(-100%)",
+          transition: "transform 0.28s ease",
+        }}
+      >
+        <div className="px-5 h-full flex items-center justify-between" dir="rtl">
+          <Link href="/" className="flex items-center flex-shrink-0"
+            onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+            <Image src="/logo.svg" alt="މެރިހާނާ" width={32} height={32} className="object-contain" />
+          </Link>
+          <div className="flex items-center gap-1">
+            <button type="button" aria-label="ހޯދާ" onClick={openSearch}
+              className="p-2 rounded-full hover:bg-black/5 transition-colors"
+              style={{ color: "rgb(26,26,26)" }}>
+              <Search className="w-[16px] h-[16px]" />
+            </button>
+            <button type="button" onClick={() => setMobileMenuOpen(true)}
+              className="p-2 rounded-full hover:bg-black/5 transition-colors"
+              style={{ color: "rgb(26,26,26)" }}>
+              <Menu className="w-[18px] h-[18px]" />
+            </button>
           </div>
         </div>
       </div>
