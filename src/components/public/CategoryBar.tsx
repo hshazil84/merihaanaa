@@ -32,7 +32,7 @@ export default function CategoryBar({ categories }: { categories: Category[] }) 
       <div ref={sentinelRef} style={{ height: "1px" }} />
       <nav
         aria-label="ކެޓަގަރީތައް"
-        className="sticky top-0 z-40"
+        className="hidden md:block sticky top-0 z-40"
         style={{
           backgroundColor: "rgb(249,248,245)",
           borderBottom: "1px solid rgb(224,221,214)",
