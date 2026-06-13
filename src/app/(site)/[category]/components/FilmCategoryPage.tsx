@@ -457,7 +457,7 @@ export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, 
                     <div style={{ width: "3px", height: "14px", background: RED, borderRadius: "2px", flexShrink: 0 }} />
                     <p style={{ fontFamily: FONT, fontSize: "11px", fontWeight: 700, color: "rgba(0,0,0,0.5)", margin: 0, letterSpacing: "0.04em" }}>ފިލްމު ރިވިއު</p>
                   </div>
-                  <Link href="/tag/ރިވިއު" style={{ fontFamily: FONT, fontSize: "11px", fontWeight: 700, color: RED, textDecoration: "none", borderBottom: "1px solid rgba(186,42,49,0.3)", paddingBottom: "1px" }}>
+                  <Link href={"/" + categorySlug + "/reviews"} style={{ fontFamily: FONT, fontSize: "11px", fontWeight: 700, color: RED, textDecoration: "none", borderBottom: "1px solid rgba(186,42,49,0.3)", paddingBottom: "1px" }}>
                     {"އިތުރު ރިވިއު ←"}
                   </Link>
                 </div>
