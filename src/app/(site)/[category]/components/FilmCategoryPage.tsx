@@ -370,8 +370,9 @@ export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, 
   const [selectedOTT, setSelectedOTT]       = useState<OTTEntry | null>(null);
 
   const featured   = articles[0] ?? null;
-  const grid3      = articles.slice(1, 4);
-  const grid4      = articles.slice(9, 13);
+  const nonReview  = articles.slice(1).filter(function(a) { return !hasTag(a.tags, "ރިވިއު"); });
+  const grid3      = nonReview.slice(0, 3);
+  const grid4      = nonReview.slice(3, 7);
   const showSidebar = cinemaEntries.length > 0 || ottEntries.length > 0;
   const totalPages = Math.ceil(totalCount / 12);
 
@@ -451,9 +452,14 @@ export default function FilmCategoryPage({ articles, cinemaEntries, ottEntries, 
 
             {reviewArticles.length > 0 && (
               <div style={{ margin: "1.5rem 0" }}>
-                <div style={{ marginBottom: "1.25rem", display: "flex", alignItems: "center", gap: "8px" }}>
-                  <div style={{ width: "3px", height: "14px", background: RED, borderRadius: "2px", flexShrink: 0 }} />
-                  <p style={{ fontFamily: FONT, fontSize: "11px", fontWeight: 700, color: "rgba(0,0,0,0.5)", margin: 0, letterSpacing: "0.04em" }}>ފިލްމު ރިވިއު</p>
+                <div style={{ marginBottom: "1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{ width: "3px", height: "14px", background: RED, borderRadius: "2px", flexShrink: 0 }} />
+                    <p style={{ fontFamily: FONT, fontSize: "11px", fontWeight: 700, color: "rgba(0,0,0,0.5)", margin: 0, letterSpacing: "0.04em" }}>ފިލްމު ރިވިއު</p>
+                  </div>
+                  <Link href="/tag/ރިވިއު" style={{ fontFamily: FONT, fontSize: "11px", fontWeight: 700, color: RED, textDecoration: "none", borderBottom: "1px solid rgba(186,42,49,0.3)", paddingBottom: "1px" }}>
+                    {"އިތުރު ރިވިއު ←"}
+                  </Link>
                 </div>
                 <div className="film-review-grid">
                   {reviewArticles.map(function(a) { return <ReviewCard key={a.id} article={a} categorySlug={categorySlug} />; })}
