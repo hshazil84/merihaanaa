@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -9,7 +8,7 @@ import CoverMedia, { type CoverMediaValue } from "@/components/admin/CoverMedia"
 import ArticleSidebar from "@/components/admin/ArticleSidebar";
 import { Save, Eye, Send, Loader2 } from "lucide-react";
 
-interface Category { id: string; name: string; }
+interface Category { id: string; name: string; slug: string; }
 interface TagItem  { name: string; slug: string; }
 
 export default function EditArticlePage() {
@@ -40,7 +39,8 @@ export default function EditArticlePage() {
   const [status, setStatus]                     = useState<string>("draft");
   const [seriesId, setSeriesId]                 = useState<string | null>(null);
   const [chapterNumber, setChapterNumber]       = useState<number | null>(null);
-
+  const [featuredOnFilm, setFeaturedOnFilm]     = useState(false);
+  const [featuredOnMusic, setFeaturedOnMusic]   = useState(false);
   const [loading, setLoading]     = useState(true);
   const [saving, setSaving]       = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -63,11 +63,10 @@ export default function EditArticlePage() {
 
       const [articleRes, catsRes] = await Promise.all([
         supabase.from("articles").select("*").eq("id", id).single(),
-        supabase.from("categories").select("id, name").order("name"),
+        supabase.from("categories").select("id, name, slug").order("name"),
       ]);
 
       if (catsRes.data) setCategories(catsRes.data);
-
       if (articleRes.error || !articleRes.data) {
         setError("ލިޔުން ނުލިބުނު");
         setLoading(false);
@@ -98,6 +97,8 @@ export default function EditArticlePage() {
       setSeriesId(a.series_id ?? null);
       setChapterNumber(a.chapter_number ?? null);
       setCoverPortraitUrl(a.cover_portrait_url ?? null);
+      setFeaturedOnFilm(a.featured_on_film_category ?? false);
+      setFeaturedOnMusic(a.featured_on_music_category ?? false);
 
       if (a.cover_type === "image" && (a.cover_url || a.featured_image)) {
         setCoverMedia({ type: "image", imageUrl: a.cover_url || a.featured_image });
@@ -115,7 +116,6 @@ export default function EditArticlePage() {
       }
 
       setLoading(false);
-      // Not dirty on initial load
       isDirtyRef.current = false;
     };
     load();
@@ -128,6 +128,7 @@ export default function EditArticlePage() {
     title, excerpt, body, categoryId, placement, homepageSlot, homepageFeatured,
     isPremium, allowComments, ogTitle, ogDesc, ogImageUrl, coverMedia,
     coverPortraitUrl, authorId, tags, seriesId, chapterNumber,
+    featuredOnFilm, featuredOnMusic,
   ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const editorScrollRef = useRef<HTMLDivElement>(null);
@@ -188,6 +189,8 @@ export default function EditArticlePage() {
       tags,
       series_id: seriesId,
       chapter_number: chapterNumber,
+      featured_on_film_category: featuredOnFilm,
+      featured_on_music_category: featuredOnMusic,
       reading_time_minutes: calculateReadingTime(body),
       updated_at: new Date().toISOString(),
     };
@@ -196,16 +199,12 @@ export default function EditArticlePage() {
   const handleSave = async (publishStatus: "draft" | "published" | "scheduled", silent = false) => {
     if (!title.trim()) { if (!silent) setError("ސުރުހީ ލިޔެލާ"); return; }
     if (!silent) { setSaving(true); setError(null); }
-
     const { error: err } = await supabase.from("articles").update(buildPayload(publishStatus)).eq("id", id);
-
     if (!silent) setSaving(false);
     if (err) { if (!silent) setError("ލިޔުން ސޭވް ނުވި: " + err.message); return; }
-
     setLastSaved(new Date());
     setStatus(publishStatus);
     isDirtyRef.current = false;
-
     if (!silent && publishStatus === "published") {
       router.push("/admin/articles");
     }
@@ -242,6 +241,9 @@ export default function EditArticlePage() {
         coverPortraitUrl={coverPortraitUrl}
         authorId={authorId} scheduledAt={scheduledFor} tags={tags} status={status}
         seriesId={seriesId} chapterNumber={chapterNumber}
+        featuredOnFilm={featuredOnFilm}
+        featuredOnMusic={featuredOnMusic}
+        articleId={id}
         onCategoryChange={(catId) => { setCategoryId(catId); categoryRef.current = catId; }}
         onPlacementChange={setPlacement}
         onHomepageSlotChange={setHomepageSlot}
@@ -254,13 +256,14 @@ export default function EditArticlePage() {
         onTagsChange={handleTagsChange}
         onSeriesIdChange={setSeriesId}
         onChapterNumberChange={setChapterNumber}
+        onFeaturedOnFilmChange={setFeaturedOnFilm}
+        onFeaturedOnMusicChange={setFeaturedOnMusic}
         onSaveDraft={() => handleSave("draft")}
         onPublish={() => handleSave("published")}
         onSchedule={() => handleSave("scheduled")}
         onPreview={handlePreview}
         saving={saving} lastSaved={lastSaved} error={error} slug={slug}
       />
-
       <div ref={editorScrollRef} className="flex-1 overflow-y-auto p-6">
         <div className="max-w-3xl mx-auto space-y-4">
           <div className="flex gap-2 flex-wrap" dir="rtl">
@@ -279,18 +282,14 @@ export default function EditArticlePage() {
               </button>
             ))}
           </div>
-
           <textarea value={title} onChange={(e) => setTitle(e.target.value)}
             placeholder="ލިޔުމުގެ ސުރުހީ..." rows={2} dir="rtl"
             className="w-full font-display text-3xl font-bold bg-transparent border-none outline-none resize-none text-foreground placeholder:text-muted-foreground/40 leading-tight" />
-
           <textarea value={excerpt} onChange={(e) => setExcerpt(e.target.value)}
             placeholder="ކުރު ތަޢާރަފެއް — ކިޔުންތެރިން ފުރަތަމަ ފެންނާ ބައި..." rows={2} dir="rtl"
             className="w-full font-body text-base text-muted-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 leading-relaxed" />
-
           <CoverMedia value={coverMedia} onChange={handleCoverMediaChange} />
           <ArticleEditor key={id} content={body ?? undefined} onChange={handleBodyChange} placeholder="ލިޔުން ފަށާ..." />
-
           <div className="sticky bottom-4 z-20" dir="rtl">
             <div className="flex items-center gap-2 p-2 rounded-2xl border border-border shadow-lg w-fit bg-card">
               {lastSaved && (
@@ -319,7 +318,6 @@ export default function EditArticlePage() {
               </button>
             </div>
           </div>
-
           {error && (
             <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
               <p className="font-body text-sm text-destructive">{error}</p>
