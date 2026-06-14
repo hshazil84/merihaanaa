@@ -6,7 +6,8 @@ import Image from "next/image";
 
 interface Article {
   id: string; title: string; slug: string; excerpt: string | null;
-  featured_image: string | null; reading_time_minutes: number | null;
+  featured_image: string | null; cover_portrait_url: string | null;
+  reading_time_minutes: number | null;
   published_at: string | null; tags: any[] | null; view_count?: number | null;
   category: { name: string; slug: string } | null;
   author?: { full_name: string } | null;
@@ -63,7 +64,7 @@ const CSS = [
   "@media(min-width:768px){.sheet-overlay{align-items:center!important;}.sheet-inner{border-radius:16px!important;max-height:82vh!important;}}",
   "@media(max-width:1024px){.film-layout{grid-template-columns:1fr!important;}.film-sidebar-col{display:none!important;}.film-4col{grid-template-columns:1fr 1fr!important;}}",
   "@media(max-width:768px){.film-featured{grid-template-columns:1fr!important;}.film-3col{grid-template-columns:1fr 1fr!important;}",
-  ".film-review-grid{display:flex!important;grid-template-columns:none!important;overflow-x:auto;gap:1rem!important;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;margin:0 -1.5rem;padding:0 1.5rem;}",
+  ".film-review-grid{display:flex!important;grid-template-columns:none!important;overflow-x:auto;gap:1rem!important;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scroll-padding:0 1.5rem;}",
   ".film-review-grid::-webkit-scrollbar{display:none;}",
   ".film-review-card{flex:0 0 70%;scroll-snap-align:start;}",
   "}",
@@ -348,11 +349,12 @@ function ArticleCard({ article, categorySlug }: { article: Article; categorySlug
 
 function ReviewCard({ article, categorySlug }: { article: Article; categorySlug: string }) {
   const slug = article.category?.slug ?? categorySlug;
+  const cover = article.cover_portrait_url || article.featured_image;
   return (
     <Link href={"/" + slug + "/" + article.slug} className="film-review-card" style={{ textDecoration: "none", display: "block" }}>
       <div style={{ aspectRatio: "3/4", overflow: "hidden", borderRadius: "10px", backgroundColor: BG_CARD, marginBottom: "10px", position: "relative" }}>
-        {article.featured_image
-          ? <Image src={article.featured_image} alt={article.title} fill sizes="(max-width: 480px) 78vw, (max-width: 768px) 70vw, (max-width: 1024px) 24vw, 16vw" className="object-cover" />
+        {cover
+          ? <Image src={cover} alt={article.title} fill sizes="(max-width: 480px) 78vw, (max-width: 768px) 70vw, (max-width: 1024px) 24vw, 16vw" className="object-cover" />
           : <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
         }
         <div style={{ position: "absolute", top: "10px", right: "10px" }}>
