@@ -17,7 +17,6 @@ import {
   Library, Check, Search,
 } from "lucide-react";
 
-const BUCKET = "article-images";
 type Tab = "image" | "video" | "social";
 type ImageSubTab = "upload" | "library";
 
@@ -152,7 +151,6 @@ function ImageTab({ onInsert }: { onInsert: (attrs: Omit<MediaBlockAttrs, "size"
 // ── Upload sub-tab ────────────────────────────────────────
 
 function UploadSubTab({ onInsert }: { onInsert: (attrs: Omit<MediaBlockAttrs, "size" | "align">) => void }) {
-  const supabase = createClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging]   = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -172,15 +170,16 @@ function UploadSubTab({ onInsert }: { onInsert: (attrs: Omit<MediaBlockAttrs, "s
       const ratio = ASPECT_RATIOS[aspectRatio];
       const blob = await processImage(file, { targetW: ratio.w, targetH: ratio.h });
       setProgress("ލޯޑް ކުރަނީ...");
-      const path = `body/${Date.now()}.webp`;
-      const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, blob, { contentType: "image/webp", upsert: true });
-      if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(path);
-      setPreview(publicUrl);
+      const formData = new FormData();
+      formData.append("file", new File([blob], `body-${Date.now()}.webp`, { type: "image/webp" }));
+      const res = await fetch("/api/upload-image", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error ?? "Upload failed");
+      setPreview(data.url);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "ފޮޓޯ ލޯޑް ނުވި");
     } finally { setUploading(false); setProgress(null); }
-  }, [aspectRatio, supabase]);
+  }, [aspectRatio]);
 
   return (
     <div className="space-y-4">
