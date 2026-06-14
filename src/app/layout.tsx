@@ -42,6 +42,8 @@ export default function RootLayout({
         <link rel="preload" href="/fonts/MVTypewriter.woff" as="font" type="font/woff" crossOrigin="anonymous" />
         <link rel="preload" href="/fonts/MVTypewriter-Bold.woff" as="font" type="font/woff" crossOrigin="anonymous" />
         <link rel="preload" href="/fonts/Sangu Suruhee 2.0.woff" as="font" type="font/woff" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/noto-sans-thaana-v26-latin-regular.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/noto-sans-thaana-v26-latin-700.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
       </head>
       <body className="font-body antialiased bg-background text-foreground">
         {children}
