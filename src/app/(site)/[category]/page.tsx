@@ -127,7 +127,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
       supabase
         .from("articles")
         .select(
-          "id, title, slug, excerpt, featured_image, reading_time_minutes, published_at, tags, view_count, author:authors!author_id(full_name), category:categories!category_id(name, slug)",
+          "id, title, slug, excerpt, featured_image, cover_portrait_url, reading_time_minutes, published_at, tags, view_count, author:authors!author_id(full_name), category:categories!category_id(name, slug)",
           { count: "exact" }
         )
         .eq("status", "published")
