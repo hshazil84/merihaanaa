@@ -7,7 +7,7 @@ import {
   Send, Save, Eye, Clock, Star, BookOpen, FileText,
   Check, Calendar, User, Globe, Lock, MessageCircle, RefreshCw,
   Sparkles, X, UploadCloud, Loader2, Home, ChevronDown, Tag, BookMarked,
-  ImageIcon,
+  ImageIcon, Flame,
 } from "lucide-react";
 import { calculateReadingTime } from "@/lib/utils";
 import { processImage, ACCEPTED_IMAGE_TYPES } from "@/lib/imageUtils";
@@ -15,7 +15,7 @@ import type { CoverMediaValue } from "@/components/admin/CoverMedia";
 
 interface Author    { id: string; full_name: string; role: string; }
 interface TagItem   { name: string; slug: string; }
-interface Category  { id: string; name: string; }
+interface Category  { id: string; name: string; slug: string; }
 interface SeriesItem { id: string; title: string; }
 
 interface SidebarProps {
@@ -40,6 +40,8 @@ interface SidebarProps {
   status?: string;
   seriesId?: string | null;
   chapterNumber?: number | null;
+  featuredOnFilm?: boolean;
+  featuredOnMusic?: boolean;
   onCategoryChange: (id: string) => void;
   onPlacementChange: (v: string | null) => void;
   onHomepageSlotChange: (v: number | null) => void;
@@ -55,6 +57,8 @@ interface SidebarProps {
   onTagsChange?: (tags: TagItem[] | ((prev: TagItem[]) => TagItem[])) => void;
   onSeriesIdChange?: (v: string | null) => void;
   onChapterNumberChange?: (v: number | null) => void;
+  onFeaturedOnFilmChange?: (v: boolean) => void;
+  onFeaturedOnMusicChange?: (v: boolean) => void;
   onSaveDraft: () => Promise<void>;
   onPublish: () => Promise<void>;
   onSchedule: () => Promise<void>;
@@ -63,6 +67,7 @@ interface SidebarProps {
   lastSaved: Date | null;
   error: string | null;
   slug: string;
+  articleId?: string | null;
 }
 
 const PLACEMENTS = [
@@ -72,8 +77,9 @@ const PLACEMENTS = [
   { value: "review",         label: "ރިވިއު",          icon: FileText, desc: "3 ގްރިޑް",  slots: 3 },
 ];
 
-const BUCKET = "article-images";
-const STORY_CATEGORY_NAME = "ވާހަކަ";
+const STORY_CATEGORY_SLUG = "vaahaka";
+const FILM_CATEGORY_SLUG  = "film";
+const MUSIC_CATEGORY_SLUG = "music";
 
 function slugify(text: string) {
   const trimmed = text.trim();
@@ -128,7 +134,7 @@ function Collapsible({ label, icon, children, defaultOpen = false }: {
 function PortraitUploader({
   value,
   onChange,
-  label = "ވާހަކަ ކަވަރ",
+  label = "ކަވަރ",
 }: {
   value: string | null;
   onChange: (v: string | null) => void;
@@ -263,12 +269,14 @@ export default function ArticleSidebar({
   title, excerpt, body, categories, categoryId, placement, homepageSlot, homepageFeatured,
   isPremium, allowComments, ogTitle, ogDesc, ogImageUrl, coverMedia, coverPortraitUrl,
   authorId, scheduledAt, tags = [], status, seriesId, chapterNumber,
+  featuredOnFilm = false, featuredOnMusic = false,
   onCategoryChange, onPlacementChange, onHomepageSlotChange, onHomepageFeaturedChange,
   onIsPremiumChange, onAllowCommentsChange, onOgTitleChange, onOgDescChange,
   onOgImageUrlChange, onCoverPortraitUrlChange, onAuthorIdChange, onScheduledAtChange,
   onTagsChange, onSeriesIdChange, onChapterNumberChange,
+  onFeaturedOnFilmChange, onFeaturedOnMusicChange,
   onSaveDraft, onPublish, onSchedule, onPreview,
-  saving, lastSaved, error, slug,
+  saving, lastSaved, error, slug, articleId,
 }: SidebarProps) {
   const supabase = createClient();
   const [authors, setAuthors]             = useState<Author[]>([]);
@@ -279,6 +287,7 @@ export default function ArticleSidebar({
   const [ogUploading, setOgUploading]     = useState(false);
   const [seriesList, setSeriesList]       = useState<SeriesItem[]>([]);
   const [showSeriesModal, setShowSeriesModal] = useState(false);
+  const [featuredToggling, setFeaturedToggling] = useState(false);
   const ogInputRef = useRef<HTMLInputElement>(null);
   const addingRef  = useRef(false);
 
@@ -293,8 +302,17 @@ export default function ArticleSidebar({
   const currentPlacement = PLACEMENTS.find(p => p.value === placement);
   const slotCount = currentPlacement?.slots ?? 0;
 
-  const isStoryCategory  = categories.find(c => c.id === categoryId)?.name === STORY_CATEGORY_NAME;
+  const currentCategorySlug = categories.find(c => c.id === categoryId)?.slug ?? null;
+  const isStoryCategory  = currentCategorySlug === STORY_CATEGORY_SLUG;
+  const isFilmCategory   = currentCategorySlug === FILM_CATEGORY_SLUG;
+  const isMusicCategory  = currentCategorySlug === MUSIC_CATEGORY_SLUG;
   const isReviewPlacement = placement === "review";
+  const showPortrait = isStoryCategory || isFilmCategory || isMusicCategory || isReviewPlacement;
+
+  const portraitLabel = isStoryCategory ? "ވާހަކަ ކަވަރ"
+    : isFilmCategory  ? "ފިލްމް ކަވަރ"
+    : isMusicCategory ? "މިއުޒިކް ކަވަރ"
+    : "ރިވިއު ކަވަރ";
 
   useEffect(() => {
     supabase.from("authors").select("id, full_name, role")
@@ -342,18 +360,54 @@ export default function ArticleSidebar({
     finally { setAiLoading(false); }
   };
 
+  // ── OG image upload → R2 ──────────────────────────────
   const handleOgImageFile = useCallback(async (file: File) => {
     setOgUploading(true);
     try {
       const blob = await processImage(file, { targetW: 1200, targetH: 630 });
-      const path = `og/og-${Date.now()}.webp`;
-      const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, blob, { contentType: "image/webp", upsert: true });
-      if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(path);
-      onOgImageUrlChange(publicUrl);
+      const formData = new FormData();
+      formData.append("file", new File([blob], `og-${Date.now()}.webp`, { type: "image/webp" }));
+      const res = await fetch("/api/upload-image", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error ?? "Upload failed");
+      onOgImageUrlChange(data.url);
     } catch (err) { console.error("OG upload failed:", err); }
     finally { setOgUploading(false); }
-  }, [supabase, onOgImageUrlChange]);
+  }, [onOgImageUrlChange]);
+
+  // ── Featured toggle with auto-unset of previous article ──
+  const handleFeaturedFilm = useCallback(async (newVal: boolean) => {
+    if (!onFeaturedOnFilmChange) return;
+    if (newVal && articleId) {
+      setFeaturedToggling(true);
+      try {
+        // Unset any other article currently featured on film
+        await supabase
+          .from("articles")
+          .update({ featured_on_film_category: false })
+          .eq("featured_on_film_category", true)
+          .neq("id", articleId);
+      } catch (err) { console.error("Failed to unset previous film featured:", err); }
+      finally { setFeaturedToggling(false); }
+    }
+    onFeaturedOnFilmChange(newVal);
+  }, [onFeaturedOnFilmChange, articleId, supabase]);
+
+  const handleFeaturedMusic = useCallback(async (newVal: boolean) => {
+    if (!onFeaturedOnMusicChange) return;
+    if (newVal && articleId) {
+      setFeaturedToggling(true);
+      try {
+        await supabase
+          .from("articles")
+          .update({ featured_on_music_category: false })
+          .eq("featured_on_music_category", true)
+          .neq("id", articleId);
+      } catch (err) { console.error("Failed to unset previous music featured:", err); }
+      finally { setFeaturedToggling(false); }
+    }
+    onFeaturedOnMusicChange(newVal);
+  }, [onFeaturedOnMusicChange, articleId, supabase]);
 
   return (
     <>
@@ -432,7 +486,7 @@ export default function ArticleSidebar({
 
           <Divider />
 
-          {/* ── ވާހަކަ: Series + Portrait ── */}
+          {/* ── ވާހަކަ: Series ── */}
           {isStoryCategory && (
             <>
               <Section>
@@ -461,26 +515,71 @@ export default function ArticleSidebar({
                   </div>
                 )}
               </Section>
-
-              <Divider />
-
-              <Section>
-                <SectionLabel icon={<ImageIcon size={11} />}>ވާހަކަ ކަވަރ</SectionLabel>
-                <PortraitUploader value={coverPortraitUrl} onChange={onCoverPortraitUrlChange} label="ވާހަކަ ކަވަރ" />
-              </Section>
-
               <Divider />
             </>
           )}
 
-          {/* ── ރިވިއު portrait — shown when placement = review ── */}
-          {isReviewPlacement && (
+          {/* ── Portrait uploader — ވާހަކަ / ފިލްމް / މިއުޒިކް / ރިވިއު ── */}
+          {showPortrait && (
             <>
               <Section>
-                <SectionLabel icon={<ImageIcon size={11} />}>ރިވިއު ކަވަރ</SectionLabel>
-                <PortraitUploader value={coverPortraitUrl} onChange={onCoverPortraitUrlChange} label="ރިވިއު ކަވަރ" />
+                <SectionLabel icon={<ImageIcon size={11} />}>{portraitLabel}</SectionLabel>
+                <PortraitUploader value={coverPortraitUrl} onChange={onCoverPortraitUrlChange} label={portraitLabel} />
               </Section>
+              <Divider />
+            </>
+          )}
 
+          {/* ── Featured toggle — ފިލްމް ── */}
+          {isFilmCategory && onFeaturedOnFilmChange && (
+            <>
+              <Section>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Flame size={11} className="text-muted-foreground" />
+                    <div>
+                      <p className="font-body text-[11px] font-semibold text-foreground">ފީޗާޑް</p>
+                      <p className="font-body text-[9px] text-muted-foreground mt-0.5">ފިލްމް ޕޭޖް ހީރޯ</p>
+                    </div>
+                  </div>
+                  {featuredToggling
+                    ? <Loader2 size={14} className="animate-spin text-muted-foreground" />
+                    : <Toggle value={featuredOnFilm} onChange={handleFeaturedFilm} />
+                  }
+                </div>
+                {featuredOnFilm && (
+                  <p className="font-body text-[9px] text-amber-600 mt-2">
+                    ✦ ފިލްމް ޕޭޖްގެ ފީޗާޑް އާޓިކަލްއަކީ މިއީ
+                  </p>
+                )}
+              </Section>
+              <Divider />
+            </>
+          )}
+
+          {/* ── Featured toggle — މިއުޒިކް ── */}
+          {isMusicCategory && onFeaturedOnMusicChange && (
+            <>
+              <Section>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Flame size={11} className="text-muted-foreground" />
+                    <div>
+                      <p className="font-body text-[11px] font-semibold text-foreground">ފީޗާޑް</p>
+                      <p className="font-body text-[9px] text-muted-foreground mt-0.5">މިއުޒިކް ޕޭޖް ހީރޯ</p>
+                    </div>
+                  </div>
+                  {featuredToggling
+                    ? <Loader2 size={14} className="animate-spin text-muted-foreground" />
+                    : <Toggle value={featuredOnMusic} onChange={handleFeaturedMusic} />
+                  }
+                </div>
+                {featuredOnMusic && (
+                  <p className="font-body text-[9px] text-amber-600 mt-2">
+                    ✦ މިއުޒިކް ޕޭޖްގެ ފީޗާޑް އާޓިކަލްއަކީ މިއީ
+                  </p>
+                )}
+              </Section>
               <Divider />
             </>
           )}
