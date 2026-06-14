@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -9,7 +8,7 @@ import ArticleSidebar from "@/components/admin/ArticleSidebar";
 import { generateArticleSlug, calculateReadingTime } from "@/lib/utils";
 import { Save, Eye, Send, Loader2 } from "lucide-react";
 
-interface Category { id: string; name: string; }
+interface Category { id: string; name: string; slug: string; }
 
 export default function NewArticlePage() {
   const router   = useRouter();
@@ -35,7 +34,6 @@ export default function NewArticlePage() {
   const [tags, setTags]                 = useState<{ name: string; slug: string }[]>([]);
   const [seriesId, setSeriesId]         = useState<string | null>(null);
   const [chapterNumber, setChapterNumber] = useState<number | null>(null);
-
   const [saving, setSaving]       = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [error, setError]         = useState<string | null>(null);
@@ -48,7 +46,7 @@ export default function NewArticlePage() {
   const isPremiumRef = useRef(false);
 
   useEffect(() => {
-    supabase.from("categories").select("id, name").order("name")
+    supabase.from("categories").select("id, name, slug").order("name")
       .then(({ data }) => {
         if (data) {
           setCategories(data);
@@ -91,9 +89,7 @@ export default function NewArticlePage() {
         : coverMedia?.type === "video"
         ? { cover_type: "video", cover_url: null, featured_image: null, cover_video_id: coverMedia.videoMeta?.videoId ?? null, cover_video_provider: coverMedia.videoMeta?.provider ?? null, cover_video_thumbnail: coverMedia.videoMeta?.thumbnailUrl ?? null }
         : { cover_type: null, cover_url: null, featured_image: null, cover_video_id: null, cover_video_provider: null, cover_video_thumbnail: null };
-
     const resolvedOgImage = ogImageUrl?.trim() || coverFields.featured_image || coverFields.cover_video_thumbnail || null;
-
     return {
       title, excerpt, body,
       category_id: categoryRef.current,
@@ -122,13 +118,10 @@ export default function NewArticlePage() {
   const handleSave = async (publishStatus: "draft" | "published" | "scheduled", silent = false) => {
     if (!title.trim()) { if (!silent) setError("ސުރުހީ ލިޔެލާ"); return; }
     if (!silent) { setSaving(true); setError(null); }
-
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/login"); return; }
-
     const payload = buildPayload(publishStatus);
     let data, err;
-
     if (articleIdRef.current) {
       ({ data, error: err } = await supabase.from("articles").update(payload).eq("id", articleIdRef.current).select().single());
     } else {
@@ -137,17 +130,14 @@ export default function NewArticlePage() {
       setSlug(generatedSlug);
       ({ data, error: err } = await supabase.from("articles").insert({ ...payload, slug: generatedSlug }).select().single());
     }
-
     if (!silent) setSaving(false);
     if (err) { if (!silent) setError("ލިޔުން ސޭވް ނުވި: " + err.message); return; }
-
     if (data) {
       articleIdRef.current = data.id;
       slugRef.current = data.slug;
       setSlug(data.slug);
       setLastSaved(new Date());
     }
-
     if (!silent && (publishStatus === "published" || publishStatus === "scheduled")) {
       router.push(`/admin/articles/${articleIdRef.current}`);
     }
@@ -189,7 +179,6 @@ export default function NewArticlePage() {
         onPreview={handlePreview}
         saving={saving} lastSaved={lastSaved} error={error} slug={slug}
       />
-
       <div ref={editorScrollRef} className="flex-1 overflow-y-auto p-6">
         <div className="max-w-3xl mx-auto space-y-4">
           <div className="flex gap-2 flex-wrap" dir="rtl">
@@ -208,18 +197,14 @@ export default function NewArticlePage() {
               </button>
             ))}
           </div>
-
           <textarea value={title} onChange={(e) => setTitle(e.target.value)}
             placeholder="ލިޔުމުގެ ސުރުހީ..." rows={2} dir="rtl"
             className="w-full font-display text-3xl font-bold bg-transparent border-none outline-none resize-none text-foreground placeholder:text-muted-foreground/40 leading-tight" />
-
           <textarea value={excerpt} onChange={(e) => setExcerpt(e.target.value)}
             placeholder="ކުރު ތަޢާރަފެއް — ކިޔުންތެރިން ފުރަތަމަ ފެންނާ ބައި..." rows={6} dir="rtl"
             className="w-full font-body text-base text-muted-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 leading-relaxed" />
-
           <CoverMedia value={coverMedia} onChange={handleCoverMediaChange} />
           <ArticleEditor content={body ?? undefined} onChange={handleBodyChange} placeholder="ލިޔުން ފަށާ..." />
-
           <div className="sticky bottom-4 z-20" dir="rtl">
             <div className="flex items-center gap-2 p-2 rounded-2xl border border-border shadow-lg w-fit bg-card">
               {lastSaved && (
@@ -247,7 +232,6 @@ export default function NewArticlePage() {
               </button>
             </div>
           </div>
-
           {error && (
             <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
               <p className="font-body text-sm text-destructive">{error}</p>
