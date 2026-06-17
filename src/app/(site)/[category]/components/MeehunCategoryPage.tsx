@@ -71,7 +71,7 @@ function ColLabel({ children }: { children: string }) {
   );
 }
 
-function RecentArticleCard({ article, categorySlug, isLast }: { article: any; categorySlug: string; isLast: boolean }) {
+function RecentArticleCard({ article, categorySlug, isLast, priority = false }: { article: any; categorySlug: string; isLast: boolean; priority?: boolean }) {
   return (
     <Link
       href={"/" + categorySlug + "/" + article.slug}
@@ -80,7 +80,7 @@ function RecentArticleCard({ article, categorySlug, isLast }: { article: any; ca
     >
       <div style={{ width: "88px", height: "88px", borderRadius: "999px", overflow: "hidden", backgroundColor: BG_CARD, margin: "0 auto 10px", position: "relative" }}>
         {article.featured_image ? (
-          <Image src={article.featured_image} alt={article.title} fill sizes="88px" className="object-cover" />
+          <Image src={article.featured_image} alt={article.title} fill sizes="88px" className="object-cover" quality={90} priority={priority} />
         ) : (
           <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
         )}
@@ -142,20 +142,20 @@ export function MeehunCategoryPage({
       {/* Desktop: 3-col grid */}
       <div style={{ maxWidth: "72rem", margin: "0 auto", padding: "0 1.5rem" }} className="meehun-grid">
 
-        {/* LEFT: Recent circles */}
+        {/* LEFT: Recent circles — visible alongside hero on desktop, so first 3 are priority */}
         <div className="meehun-col-left">
           {recentArticles.map((article, i) => (
-            <RecentArticleCard key={article.id} article={article} categorySlug={category.slug} isLast={i === recentArticles.length - 1} />
+            <RecentArticleCard key={article.id} article={article} categorySlug={category.slug} isLast={i === recentArticles.length - 1} priority={i < 3} />
           ))}
         </div>
 
-        {/* CENTER: Featured with gradient overlay */}
+        {/* CENTER: Featured with gradient overlay — desktop only render, so safe to keep priority */}
         <div className="meehun-col-center">
           {featuredArticle ? (
             <Link href={"/" + category.slug + "/" + featuredArticle.slug} style={{ display: "block", textDecoration: "none", position: "relative" }} className="featured-link">
               <div style={{ width: "100%", aspectRatio: "3/2", borderRadius: "12px", overflow: "hidden", backgroundColor: BG_CARD, position: "relative" }}>
                 {featuredArticle.featured_image ? (
-                  <Image src={featuredArticle.featured_image} alt={featuredArticle.title} fill sizes="(max-width: 1024px) 100vw, 600px" className="object-cover" priority />
+                  <Image src={featuredArticle.featured_image} alt={featuredArticle.title} fill sizes="(max-width: 1024px) 100vw, 600px" className="object-cover" priority quality={95} />
                 ) : (
                   <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
                 )}
@@ -168,7 +168,7 @@ export function MeehunCategoryPage({
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     {authorAvatar ? (
                       <div style={{ width: "26px", height: "26px", borderRadius: "50%", overflow: "hidden", flexShrink: 0, position: "relative", border: "1.5px solid rgba(255,255,255,0.4)" }}>
-                        <Image src={authorAvatar} alt={authorName} fill sizes="26px" className="object-cover" />
+                        <Image src={authorAvatar} alt={authorName} fill sizes="26px" className="object-cover" quality={90} />
                       </div>
                     ) : authorName ? (
                       <div style={{ width: "26px", height: "26px", borderRadius: "50%", flexShrink: 0, backgroundColor: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -206,7 +206,16 @@ export function MeehunCategoryPage({
 
       </div>
 
-      {/* Mobile only */}
+      {/* Mobile only — separate DOM subtree, hidden via CSS on desktop.
+          Featured image here intentionally has NO priority: on mobile this
+          is the only featured image rendered visually, but since both
+          desktop and mobile featured blocks always exist in the DOM
+          simultaneously, marking both `priority` doubles the preload
+          fetch for largely the same content. Desktop's copy above carries
+          priority since 1024px+ viewports are assumed first-paint there;
+          mobile relies on its natural fetch order plus `loading` default
+          (lazy is fine here since it is also near the top of the layout
+          and `sizes="100vw"` keeps the request appropriately sized). */}
       <div className="meehun-mobile-only" style={{ maxWidth: "72rem", margin: "0 auto", padding: "0 1.5rem" }}>
 
         {/* Featured on mobile */}
@@ -215,7 +224,7 @@ export function MeehunCategoryPage({
             <Link href={"/" + category.slug + "/" + featuredArticle.slug} style={{ display: "block", textDecoration: "none" }} className="featured-link">
               <div style={{ width: "100%", aspectRatio: "3/2", borderRadius: "8px", overflow: "hidden", backgroundColor: BG_CARD, position: "relative" }}>
                 {featuredArticle.featured_image && (
-                  <Image src={featuredArticle.featured_image} alt={featuredArticle.title} fill sizes="100vw" className="object-cover" priority />
+                  <Image src={featuredArticle.featured_image} alt={featuredArticle.title} fill sizes="100vw" className="object-cover" quality={90} />
                 )}
                 <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(10,8,6,0.88) 0%, rgba(10,8,6,0.55) 35%, transparent 65%)", pointerEvents: "none" }} />
                 <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "16px" }}>
@@ -225,7 +234,7 @@ export function MeehunCategoryPage({
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     {authorAvatar && (
                       <div style={{ width: "22px", height: "22px", borderRadius: "50%", overflow: "hidden", flexShrink: 0, position: "relative", border: "1.5px solid rgba(255,255,255,0.4)" }}>
-                        <Image src={authorAvatar} alt={authorName} fill sizes="22px" className="object-cover" />
+                        <Image src={authorAvatar} alt={authorName} fill sizes="22px" className="object-cover" quality={90} />
                       </div>
                     )}
                     <p style={{ fontFamily: FONT_THAANA, fontSize: "10px", color: "rgba(255,255,255,0.65)", margin: 0 }}>
@@ -252,7 +261,7 @@ export function MeehunCategoryPage({
                 >
                   <div style={{ width: "110px", height: "110px", borderRadius: "999px", overflow: "hidden", backgroundColor: BG_CARD, margin: "0 auto 8px", position: "relative" }}>
                     {article.featured_image ? (
-                      <Image src={article.featured_image} alt={article.title} fill sizes="110px" className="object-cover" />
+                      <Image src={article.featured_image} alt={article.title} fill sizes="110px" className="object-cover" quality={90} />
                     ) : <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />}
                   </div>
                   <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_PRIMARY, lineHeight: 1.6, margin: 0 }} className="line-clamp-2">
@@ -303,7 +312,7 @@ export function MeehunCategoryPage({
               <Link key={article.id} href={"/" + category.slug + "/" + article.slug} style={{ textDecoration: "none", display: "block" }} className="card-link">
                 <div style={{ aspectRatio: "4/3", overflow: "hidden", borderRadius: "8px", backgroundColor: BG_CARD, marginBottom: "10px", position: "relative" }}>
                   {article.featured_image ? (
-                    <Image src={article.featured_image} alt={article.title} fill sizes="(max-width: 480px) 100vw, (max-width: 1024px) 50vw, 25vw" className="object-cover" style={{ transition: "transform 0.5s ease" }} />
+                    <Image src={article.featured_image} alt={article.title} fill sizes="(max-width: 480px) 100vw, (max-width: 1024px) 50vw, 25vw" className="object-cover" style={{ transition: "transform 0.5s ease" }} quality={90} />
                   ) : <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />}
                 </div>
                 <TagLabel tags={article.tags} />
