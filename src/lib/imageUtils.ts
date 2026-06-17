@@ -1,5 +1,5 @@
 // lib/imageUtils.ts
-// Canvas pipeline: resize → center-crop → strip metadata → iterative JPEG compression → target <300KB
+// Canvas pipeline: resize → center-crop → strip metadata → iterative JPEG compression → target <250KB
 // Note: Safari does not support lossy WebP in canvas.toBlob — using JPEG instead
 
 export interface ProcessImageOptions {
@@ -16,7 +16,7 @@ export async function processImage(
   const {
     targetW   = 1200,
     targetH   = 675,
-    maxSizeKB = 290,
+    maxSizeKB = 250,
     watermark = false,
   } = options;
 
@@ -89,23 +89,31 @@ export async function processImage(
         ctx.restore();
       }
 
-      // Iterative JPEG compression — Safari compatible
+      // Iterative JPEG compression — Safari compatible.
+      // Start near-lossless (95%) and step DOWN only if still over
+      // budget. This makes the algorithm use the available size
+      // budget instead of stopping the moment it happens to fit at
+      // a low quality — previously starting at 85% and stepping by
+      // 5% meant many images landed at 48-50KB despite a 290KB
+      // ceiling, looking visibly over-compressed. Starting high and
+      // stepping by smaller 3% increments lands images much closer
+      // to maxSizeKB while staying under it.
       const compress = (quality: number): Promise<Blob> =>
         new Promise((res, rej) => {
           canvas.toBlob((blob) => {
             if (!blob) { rej(new Error("toBlob failed")); return; }
             const sizeKB = blob.size / 1024;
             console.log(`Quality ${Math.round(quality * 100)}%: ${sizeKB.toFixed(0)}KB`);
-            if (sizeKB <= maxSizeKB || quality <= 0.30) {
+            if (sizeKB <= maxSizeKB || quality <= 0.40) {
               res(blob);
             } else {
-              compress(Math.round((quality - 0.05) * 100) / 100).then(res).catch(rej);
+              compress(Math.round((quality - 0.03) * 100) / 100).then(res).catch(rej);
             }
           }, "image/jpeg", quality);
         });
 
       console.log("Starting compression, target:", maxSizeKB, "KB");
-      compress(0.85).then(resolve).catch(reject);
+      compress(0.95).then(resolve).catch(reject);
     };
 
     img.onerror = () => {
