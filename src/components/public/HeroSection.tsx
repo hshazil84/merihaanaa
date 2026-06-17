@@ -1,6 +1,7 @@
 "use client";
 // components/public/HeroSection.tsx
 // Hero with bottom-center content (web + mobile) and legibility gradient.
+
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -41,6 +42,7 @@ export default function HeroSection({ article }: { article: HeroArticle }) {
             fill
             sizes="100vw"
             priority
+            quality={90}
             className={"object-cover transition-opacity duration-1000 " + (loaded ? "opacity-100" : "opacity-0")}
           />
         </div>
