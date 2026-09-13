@@ -3,7 +3,9 @@
 
 import { useRef, useState, useCallback } from "react";
 import {
-  processImage,
+  processImagePair,
+  ASPECT_RATIOS,
+  RATIO_SIZE_BUDGET_KB,
   ACCEPTED_IMAGE_TYPES,
   MAX_IMAGE_SIZE_MB,
 } from "@/lib/imageUtils";
@@ -18,6 +20,9 @@ export type CoverMediaType = "image" | "video";
 export interface CoverMediaValue {
   type: CoverMediaType;
   imageUrl?: string;
+  // 1200x630 social card. Only set on fresh uploads — images picked from
+  // the library fall back to imageUrl in generateMetadata.
+  ogImageUrl?: string;
   videoMeta?: VideoMeta;
 }
 
@@ -25,6 +30,8 @@ interface Props {
   value: CoverMediaValue | null;
   onChange: (value: CoverMediaValue | null) => void;
 }
+
+const COVER = ASPECT_RATIOS["16:9"];
 
 export default function CoverMedia({ value, onChange }: Props) {
   const [activeTab, setActiveTab] = useState<CoverMediaType>(value?.type ?? "image");
@@ -80,10 +87,19 @@ function CoverPreview({ value, onClear }: { value: CoverMediaValue; onClear: () 
           <X size={15} /> ބަދަލުކޮށްލާ
         </button>
       </div>
-      <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-sm">
-        <span className="font-body text-[10px] text-white/80">
-          {value.type === "image" ? "R2 · WebP" : value.videoMeta?.provider === "vimeo" ? "Vimeo" : "YouTube"}
-        </span>
+      <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
+        {value.type === "image" && value.ogImageUrl && (
+          <div className="px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-sm">
+            <span className="font-body text-[10px] text-white/80">OG ✓</span>
+          </div>
+        )}
+        <div className="px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-sm">
+          <span className="font-body text-[10px] text-white/80">
+            {value.type === "image"
+              ? `R2 · ${COVER.w}px`
+              : value.videoMeta?.provider === "vimeo" ? "Vimeo" : "YouTube"}
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -97,7 +113,8 @@ function ImageUploader({ onChange }: { onChange: (v: CoverMediaValue) => void })
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Called when user picks from InsertMediaModal
+  // Called when user picks from InsertMediaModal.
+  // Library images carry no social card — og falls back to the master.
   const handleModalInsert = useCallback((attrs: MediaBlockAttrs) => {
     if (attrs.type === "image" && attrs.src) {
       onChange({ type: "image", imageUrl: attrs.src });
@@ -122,16 +139,23 @@ function ImageUploader({ onChange }: { onChange: (v: CoverMediaValue) => void })
     setProgress("ފޮޓޯ ތައްޔާރު ކުރަނީ...");
 
     try {
-      const blob = await processImage(file, {
-        targetW: 1200,
-        targetH: 675,
+      // Two derivatives: a large display master for the hero, and a
+      // small 1200x630 card so WhatsApp previews keep working.
+      const { master, og } = await processImagePair(file, {
+        targetW: COVER.w,
+        targetH: COVER.h,
+        maxSizeKB: RATIO_SIZE_BUDGET_KB["16:9"],
         watermark: false,
       });
 
       setProgress("ކްލައުޑަށް ލޯޑް ކުރަނީ...");
 
+      const stamp = Date.now();
       const formData = new FormData();
-      formData.append("file", new File([blob], `cover-${Date.now()}.jpg`, { type: "image/jpeg" }));
+      formData.append("file", new File([master], `cover-${stamp}.jpg`, { type: "image/jpeg" }));
+      formData.append("ogFile", new File([og], `cover-${stamp}-og.jpg`, { type: "image/jpeg" }));
+      formData.append("folder", "covers");
+      formData.append("saveMedia", "true");
 
       const res = await fetch("/api/upload-image", {
         method: "POST",
@@ -141,7 +165,11 @@ function ImageUploader({ onChange }: { onChange: (v: CoverMediaValue) => void })
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error ?? "Upload failed");
 
-      onChange({ type: "image", imageUrl: data.url });
+      onChange({
+        type: "image",
+        imageUrl: data.url,
+        ogImageUrl: data.ogUrl ?? undefined,
+      });
     } catch (err: unknown) {
       setError(`ފޮޓޯ ލޯޑް ނުވި: ${err instanceof Error ? err.message : "އަލުން ލޯޑްކޮށްލާ"}`);
     } finally {
@@ -186,7 +214,7 @@ function ImageUploader({ onChange }: { onChange: (v: CoverMediaValue) => void })
               </div>
               <div className="px-3 py-1.5 rounded-lg bg-muted border border-border">
                 <p className="font-body text-[10px] text-muted-foreground">
-                  ކޮންމެ ފޮޓޯއެއް ވެސް 1200×675 WebP އަށް ބަދަލުކުރެވޭ
+                  {COVER.w}×{COVER.h} JPEG · ސޯޝަލް ކާޑް ވަކިން ތައްޔާރުކުރެވޭ
                 </p>
               </div>
             </>
