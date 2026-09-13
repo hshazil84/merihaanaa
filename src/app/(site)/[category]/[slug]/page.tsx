@@ -45,6 +45,7 @@ async function getArticle(slug: string) {
       featured_image, cover_type, cover_url,
       cover_video_id, cover_video_provider, cover_video_thumbnail,
       featured_image_caption,
+      og_title, og_description, og_image_url,
       reading_time_minutes, published_at, allow_comments,
       is_premium, tags,
       series_id, chapter_number,
@@ -82,23 +83,34 @@ async function getRelated(categoryId: string, excludeId: string, categorySlug: s
 export async function generateMetadata({ params }: PageProps) {
   const article = await getArticle(params.slug);
   if (!article) return { title: "ލިޔުން ނުލިބުނު" };
-  const coverImage = article.cover_type === "image"
-    ? article.cover_url || article.featured_image
-    : article.cover_video_thumbnail;
+
+  // og_image_url is the 1200x630 card built at upload time. The display
+  // cover is a large master and will be rejected by WhatsApp, so it is
+  // only a fallback for articles published before the card existed.
+  const socialImage =
+    article.og_image_url ||
+    (article.cover_type === "image"
+      ? article.cover_url || article.featured_image
+      : article.cover_video_thumbnail);
+
   const cat = article.category as any;
   const catSlug = cat?.slug ?? params.category;
   const articleUrl = "https://merihaanaa.com/" + catSlug + "/" + article.slug;
+
+  const ogTitle = article.og_title || article.title;
+  const ogDesc  = article.og_description || article.excerpt || "";
+
   return {
     title: article.title,
     description: article.excerpt,
     openGraph: {
-      url: articleUrl, title: article.title, description: article.excerpt ?? "",
-      images: coverImage ? [{ url: coverImage, width: 1200, height: 630 }] : [],
+      url: articleUrl, title: ogTitle, description: ogDesc,
+      images: socialImage ? [{ url: socialImage, width: 1200, height: 630 }] : [],
       type: "article", siteName: "މެރިހާނާ",
     },
     twitter: {
-      card: "summary_large_image", title: article.title,
-      description: article.excerpt ?? "", images: coverImage ? [coverImage] : [],
+      card: "summary_large_image", title: ogTitle,
+      description: ogDesc, images: socialImage ? [socialImage] : [],
     },
   };
 }
