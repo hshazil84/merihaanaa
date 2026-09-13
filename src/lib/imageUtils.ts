@@ -1,12 +1,72 @@
 // lib/imageUtils.ts
-// Canvas pipeline: resize → center-crop → strip metadata → iterative JPEG compression → target <250KB
+// Canvas pipeline: resize (never upscale) → center-crop → strip metadata → iterative JPEG compression
+// Two outputs per upload:
+//   processImage()   → display master, large + high quality (hero needs ~2400px)
+//   processOGImage() → 1200x630 social card, hard-capped under 250KB for WhatsApp
 // Note: Safari does not support lossy WebP in canvas.toBlob — using JPEG instead
 
 export interface ProcessImageOptions {
   targetW?: number;
   targetH?: number;
   maxSizeKB?: number;
+  minQuality?: number;
   watermark?: boolean;
+  allowUpscale?: boolean;
+}
+
+function loadImage(file: File): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Image failed to load"));
+    };
+    img.src = objectUrl;
+  });
+}
+
+function drawWatermark(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number
+) {
+  const fontSize = Math.round(w * 0.016);
+  const padding = Math.round(w * 0.014);
+  ctx.save();
+  ctx.font = `400 ${fontSize}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+  ctx.textBaseline = "bottom";
+  ctx.textAlign = "left";
+  const text = "© merihaanaa.com";
+  const tw = ctx.measureText(text).width;
+  const th = fontSize;
+  const bx = padding - 6;
+  const by = h - padding - th - 4;
+  const bw = tw + 12;
+  const bh = th + 8;
+  const br = 4;
+  ctx.fillStyle = "rgba(0,0,0,0.32)";
+  ctx.beginPath();
+  ctx.moveTo(bx + br, by);
+  ctx.lineTo(bx + bw - br, by);
+  ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + br);
+  ctx.lineTo(bx + bw, by + bh - br);
+  ctx.quadraticCurveTo(bx + bw, by + bh, bx + bw - br, by + bh);
+  ctx.lineTo(bx + br, by + bh);
+  ctx.quadraticCurveTo(bx, by + bh, bx, by + bh - br);
+  ctx.lineTo(bx, by + br);
+  ctx.quadraticCurveTo(bx, by, bx + br, by);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.88)";
+  ctx.shadowColor = "rgba(0,0,0,0.3)";
+  ctx.shadowBlur = 3;
+  ctx.fillText(text, padding, h - padding);
+  ctx.restore();
 }
 
 export async function processImage(
@@ -14,125 +74,127 @@ export async function processImage(
   options: ProcessImageOptions = {}
 ): Promise<Blob> {
   const {
-    targetW   = 1200,
-    targetH   = 675,
-    maxSizeKB = 250,
+    targetW = 2400,
+    targetH = 1350,
+    maxSizeKB = 900,
+    minQuality = 0.72,
     watermark = false,
+    allowUpscale = false,
   } = options;
 
   const targetRatio = targetW / targetH;
+  const img = await loadImage(file);
 
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const objectUrl = URL.createObjectURL(file);
+  const srcW = img.naturalWidth;
+  const srcH = img.naturalHeight;
+  const srcRatio = srcW / srcH;
 
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl);
+  // Center-crop rect in source pixels
+  let cropX = 0,
+    cropY = 0,
+    cropW = srcW,
+    cropH = srcH;
+  if (srcRatio > targetRatio) {
+    cropW = Math.round(srcH * targetRatio);
+    cropX = Math.round((srcW - cropW) / 2);
+  } else if (srcRatio < targetRatio) {
+    cropH = Math.round(srcW / targetRatio);
+    cropY = Math.round((srcH - cropH) / 2);
+  }
 
-      const srcW = img.naturalWidth;
-      const srcH = img.naturalHeight;
-      const srcRatio = srcW / srcH;
+  // Never upscale: if the cropped region is smaller than the target,
+  // output at the crop's native size instead of inventing pixels.
+  let outW = targetW;
+  let outH = targetH;
+  if (!allowUpscale && cropW < targetW) {
+    outW = cropW;
+    outH = Math.round(cropW / targetRatio);
+  }
 
-      let cropX = 0, cropY = 0, cropW = srcW, cropH = srcH;
-      if (srcRatio > targetRatio) {
-        cropW = Math.round(srcH * targetRatio);
-        cropX = Math.round((srcW - cropW) / 2);
-      } else if (srcRatio < targetRatio) {
-        cropH = Math.round(srcW / targetRatio);
-        cropY = Math.round((srcH - cropH) / 2);
-      }
+  const canvas = document.createElement("canvas");
+  canvas.width = outW;
+  canvas.height = outH;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas context unavailable");
 
-      const canvas = document.createElement("canvas");
-      canvas.width  = targetW;
-      canvas.height = targetH;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) { reject(new Error("Canvas context unavailable")); return; }
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, outW, outH);
+  ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, outW, outH);
 
-      // White background for transparency handling
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, targetW, targetH);
-      ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, targetW, targetH);
+  if (watermark) drawWatermark(ctx, outW, outH);
 
-      if (watermark) {
-        const fontSize = Math.round(targetW * 0.016);
-        const padding  = Math.round(targetW * 0.014);
-        ctx.save();
-        ctx.font         = `400 ${fontSize}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
-        ctx.textBaseline = "bottom";
-        ctx.textAlign    = "left";
-        const text    = "© merihaanaa.com";
-        const metrics = ctx.measureText(text);
-        const tw = metrics.width;
-        const th = fontSize;
-        const bx = padding - 6;
-        const by = targetH - padding - th - 4;
-        const bw = tw + 12;
-        const bh = th + 8;
-        const br = 4;
-        ctx.fillStyle = "rgba(0,0,0,0.32)";
-        ctx.beginPath();
-        ctx.moveTo(bx + br, by);
-        ctx.lineTo(bx + bw - br, by);
-        ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + br);
-        ctx.lineTo(bx + bw, by + bh - br);
-        ctx.quadraticCurveTo(bx + bw, by + bh, bx + bw - br, by + bh);
-        ctx.lineTo(bx + br, by + bh);
-        ctx.quadraticCurveTo(bx, by + bh, bx, by + bh - br);
-        ctx.lineTo(bx, by + br);
-        ctx.quadraticCurveTo(bx, by, bx + br, by);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle   = "rgba(255,255,255,0.88)";
-        ctx.shadowColor = "rgba(0,0,0,0.3)";
-        ctx.shadowBlur  = 3;
-        ctx.fillText(text, padding, targetH - padding);
-        ctx.restore();
-      }
+  // Iterative JPEG compression. Start near-lossless and step down only
+  // while over budget, stopping at minQuality so a large image is
+  // preferred over a visibly degraded one.
+  const compress = (quality: number): Promise<Blob> =>
+    new Promise((res, rej) => {
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            rej(new Error("toBlob failed"));
+            return;
+          }
+          const sizeKB = blob.size / 1024;
+          console.log(
+            `[${outW}x${outH}] quality ${Math.round(quality * 100)}%: ${sizeKB.toFixed(0)}KB`
+          );
+          if (sizeKB <= maxSizeKB || quality <= minQuality) {
+            res(blob);
+          } else {
+            compress(Math.round((quality - 0.03) * 100) / 100)
+              .then(res)
+              .catch(rej);
+          }
+        },
+        "image/jpeg",
+        quality
+      );
+    });
 
-      // Iterative JPEG compression — Safari compatible.
-      // Start near-lossless (95%) and step DOWN only if still over
-      // budget. This makes the algorithm use the available size
-      // budget instead of stopping the moment it happens to fit at
-      // a low quality — previously starting at 85% and stepping by
-      // 5% meant many images landed at 48-50KB despite a 290KB
-      // ceiling, looking visibly over-compressed. Starting high and
-      // stepping by smaller 3% increments lands images much closer
-      // to maxSizeKB while staying under it.
-      const compress = (quality: number): Promise<Blob> =>
-        new Promise((res, rej) => {
-          canvas.toBlob((blob) => {
-            if (!blob) { rej(new Error("toBlob failed")); return; }
-            const sizeKB = blob.size / 1024;
-            console.log(`Quality ${Math.round(quality * 100)}%: ${sizeKB.toFixed(0)}KB`);
-            if (sizeKB <= maxSizeKB || quality <= 0.40) {
-              res(blob);
-            } else {
-              compress(Math.round((quality - 0.03) * 100) / 100).then(res).catch(rej);
-            }
-          }, "image/jpeg", quality);
-        });
+  return compress(0.95);
+}
 
-      console.log("Starting compression, target:", maxSizeKB, "KB");
-      compress(0.95).then(resolve).catch(reject);
-    };
-
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      reject(new Error("Image failed to load"));
-    };
-
-    img.src = objectUrl;
+// Social card. Separate file so the display master is free to be large.
+// Facebook/WhatsApp want 1.91:1 and choke above ~300KB.
+export async function processOGImage(file: File): Promise<Blob> {
+  return processImage(file, {
+    targetW: 1200,
+    targetH: 630,
+    maxSizeKB: 250,
+    minQuality: 0.45,
+    watermark: false,
+    allowUpscale: true,
   });
 }
 
+// Convenience: one decode pass per output, both blobs for a single upload.
+export async function processImagePair(
+  file: File,
+  options: ProcessImageOptions = {}
+): Promise<{ master: Blob; og: Blob }> {
+  const master = await processImage(file, options);
+  const og = await processOGImage(file);
+  return { master, og };
+}
+
 export const ASPECT_RATIOS = {
-  "16:9": { w: 1200, h: 675,  label: "ފުޅާ (16:9)" },
-  "1:1":  { w: 1200, h: 1200, label: "އަކަ (1:1)" },
-  "3:4":  { w: 900,  h: 1200, label: "ދިގު (3:4)" },
-  "3:2":  { w: 1200, h: 800,  label: "ފޮޓޯ (3:2)" },
+  "16:9": { w: 2400, h: 1350, label: "ފުޅާ (16:9)" },
+  "1:1":  { w: 1800, h: 1800, label: "އަކަ (1:1)" },
+  "3:4":  { w: 1500, h: 2000, label: "ދިގު (3:4)" },
+  "3:2":  { w: 2400, h: 1600, label: "ފޮޓޯ (3:2)" },
 } as const;
 
 export type AspectRatioKey = keyof typeof ASPECT_RATIOS;
+
+// Size budget per ratio — taller crops carry more pixels, so allow more bytes.
+export const RATIO_SIZE_BUDGET_KB: Record<AspectRatioKey, number> = {
+  "16:9": 900,
+  "1:1":  850,
+  "3:4":  800,
+  "3:2":  950,
+};
 
 export const ACCEPTED_IMAGE_TYPES = [
   "image/jpeg",
