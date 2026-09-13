@@ -20,6 +20,19 @@ import {
 type Tab = "image" | "video" | "social";
 type ImageSubTab = "upload" | "library";
 
+// Body images render at ~720px inside max-w-3xl. The 2400px masters in
+// ASPECT_RATIOS are sized for the full-bleed hero and are wasteful here,
+// so body uploads are capped at 2x the render width.
+const BODY_MAX_WIDTH = 1600;
+const BODY_MAX_KB    = 400;
+
+function bodyTarget(key: AspectRatioKey) {
+  const { w, h } = ASPECT_RATIOS[key];
+  if (w <= BODY_MAX_WIDTH) return { w, h };
+  const scale = BODY_MAX_WIDTH / w;
+  return { w: BODY_MAX_WIDTH, h: Math.round(h * scale) };
+}
+
 export interface MediaBlockAttrs {
   type: "image" | "video" | "social";
   src?: string;
@@ -167,11 +180,19 @@ function UploadSubTab({ onInsert }: { onInsert: (attrs: Omit<MediaBlockAttrs, "s
     if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) { setError(`ފޮޓޯ ${MAX_IMAGE_SIZE_MB}MB ކުޑަ ވާން ޖެހޭ`); return; }
     setUploading(true); setProgress("ތައްޔާރު ކުރަނީ...");
     try {
-      const ratio = ASPECT_RATIOS[aspectRatio];
-      const blob = await processImage(file, { targetW: ratio.w, targetH: ratio.h });
+      const target = bodyTarget(aspectRatio);
+      const blob = await processImage(file, {
+        targetW: target.w,
+        targetH: target.h,
+        maxSizeKB: BODY_MAX_KB,
+      });
       setProgress("ލޯޑް ކުރަނީ...");
       const formData = new FormData();
-      formData.append("file", new File([blob], `body-${Date.now()}.webp`, { type: "image/webp" }));
+      // processImage always emits JPEG — the extension and MIME must match
+      // or R2 serves the wrong Content-Type.
+      formData.append("file", new File([blob], `body-${Date.now()}.jpg`, { type: "image/jpeg" }));
+      formData.append("folder", "body");
+      formData.append("saveMedia", "true");
       const res = await fetch("/api/upload-image", { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error ?? "Upload failed");
