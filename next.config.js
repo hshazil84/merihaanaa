@@ -6,6 +6,14 @@ const nextConfig = {
     },
   },
   images: {
+    // AVIF first — roughly 30% smaller than WebP at matching quality,
+    // which is what buys back the bytes added by the 2400px masters.
+    formats: ['image/avif', 'image/webp'],
+    // 2560 added for 2x displays on 1280-1440px viewports, which is
+    // where the full-bleed hero was previously upscaling.
+    deviceSizes: [640, 750, 828, 1080, 1200, 1440, 1920, 2048, 2560, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    minimumCacheTTL: 60 * 60 * 24 * 30,
     remotePatterns: [
       {
         protocol: "https",
@@ -43,4 +51,5 @@ const nextConfig = {
     ];
   },
 };
+
 module.exports = nextConfig;
