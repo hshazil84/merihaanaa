@@ -96,7 +96,7 @@ const SocialNode = Node.create({
     const { url, author, text, thumb } = HTMLAttributes;
     return [
       "div", { "data-social-embed": "", style: "border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;margin:1rem 0;max-width:540px;" },
-      ...(thumb ? [["img", { src: thumb, alt: "", style: "width:100%;height:180px;object-fit:cover;" }]] : []),
+      ...(thumb ? [["img", { src: thumb, alt: "", "data-no-optimize": "", style: "width:100%;height:180px;object-fit:cover;" }]] : []),
       ["div", { style: "padding:12px;" },
         ["strong", { style: "font-size:12px;display:block;margin-bottom:6px;" }, author ?? ""],
         ...(text ? [["p", { style: "font-size:12px;color:#666;margin:0 0 8px;" }, text]] : []),
@@ -124,6 +124,42 @@ const CarouselNode = Node.create({
     ];
   },
 });
+
+// ── Image optimization ────────────────────────────────────
+// The body is injected as raw HTML, so next/image can't be used. Instead
+// our own image hosts are routed through the /_next/image endpoint with a
+// srcset. Third-party hosts (social thumbs) are skipped — they aren't in
+// remotePatterns and the optimizer would reject them.
+
+const R2_PUBLIC   = process.env.NEXT_PUBLIC_CLOUDFLARE_R2_PUBLIC_URL ?? "";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+
+const OPTIMIZABLE_HOSTS = [R2_PUBLIC, SUPABASE_URL].filter(Boolean);
+
+// Body column is ~720px; these cover 1x through 3x.
+const BODY_WIDTHS = [640, 828, 1080, 1200, 1920];
+const BODY_QUALITY = 82;
+
+function nextImageUrl(src: string, width: number) {
+  return "/_next/image?url=" + encodeURIComponent(src) + "&w=" + width + "&q=" + BODY_QUALITY;
+}
+
+function optimizeBodyImages(html: string): string {
+  if (OPTIMIZABLE_HOSTS.length === 0) return html;
+  return html.replace(/<img\s([^>]*?)src="([^"]+)"([^>]*?)>/g, (full, pre, src, post) => {
+    if (full.includes("data-no-optimize")) return full;
+    if (full.includes("srcset=")) return full;
+    if (!OPTIMIZABLE_HOSTS.some((host) => src.startsWith(host))) return full;
+    const srcset = BODY_WIDTHS.map((w) => nextImageUrl(src, w) + " " + w + "w").join(", ");
+    return (
+      "<img " + pre +
+      'src="' + nextImageUrl(src, 1200) + '" ' +
+      'srcset="' + srcset + '" ' +
+      'sizes="(max-width: 768px) 100vw, 720px" ' +
+      'loading="lazy" decoding="async"' + post + ">"
+    );
+  });
+}
 
 // ── Public Carousel ───────────────────────────────────────
 
@@ -164,15 +200,27 @@ function PublicCarousel({ images, ratio }: { images: string[]; ratio: string }) 
     return () => track.removeEventListener("scroll", onScroll);
   }, []);
 
+  const canOptimize = (src: string) =>
+    OPTIMIZABLE_HOSTS.some((host) => src.startsWith(host));
+
   const items: React.ReactNode[] = [];
   for (let i = 0; i < images.length; i++) {
+    const src = images[i];
     items.push(
       <div
         key={i}
         className="flex-shrink-0 snap-center overflow-hidden rounded-xl"
         style={{ aspectRatio, width: cardWidth, maxWidth: cardMaxWidth }}
       >
-        <img src={images[i]} alt="" className="w-full h-full object-cover" loading="lazy" />
+        <img
+          src={canOptimize(src) ? nextImageUrl(src, 828) : src}
+          srcSet={canOptimize(src) ? [640, 828].map((w) => nextImageUrl(src, w) + " " + w + "w").join(", ") : undefined}
+          sizes="(max-width: 768px) 72vw, 340px"
+          alt=""
+          className="w-full h-full object-cover"
+          loading="lazy"
+          decoding="async"
+        />
       </div>
     );
   }
@@ -249,7 +297,7 @@ export default function ArticleBody({ body }: Props) {
   const html = useMemo(() => {
     if (!body) return "";
     try {
-      return generateHTML(body as any, [
+      const raw = generateHTML(body as any, [
         StarterKit,
         Image,
         Link,
@@ -263,6 +311,7 @@ export default function ArticleBody({ body }: Props) {
         StyledBlockquoteNode,
         CarouselNode,
       ]);
+      return optimizeBodyImages(raw);
     } catch {
       return "";
     }
