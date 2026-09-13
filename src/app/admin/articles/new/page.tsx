@@ -73,7 +73,10 @@ export default function NewArticlePage() {
     if (value?.type === "video" && value.videoMeta?.thumbnailUrl && !ogImageUrl) {
       setOgImageUrl(value.videoMeta.thumbnailUrl);
     }
-    if (value?.type === "image") setOgImageUrl("");
+    // Image covers now ship a separate 1200x630 card. Adopt it rather than
+    // clearing the field — the full-size master is far too heavy for WhatsApp.
+    if (value?.type === "image") setOgImageUrl(value.ogImageUrl ?? "");
+    if (!value) setOgImageUrl("");
   };
 
   useEffect(() => {
@@ -89,7 +92,17 @@ export default function NewArticlePage() {
         : coverMedia?.type === "video"
         ? { cover_type: "video", cover_url: null, featured_image: null, cover_video_id: coverMedia.videoMeta?.videoId ?? null, cover_video_provider: coverMedia.videoMeta?.provider ?? null, cover_video_thumbnail: coverMedia.videoMeta?.thumbnailUrl ?? null }
         : { cover_type: null, cover_url: null, featured_image: null, cover_video_id: null, cover_video_provider: null, cover_video_thumbnail: null };
-    const resolvedOgImage = ogImageUrl?.trim() || coverFields.featured_image || coverFields.cover_video_thumbnail || null;
+
+    // Preference order: manual override → generated social card →
+    // the display master (heavy, last resort) → video thumbnail.
+    const generatedCard = coverMedia?.type === "image" ? coverMedia.ogImageUrl ?? null : null;
+    const resolvedOgImage =
+      ogImageUrl?.trim() ||
+      generatedCard ||
+      coverFields.featured_image ||
+      coverFields.cover_video_thumbnail ||
+      null;
+
     return {
       title, excerpt, body,
       category_id: categoryRef.current,
