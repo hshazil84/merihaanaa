@@ -101,7 +101,12 @@ export default function EditArticlePage() {
       setFeaturedOnMusic(a.featured_on_music_category ?? false);
 
       if (a.cover_type === "image" && (a.cover_url || a.featured_image)) {
-        setCoverMedia({ type: "image", imageUrl: a.cover_url || a.featured_image });
+        // Carry the stored social card so a re-save doesn't drop it.
+        setCoverMedia({
+          type: "image",
+          imageUrl: a.cover_url || a.featured_image,
+          ogImageUrl: a.og_image_url ?? undefined,
+        });
       } else if (a.cover_type === "video" && a.cover_video_id) {
         setCoverMedia({
           type: "video",
@@ -145,7 +150,10 @@ export default function EditArticlePage() {
     if (value?.type === "video" && value.videoMeta?.thumbnailUrl && !ogImageUrl) {
       setOgImageUrl(value.videoMeta.thumbnailUrl);
     }
-    if (value?.type === "image") setOgImageUrl("");
+    // Adopt the generated 1200x630 card. Clearing this field would leave
+    // og:image pointing at the full-size master, which WhatsApp rejects.
+    if (value?.type === "image") setOgImageUrl(value.ogImageUrl ?? "");
+    if (!value) setOgImageUrl("");
   };
 
   const handleTagsChange = useCallback(
@@ -166,7 +174,15 @@ export default function EditArticlePage() {
         ? { cover_type: "video", cover_url: null, featured_image: null, cover_video_id: coverMedia.videoMeta?.videoId ?? null, cover_video_provider: coverMedia.videoMeta?.provider ?? null, cover_video_thumbnail: coverMedia.videoMeta?.thumbnailUrl ?? null }
         : { cover_type: null, cover_url: null, featured_image: null, cover_video_id: null, cover_video_provider: null, cover_video_thumbnail: null };
 
-    const resolvedOgImage = ogImageUrl || coverFields.featured_image || coverFields.cover_video_thumbnail || null;
+    // Manual override → generated social card → display master (heavy,
+    // last resort) → video thumbnail.
+    const generatedCard = coverMedia?.type === "image" ? coverMedia.ogImageUrl ?? null : null;
+    const resolvedOgImage =
+      ogImageUrl?.trim() ||
+      generatedCard ||
+      coverFields.featured_image ||
+      coverFields.cover_video_thumbnail ||
+      null;
 
     return {
       title, excerpt, body,
