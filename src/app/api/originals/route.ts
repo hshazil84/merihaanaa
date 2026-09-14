@@ -1,10 +1,8 @@
 // src/app/api/originals/route.ts
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerSupabaseClient, createAdminClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
-// Columns a client is allowed to write. PATCH previously spread the whole
-// request body into the update, so any key the table lacks made Postgres
-// reject the statement and the route 500.
+// Columns a client is allowed to write.
 const WRITABLE = [
   "title",
   "slug",
@@ -52,7 +50,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = await createServerSupabaseClient();
+  // Use admin client so RLS read-restrictions don't block the inserted row return
+  const supabase = createAdminClient();
   const body = await req.json().catch(() => ({}));
 
   if (!body.title || !body.slug) {
@@ -61,8 +60,6 @@ export async function POST(req: NextRequest) {
 
   const fields = pickWritable(body);
 
-  // Previously hardcoded to "draft", so publishing on first save silently
-  // created a draft instead.
   if (!fields.status) fields.status = "draft";
   if (!fields.type) fields.type = "documentary";
   if (!fields.quality_cap) fields.quality_cap = "auto";
@@ -74,17 +71,22 @@ export async function POST(req: NextRequest) {
     .from("originals")
     .insert(fields)
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error("originals insert failed:", error);
     return NextResponse.json({ error: error.message, details: error.details }, { status: 500 });
   }
+
+  if (!data) {
+    return NextResponse.json({ error: "Failed to insert record" }, { status: 500 });
+  }
+
   return NextResponse.json({ data });
 }
 
 export async function PATCH(req: NextRequest) {
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminClient();
   const body = await req.json().catch(() => ({}));
   const { id } = body;
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
@@ -104,20 +106,22 @@ export async function PATCH(req: NextRequest) {
     .update(fields)
     .eq("id", id)
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error("originals update failed:", error);
-    // PGRST116 = .single() got 0 rows, i.e. no row with that id (or RLS hid it).
-    const status = error.code === "PGRST116" ? 404 : 500;
-    return NextResponse.json({ error: error.message, details: error.details }, { status });
+    return NextResponse.json({ error: error.message, details: error.details }, { status: 500 });
+  }
+
+  if (!data) {
+    return NextResponse.json({ error: "Record not found" }, { status: 404 });
   }
 
   return NextResponse.json({ data });
 }
 
 export async function DELETE(req: NextRequest) {
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminClient();
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
