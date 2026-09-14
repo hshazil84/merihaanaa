@@ -105,10 +105,11 @@ export async function PATCH(req: NextRequest) {
 
   if (error) {
     console.error("originals update failed:", error);
-    return NextResponse.json({ error: error.message, details: error.details }, { status: 500 });
+    // PGRST116 = .single() got 0 rows, i.e. no row with that id (or RLS
+    // hid it). That is a missing resource, not a server fault.
+    const status = error.code === "PGRST116" ? 404 : 500;
+    return NextResponse.json({ error: error.message, details: error.details }, { status });
   }
-  return NextResponse.json({ data });
-}
 
 export async function DELETE(req: NextRequest) {
   const supabase = await createServerSupabaseClient();
