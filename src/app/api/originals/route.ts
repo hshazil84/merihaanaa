@@ -40,7 +40,10 @@ export async function GET(req: NextRequest) {
 
   const { data, error, count } = await supabase
     .from("originals")
-    .select("id, title, slug, description, type, status, duration_seconds, thumbnail_url, cloudflare_stream_id, published_at, scheduled_at, series:series!series_id(id, title), series_id, season_number, episode_number, quality_cap", { count: "exact" })
+    .select(
+      "id, title, slug, description, type, status, duration_seconds, thumbnail_url, cloudflare_stream_id, published_at, scheduled_at, series:series!series_id(id, title), series_id, season_number, episode_number, quality_cap",
+      { count: "exact" }
+    )
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -105,11 +108,13 @@ export async function PATCH(req: NextRequest) {
 
   if (error) {
     console.error("originals update failed:", error);
-    // PGRST116 = .single() got 0 rows, i.e. no row with that id (or RLS
-    // hid it). That is a missing resource, not a server fault.
+    // PGRST116 = .single() got 0 rows, i.e. no row with that id (or RLS hid it).
     const status = error.code === "PGRST116" ? 404 : 500;
     return NextResponse.json({ error: error.message, details: error.details }, { status });
   }
+
+  return NextResponse.json({ data });
+}
 
 export async function DELETE(req: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -119,5 +124,6 @@ export async function DELETE(req: NextRequest) {
 
   const { error } = await supabase.from("originals").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
   return NextResponse.json({ success: true });
 }
