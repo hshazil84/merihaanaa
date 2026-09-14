@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import * as tus from "tus-js-client";
 
 const TYPES = [
   { value: "documentary", label: "ޑޮކިއުމެންޓްރީ" },
@@ -18,6 +19,10 @@ const QUALITY_OPTIONS = [
   { value: "720p",  label: "720p max" },
   { value: "1080p", label: "1080p max" },
 ];
+
+// Cloudflare requires tus chunks to be a multiple of 256 KiB.
+// 50 MB = 200 x 256 KiB.
+const TUS_CHUNK_SIZE = 52428800;
 
 type UploadState = "idle" | "requesting" | "uploading" | "processing" | "ready" | "error";
 type VideoKind = "single" | "episode";
@@ -168,6 +173,7 @@ export default function OriginalsEditPage() {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveWarning, setSaveWarning] = useState("");
   const [showSeriesModal, setShowSeriesModal] = useState(false);
 
   const [videoKind, setVideoKind] = useState<VideoKind>("single");
@@ -184,6 +190,8 @@ export default function OriginalsEditPage() {
   const [episodeNumber, setEpisodeNumber] = useState("");
   const [seriesList, setSeriesList] = useState<SeriesItem[]>([]);
 
+  // streamId is only ever set once Cloudflare confirms the video exists and
+  // is playable — a failed upload must never leave a UID in the form.
   const [streamId, setStreamId] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [durationSeconds, setDurationSeconds] = useState("");
@@ -194,12 +202,16 @@ export default function OriginalsEditPage() {
   const [eta, setEta] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const uploadStartRef = useRef<number>(0);
-  const xhrRef = useRef<XMLHttpRequest | null>(null);
+  const uploadRef = useRef<tus.Upload | null>(null);
+  const pendingIdRef = useRef<string>("");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [thumbUploading, setThumbUploading] = useState(false);
   const [grabbingThumb, setGrabbingThumb] = useState(false);
+
+  const uploadInFlight =
+    uploadState === "requesting" || uploadState === "uploading" || uploadState === "processing";
 
   async function loadSeries() {
     const { data } = await supabase.from("series").select("id, title").eq("is_active", true).order("title");
@@ -235,16 +247,36 @@ export default function OriginalsEditPage() {
       .catch(() => setLoading(false));
   }, [params.id]);
 
-  useEffect(() => { return () => { if (pollRef.current) clearInterval(pollRef.current); }; }, []);
+  useEffect(() => {
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      uploadRef.current?.abort();
+    };
+  }, []);
 
   function pollVideoStatus(videoId: string) {
     setUploadState("processing");
+    let attempts = 0;
     pollRef.current = setInterval(async () => {
+      attempts++;
+      // Encoding rarely exceeds a few minutes; give up rather than spin forever.
+      if (attempts > 200) {
+        clearInterval(pollRef.current!);
+        setUploadState("error");
+        setUploadError("ވީޑިއޯ ޕްރޮސެސް ވުން ލަސްވެއްޖެ");
+        return;
+      }
       try {
         const res = await fetch(`/api/stream/upload?id=${videoId}`);
         const data = await res.json();
+
+        // 404 while processing is normal right after upload — keep waiting.
+        if (!res.ok) return;
+
         if (data.status === "ready" || data.readyToStream) {
           clearInterval(pollRef.current!);
+          // Only now is the UID safe to store.
+          setStreamId(videoId);
           if (data.thumbnail) setThumbnailUrl(data.thumbnail);
           if (data.duration) setDurationSeconds(String(Math.round(data.duration)));
           setUploadState("ready");
@@ -254,61 +286,75 @@ export default function OriginalsEditPage() {
           setUploadError("ވީޑިއޯ ޕްރޮސެސް ނުވި");
         }
       } catch {
-        clearInterval(pollRef.current!);
-        setUploadState("error");
-        setUploadError("ޕޮލިން އެރާ");
+        // Transient network failure — keep polling.
       }
     }, 3000);
   }
 
   async function handleFile(file: File) {
     if (!file.type.startsWith("video/")) { setUploadError("ވީޑިއޯ ފައިލެއް ހޮވާ"); return; }
-    setUploadError(""); setUploadState("requesting"); setUploadProgress(0);
+    setUploadError("");
+    setUploadState("requesting");
+    setUploadProgress(0);
+    setStreamId("");
+    pendingIdRef.current = "";
     uploadStartRef.current = Date.now();
-    try {
-      const res = await fetch("/api/stream/upload", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ maxDurationSeconds: 2400 }),
-      });
-      const { uploadUrl, videoId, error: apiError } = await res.json();
-      if (apiError || !uploadUrl) throw new Error(apiError ?? "Upload URL ނުލިބުނު");
-      setStreamId(videoId);
-      setUploadState("uploading");
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhrRef.current = xhr;
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) {
-            const pct = Math.round((e.loaded / e.total) * 100);
-            setUploadProgress(pct);
-            const elapsed = (Date.now() - uploadStartRef.current) / 1000;
-            const rate = e.loaded / elapsed;
-            const remaining = (e.total - e.loaded) / rate;
-            if (remaining > 0 && remaining < 86400) {
-              const m = Math.floor(remaining / 60);
-              const s = Math.floor(remaining % 60);
-              setEta(m > 0 ? `${m} މިނެޓް ${s} ސިކުންތު` : `${s} ސިކުންތު`);
-            }
-          }
-        };
-        xhr.onload = () => xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error("Upload failed: " + xhr.status));
-        xhr.onerror = () => reject(new Error("ނެޓްވޯކް އެރާ"));
-        xhr.open("POST", uploadUrl);
-        const formData = new FormData();
-        formData.append("file", file);
-        xhr.send(formData);
-      });
-      pollVideoStatus(videoId);
-    } catch (err: any) {
-      setUploadState("error");
-      setUploadError("އަޕްލޯޑް ނުވި: " + err.message);
-    }
+
+    const upload = new tus.Upload(file, {
+      endpoint: "/api/originals/stream-upload",
+      chunkSize: TUS_CHUNK_SIZE,
+      // Resumable: a dropped connection retries from the last confirmed
+      // offset instead of restarting the whole transfer.
+      retryDelays: [0, 3000, 5000, 10000, 20000, 30000],
+      metadata: {
+        name: file.name,
+        maxDurationSeconds: "2400",
+      },
+      onAfterResponse: (_req, res) => {
+        const id = res.getHeader("stream-media-id");
+        if (id) pendingIdRef.current = id;
+      },
+      onProgress: (uploaded, total) => {
+        setUploadState("uploading");
+        const pct = Math.round((uploaded / total) * 100);
+        setUploadProgress(pct);
+        const elapsed = (Date.now() - uploadStartRef.current) / 1000;
+        const rate = uploaded / elapsed;
+        const remaining = (total - uploaded) / rate;
+        if (remaining > 0 && remaining < 86400) {
+          const m = Math.floor(remaining / 60);
+          const s = Math.floor(remaining % 60);
+          setEta(m > 0 ? `${m} މިނެޓް ${s} ސިކުންތު` : `${s} ސިކުންތު`);
+        }
+      },
+      onError: (err) => {
+        setUploadState("error");
+        setUploadError("އަޕްލޯޑް ނުވި: " + err.message);
+      },
+      onSuccess: () => {
+        setUploadProgress(100);
+        setEta("");
+        if (!pendingIdRef.current) {
+          setUploadState("error");
+          setUploadError("ވީޑިއޯ ID ނުލިބުނު");
+          return;
+        }
+        pollVideoStatus(pendingIdRef.current);
+      },
+    });
+
+    uploadRef.current = upload;
+    upload.start();
   }
 
   function handleAbort() {
-    xhrRef.current?.abort();
+    uploadRef.current?.abort();
+    uploadRef.current = null;
     if (pollRef.current) clearInterval(pollRef.current);
-    setUploadState("idle"); setUploadProgress(0); setEta("");
+    pendingIdRef.current = "";
+    setUploadState("idle");
+    setUploadProgress(0);
+    setEta("");
   }
 
   async function handleGrabThumbnail() {
@@ -334,6 +380,18 @@ export default function OriginalsEditPage() {
   }
 
   async function handleSave(publish = false) {
+    setSaveWarning("");
+
+    // Saving mid-upload is how a phantom UID reached the database before.
+    if (uploadInFlight) {
+      setSaveWarning("ވީޑިއޯ އަޕްލޯޑް ނިމެންދެން މަޑުކުރޭ");
+      return;
+    }
+    if (publish && !streamId) {
+      setSaveWarning("ޝާއިޢުކުރެވޭނީ ވީޑިއޯ ތައްޔާރުވުމުން");
+      return;
+    }
+
     setSaving(true);
     const payload = {
       title, slug: slug || slugify(title), description,
@@ -362,6 +420,7 @@ export default function OriginalsEditPage() {
       });
     }
     setSaving(false); setSaved(true);
+    if (publish) setStatus("published");
     setTimeout(() => setSaved(false), 2000);
   }
 
@@ -492,7 +551,7 @@ export default function OriginalsEditPage() {
             {uploadState === "requesting" && (
               <div className="p-8 text-center">
                 <div className="w-5 h-5 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                <p className="text-sm text-neutral-500" style={{ fontFamily: "MVTypewriter, serif" }}>އަޕްލޯޑް URL ހޯދަނީ...</p>
+                <p className="text-sm text-neutral-500" style={{ fontFamily: "MVTypewriter, serif" }}>އަޕްލޯޑް ފަށަނީ...</p>
               </div>
             )}
 
@@ -544,7 +603,7 @@ export default function OriginalsEditPage() {
             {uploadState === "error" && (
               <div className="flex items-center justify-between p-4 bg-red-50 border border-red-200 rounded-xl">
                 <p className="text-sm text-red-600" style={{ fontFamily: "MVTypewriter, serif" }}>{uploadError}</p>
-                <button onClick={() => setUploadState("idle")} className="text-xs text-red-500 underline flex-none mr-3" style={{ fontFamily: "MVTypewriter, serif" }}>
+                <button onClick={() => { setUploadState("idle"); setUploadError(""); }} className="text-xs text-red-500 underline flex-none mr-3" style={{ fontFamily: "MVTypewriter, serif" }}>
                   އަލުން ތަކުރާރު
                 </button>
               </div>
@@ -673,23 +732,30 @@ export default function OriginalsEditPage() {
 
         {/* Sticky bottom bar */}
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 px-6 py-4 z-40">
-          <div className="max-w-2xl mx-auto flex items-center justify-between">
-            <button onClick={() => router.push("/admin/originals")}
-              className="px-5 py-2.5 rounded-lg border border-neutral-200 text-sm text-neutral-600 hover:bg-neutral-50 transition-colors"
-              style={{ fontFamily: "MVTypewriter, serif" }}>
-              ކެންސަލް
-            </button>
-            <div className="flex items-center gap-3">
-              <button onClick={() => handleSave(false)} disabled={saving}
-                className="px-5 py-2.5 rounded-lg border border-neutral-300 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors disabled:opacity-50"
+          <div className="max-w-2xl mx-auto">
+            {saveWarning && (
+              <p className="text-xs text-amber-600 mb-2 text-center" style={{ fontFamily: "MVTypewriter, serif" }}>
+                {saveWarning}
+              </p>
+            )}
+            <div className="flex items-center justify-between">
+              <button onClick={() => router.push("/admin/originals")}
+                className="px-5 py-2.5 rounded-lg border border-neutral-200 text-sm text-neutral-600 hover:bg-neutral-50 transition-colors"
                 style={{ fontFamily: "MVTypewriter, serif" }}>
-                {saved ? "✓ ސޭވްވެއްޖެ" : "ޑްރާފްޓް ސޭވް"}
+                ކެންސަލް
               </button>
-              <button onClick={() => handleSave(true)} disabled={saving || status === "published"}
-                className="px-5 py-2.5 rounded-lg bg-neutral-900 text-white text-sm font-semibold hover:bg-neutral-700 transition-colors disabled:opacity-50"
-                style={{ fontFamily: "MVTypewriter, serif" }}>
-                {status === "published" ? "ޝާއިޢުވެއްޖެ" : "ޝާއިޢުކުރޭ"}
-              </button>
+              <div className="flex items-center gap-3">
+                <button onClick={() => handleSave(false)} disabled={saving || uploadInFlight}
+                  className="px-5 py-2.5 rounded-lg border border-neutral-300 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors disabled:opacity-50"
+                  style={{ fontFamily: "MVTypewriter, serif" }}>
+                  {saved ? "✓ ސޭވްވެއްޖެ" : "ޑްރާފްޓް ސޭވް"}
+                </button>
+                <button onClick={() => handleSave(true)} disabled={saving || uploadInFlight || status === "published"}
+                  className="px-5 py-2.5 rounded-lg bg-neutral-900 text-white text-sm font-semibold hover:bg-neutral-700 transition-colors disabled:opacity-50"
+                  style={{ fontFamily: "MVTypewriter, serif" }}>
+                  {status === "published" ? "ޝާއިޢުވެއްޖެ" : "ޝާއިޢުކުރޭ"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
