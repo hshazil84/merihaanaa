@@ -4,7 +4,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import * as tus from "tus-js-client";
 
 const TYPES = [
   { value: "documentary", label: "ޑޮކިއުމެންޓްރީ" },
@@ -20,9 +19,10 @@ const QUALITY_OPTIONS = [
   { value: "1080p", label: "1080p max" },
 ];
 
-// Cloudflare requires tus chunks to be a multiple of 256 KiB.
-// 50 MB = 200 x 256 KiB.
-const TUS_CHUNK_SIZE = 52428800;
+// Cloudflare rejects single-POST direct uploads above 200MB with a 413.
+// Check client-side so the user gets a clear message instead of an opaque
+// CORS error (error responses carry no Access-Control-Allow-Origin header).
+const MAX_UPLOAD_BYTES = 200 * 1024 * 1024;
 
 type UploadState = "idle" | "requesting" | "uploading" | "processing" | "ready" | "error";
 type VideoKind = "single" | "episode";
@@ -39,6 +39,10 @@ function formatDuration(s: number) {
   const m = Math.floor(s / 60);
   const sec = s % 60;
   return `${m}:${sec.toString().padStart(2, "0")}`;
+}
+
+function formatMB(bytes: number) {
+  return Math.round(bytes / (1024 * 1024));
 }
 
 interface SeriesItem { id: string; title: string; }
@@ -190,8 +194,8 @@ export default function OriginalsEditPage() {
   const [episodeNumber, setEpisodeNumber] = useState("");
   const [seriesList, setSeriesList] = useState<SeriesItem[]>([]);
 
-  // streamId is only ever set once Cloudflare confirms the video exists and
-  // is playable — a failed upload must never leave a UID in the form.
+  // Set only once Cloudflare confirms the video is ready, so a failed
+  // upload can never leave a dead UID in the form.
   const [streamId, setStreamId] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [durationSeconds, setDurationSeconds] = useState("");
@@ -202,8 +206,7 @@ export default function OriginalsEditPage() {
   const [eta, setEta] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const uploadStartRef = useRef<number>(0);
-  const uploadRef = useRef<tus.Upload | null>(null);
-  const pendingIdRef = useRef<string>("");
+  const xhrRef = useRef<XMLHttpRequest | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -247,19 +250,13 @@ export default function OriginalsEditPage() {
       .catch(() => setLoading(false));
   }, [params.id]);
 
-  useEffect(() => {
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-      uploadRef.current?.abort();
-    };
-  }, []);
+  useEffect(() => { return () => { if (pollRef.current) clearInterval(pollRef.current); }; }, []);
 
   function pollVideoStatus(videoId: string) {
     setUploadState("processing");
     let attempts = 0;
     pollRef.current = setInterval(async () => {
       attempts++;
-      // Encoding rarely exceeds a few minutes; give up rather than spin forever.
       if (attempts > 200) {
         clearInterval(pollRef.current!);
         setUploadState("error");
@@ -269,13 +266,9 @@ export default function OriginalsEditPage() {
       try {
         const res = await fetch(`/api/stream/upload?id=${videoId}`);
         const data = await res.json();
-
-        // 404 while processing is normal right after upload — keep waiting.
-        if (!res.ok) return;
-
+        if (!res.ok) return; // 404 right after upload is normal — keep waiting
         if (data.status === "ready" || data.readyToStream) {
           clearInterval(pollRef.current!);
-          // Only now is the UID safe to store.
           setStreamId(videoId);
           if (data.thumbnail) setThumbnailUrl(data.thumbnail);
           if (data.duration) setDurationSeconds(String(Math.round(data.duration)));
@@ -286,75 +279,66 @@ export default function OriginalsEditPage() {
           setUploadError("ވީޑިއޯ ޕްރޮސެސް ނުވި");
         }
       } catch {
-        // Transient network failure — keep polling.
+        // transient network failure — keep polling
       }
     }, 3000);
   }
 
   async function handleFile(file: File) {
     if (!file.type.startsWith("video/")) { setUploadError("ވީޑިއޯ ފައިލެއް ހޮވާ"); return; }
-    setUploadError("");
-    setUploadState("requesting");
-    setUploadProgress(0);
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setUploadState("error");
+      setUploadError(
+        `ފައިލް ބޮޑު (${formatMB(file.size)}MB). 200MB އަށް ވުރެ ބޮޑު ވީޑިއޯ Cloudflare ޑޭޝްބޯޑުން އަޕްލޯޑްކޮށް، Stream ID ތިރީގައި ޖަހާ`
+      );
+      return;
+    }
+    setUploadError(""); setUploadState("requesting"); setUploadProgress(0);
     setStreamId("");
-    pendingIdRef.current = "";
     uploadStartRef.current = Date.now();
-
-    const upload = new tus.Upload(file, {
-      endpoint: "/api/originals/stream-upload",
-      chunkSize: TUS_CHUNK_SIZE,
-      // Resumable: a dropped connection retries from the last confirmed
-      // offset instead of restarting the whole transfer.
-      retryDelays: [0, 3000, 5000, 10000, 20000, 30000],
-      metadata: {
-        name: file.name,
-        maxDurationSeconds: "2400",
-      },
-      onAfterResponse: (_req, res) => {
-        const id = res.getHeader("stream-media-id");
-        if (id) pendingIdRef.current = id;
-      },
-      onProgress: (uploaded, total) => {
-        setUploadState("uploading");
-        const pct = Math.round((uploaded / total) * 100);
-        setUploadProgress(pct);
-        const elapsed = (Date.now() - uploadStartRef.current) / 1000;
-        const rate = uploaded / elapsed;
-        const remaining = (total - uploaded) / rate;
-        if (remaining > 0 && remaining < 86400) {
-          const m = Math.floor(remaining / 60);
-          const s = Math.floor(remaining % 60);
-          setEta(m > 0 ? `${m} މިނެޓް ${s} ސިކުންތު` : `${s} ސިކުންތު`);
-        }
-      },
-      onError: (err) => {
-        setUploadState("error");
-        setUploadError("އަޕްލޯޑް ނުވި: " + err.message);
-      },
-      onSuccess: () => {
-        setUploadProgress(100);
-        setEta("");
-        if (!pendingIdRef.current) {
-          setUploadState("error");
-          setUploadError("ވީޑިއޯ ID ނުލިބުނު");
-          return;
-        }
-        pollVideoStatus(pendingIdRef.current);
-      },
-    });
-
-    uploadRef.current = upload;
-    upload.start();
+    try {
+      const res = await fetch("/api/stream/upload", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ maxDurationSeconds: 2400 }),
+      });
+      const { uploadUrl, videoId, error: apiError } = await res.json();
+      if (apiError || !uploadUrl) throw new Error(apiError ?? "Upload URL ނުލިބުނު");
+      setUploadState("uploading");
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhrRef.current = xhr;
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const pct = Math.round((e.loaded / e.total) * 100);
+            setUploadProgress(pct);
+            const elapsed = (Date.now() - uploadStartRef.current) / 1000;
+            const rate = e.loaded / elapsed;
+            const remaining = (e.total - e.loaded) / rate;
+            if (remaining > 0 && remaining < 86400) {
+              const m = Math.floor(remaining / 60);
+              const s = Math.floor(remaining % 60);
+              setEta(m > 0 ? `${m} މިނެޓް ${s} ސިކުންތު` : `${s} ސިކުންތު`);
+            }
+          }
+        };
+        xhr.onload = () => xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error("Upload failed: " + xhr.status));
+        xhr.onerror = () => reject(new Error("ނެޓްވޯކް އެރާ"));
+        xhr.open("POST", uploadUrl);
+        const formData = new FormData();
+        formData.append("file", file);
+        xhr.send(formData);
+      });
+      pollVideoStatus(videoId);
+    } catch (err: any) {
+      setUploadState("error");
+      setUploadError("އަޕްލޯޑް ނުވި: " + err.message);
+    }
   }
 
   function handleAbort() {
-    uploadRef.current?.abort();
-    uploadRef.current = null;
+    xhrRef.current?.abort();
     if (pollRef.current) clearInterval(pollRef.current);
-    pendingIdRef.current = "";
-    setUploadState("idle");
-    setUploadProgress(0);
-    setEta("");
+    setUploadState("idle"); setUploadProgress(0); setEta("");
   }
 
   async function handleGrabThumbnail() {
@@ -381,8 +365,6 @@ export default function OriginalsEditPage() {
 
   async function handleSave(publish = false) {
     setSaveWarning("");
-
-    // Saving mid-upload is how a phantom UID reached the database before.
     if (uploadInFlight) {
       setSaveWarning("ވީޑިއޯ އަޕްލޯޑް ނިމެންދެން މަޑުކުރޭ");
       return;
@@ -483,7 +465,6 @@ export default function OriginalsEditPage() {
 
             {videoKind === "episode" && (
               <div className="mt-4 pt-4 border-t border-neutral-100 space-y-4">
-                {/* Series selector + create button */}
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-1.5" style={{ fontFamily: "MVTypewriter, serif" }}>
                     ސީރީޒްގެ ނަން
@@ -541,7 +522,7 @@ export default function OriginalsEditPage() {
                   ވީޑިއޯ ފައިލް ދަމާ ގެންނަވާ
                 </p>
                 <p className="text-xs text-neutral-400" style={{ fontFamily: "MVTypewriter, serif" }}>
-                  ނުވަތަ ފައިލް ހޮވުމަށް ފިތާލާ · MP4, MOV, MKV
+                  ނުވަތަ ފައިލް ހޮވުމަށް ފިތާލާ · MP4, MOV, MKV · max 200MB
                 </p>
                 <input ref={fileInputRef} type="file" accept="video/*" className="hidden"
                   onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
@@ -551,7 +532,7 @@ export default function OriginalsEditPage() {
             {uploadState === "requesting" && (
               <div className="p-8 text-center">
                 <div className="w-5 h-5 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                <p className="text-sm text-neutral-500" style={{ fontFamily: "MVTypewriter, serif" }}>އަޕްލޯޑް ފަށަނީ...</p>
+                <p className="text-sm text-neutral-500" style={{ fontFamily: "MVTypewriter, serif" }}>އަޕްލޯޑް URL ހޯދަނީ...</p>
               </div>
             )}
 
@@ -601,9 +582,9 @@ export default function OriginalsEditPage() {
             )}
 
             {uploadState === "error" && (
-              <div className="flex items-center justify-between p-4 bg-red-50 border border-red-200 rounded-xl">
-                <p className="text-sm text-red-600" style={{ fontFamily: "MVTypewriter, serif" }}>{uploadError}</p>
-                <button onClick={() => { setUploadState("idle"); setUploadError(""); }} className="text-xs text-red-500 underline flex-none mr-3" style={{ fontFamily: "MVTypewriter, serif" }}>
+              <div className="flex items-start justify-between gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+                <p className="text-sm text-red-600 flex-1" style={{ fontFamily: "MVTypewriter, serif", lineHeight: 1.9 }}>{uploadError}</p>
+                <button onClick={() => { setUploadState("idle"); setUploadError(""); }} className="text-xs text-red-500 underline flex-none" style={{ fontFamily: "MVTypewriter, serif" }}>
                   އަލުން ތަކުރާރު
                 </button>
               </div>
