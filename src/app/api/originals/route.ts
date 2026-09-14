@@ -2,6 +2,35 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
+// Columns a client is allowed to write. PATCH previously spread the whole
+// request body into the update, so any key the table lacks made Postgres
+// reject the statement and the route 500.
+const WRITABLE = [
+  "title",
+  "slug",
+  "description",
+  "thumbnail_url",
+  "cloudflare_stream_id",
+  "duration_seconds",
+  "type",
+  "series_id",
+  "season_number",
+  "episode_number",
+  "quality_cap",
+  "status",
+  "scheduled_at",
+  "published_at",
+  "featured_on_film",
+] as const;
+
+function pickWritable(body: Record<string, unknown>) {
+  const out: Record<string, unknown> = {};
+  for (const key of WRITABLE) {
+    if (key in body) out[key] = body[key];
+  }
+  return out;
+}
+
 export async function GET(req: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { searchParams } = new URL(req.url);
@@ -11,7 +40,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error, count } = await supabase
     .from("originals")
-    .select("id, title, slug, type, status, duration_seconds, thumbnail_url, published_at, series:series!series_id(id, title), episode_number, quality_cap", { count: "exact" })
+    .select("id, title, slug, description, type, status, duration_seconds, thumbnail_url, cloudflare_stream_id, published_at, scheduled_at, series:series!series_id(id, title), series_id, season_number, episode_number, quality_cap", { count: "exact" })
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -21,38 +50,50 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerSupabaseClient();
-  const body = await req.json();
+  const body = await req.json().catch(() => ({}));
+
+  if (!body.title || !body.slug) {
+    return NextResponse.json({ error: "title and slug required" }, { status: 400 });
+  }
+
+  const fields = pickWritable(body);
+
+  // Previously hardcoded to "draft", so publishing on first save silently
+  // created a draft instead.
+  if (!fields.status) fields.status = "draft";
+  if (!fields.type) fields.type = "documentary";
+  if (!fields.quality_cap) fields.quality_cap = "auto";
+  if (fields.status === "published" && !fields.published_at) {
+    fields.published_at = new Date().toISOString();
+  }
 
   const { data, error } = await supabase
     .from("originals")
-    .insert({
-      title: body.title,
-      slug: body.slug,
-      description: body.description ?? null,
-      thumbnail_url: body.thumbnail_url ?? null,
-      cloudflare_stream_id: body.cloudflare_stream_id ?? null,
-      duration_seconds: body.duration_seconds ?? null,
-      type: body.type ?? "documentary",
-      series_id: body.series_id ?? null,
-      episode_number: body.episode_number ?? null,
-      quality_cap: body.quality_cap ?? "auto",
-      status: "draft",
-    })
+    .insert(fields)
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("originals insert failed:", error);
+    return NextResponse.json({ error: error.message, details: error.details }, { status: 500 });
+  }
   return NextResponse.json({ data });
 }
 
 export async function PATCH(req: NextRequest) {
   const supabase = await createServerSupabaseClient();
-  const body = await req.json();
-  const { id, ...fields } = body;
+  const body = await req.json().catch(() => ({}));
+  const { id } = body;
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
+
+  const fields = pickWritable(body);
 
   if (fields.status === "published" && !fields.published_at) {
     fields.published_at = new Date().toISOString();
+  }
+
+  if (Object.keys(fields).length === 0) {
+    return NextResponse.json({ error: "no writable fields provided" }, { status: 400 });
   }
 
   const { data, error } = await supabase
@@ -62,7 +103,10 @@ export async function PATCH(req: NextRequest) {
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("originals update failed:", error);
+    return NextResponse.json({ error: error.message, details: error.details }, { status: 500 });
+  }
   return NextResponse.json({ data });
 }
 
