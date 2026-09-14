@@ -20,19 +20,25 @@ const QUALITY_OPTIONS = [
 ];
 
 // Cloudflare rejects single-POST direct uploads above 200MB with a 413.
-// Check client-side so the user gets a clear message instead of an opaque
-// CORS error (error responses carry no Access-Control-Allow-Origin header).
 const MAX_UPLOAD_BYTES = 200 * 1024 * 1024;
 
 type UploadState = "idle" | "requesting" | "uploading" | "processing" | "ready" | "error";
 type VideoKind = "single" | "episode";
 
 function slugify(text: string) {
-  const suffix = Math.random().toString(36).slice(2, 6);
-  const latin = text.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "");
+  const suffix = Math.random().toString(36).slice(2, 7);
+  // Match Latin characters if present
+  const latin = text
+    .trim()
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+
   if (latin.length >= 3) return `${latin}-${suffix}`;
-  const wordCount = text.trim().split(/\s+/).length;
-  return `original-${wordCount}w-${suffix}`;
+  
+  // Safe timestamp-based slug for Thaana/non-Latin titles to avoid empty dashes
+  return `vid-${Date.now().toString(36)}-${suffix}`;
 }
 
 function formatDuration(s: number) {
@@ -85,8 +91,7 @@ function CreateSeriesModal({ onClose, onCreate }: {
   async function handleSave() {
     if (!title.trim()) { setError("ނަން ލިޔޭ"); return; }
     setSaving(true);
-    const slug = title.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "")
-      + "-" + Math.random().toString(36).slice(2, 5);
+    const slug = slugify(title);
     const { data, error: err } = await supabase
       .from("series")
       .insert({ title: title.trim(), slug, description: description || null, is_active: true })
@@ -194,8 +199,6 @@ export default function OriginalsEditPage() {
   const [episodeNumber, setEpisodeNumber] = useState("");
   const [seriesList, setSeriesList] = useState<SeriesItem[]>([]);
 
-  // Set only once Cloudflare confirms the video is ready, so a failed
-  // upload can never leave a dead UID in the form.
   const [streamId, setStreamId] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [durationSeconds, setDurationSeconds] = useState("");
@@ -248,7 +251,7 @@ export default function OriginalsEditPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [params.id]);
+  }, [params.id, isNew]);
 
   useEffect(() => { return () => { if (pollRef.current) clearInterval(pollRef.current); }; }, []);
 
@@ -266,7 +269,7 @@ export default function OriginalsEditPage() {
       try {
         const res = await fetch(`/api/stream/upload?id=${videoId}`);
         const data = await res.json();
-        if (!res.ok) return; // 404 right after upload is normal — keep waiting
+        if (!res.ok) return;
         if (data.status === "ready" || data.readyToStream) {
           clearInterval(pollRef.current!);
           setStreamId(videoId);
@@ -279,7 +282,7 @@ export default function OriginalsEditPage() {
           setUploadError("ވީޑިއޯ ޕްރޮސެސް ނުވި");
         }
       } catch {
-        // transient network failure — keep polling
+        // network polling retry
       }
     }, 3000);
   }
@@ -294,7 +297,6 @@ export default function OriginalsEditPage() {
       return;
     }
     setUploadError(""); setUploadState("requesting"); setUploadProgress(0);
-    setStreamId("");
     uploadStartRef.current = Date.now();
     try {
       const res = await fetch("/api/stream/upload", {
@@ -303,7 +305,11 @@ export default function OriginalsEditPage() {
       });
       const { uploadUrl, videoId, error: apiError } = await res.json();
       if (apiError || !uploadUrl) throw new Error(apiError ?? "Upload URL ނުލިބުނު");
+
+      // Retain Stream ID immediately so saving drafts doesn't clear the relation
+      setStreamId(videoId);
       setUploadState("uploading");
+
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhrRef.current = xhr;
@@ -365,7 +371,7 @@ export default function OriginalsEditPage() {
 
   async function handleSave(publish = false) {
     setSaveWarning("");
-    if (uploadInFlight) {
+    if (uploadInFlight && publish) {
       setSaveWarning("ވީޑިއޯ އަޕްލޯޑް ނިމެންދެން މަޑުކުރޭ");
       return;
     }
@@ -376,7 +382,9 @@ export default function OriginalsEditPage() {
 
     setSaving(true);
     const payload = {
-      title, slug: slug || slugify(title), description,
+      title,
+      slug: slug || slugify(title),
+      description,
       type: videoKind === "episode" ? "episode" : type,
       series_id: videoKind === "episode" ? (seriesId || null) : null,
       season_number: videoKind === "episode" && seasonNumber ? parseInt(seasonNumber) : null,
@@ -388,20 +396,36 @@ export default function OriginalsEditPage() {
       thumbnail_url: thumbnailUrl || null,
       duration_seconds: durationSeconds ? parseInt(durationSeconds) : null,
     };
+
     if (isNew) {
       const res = await fetch("/api/originals", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const json = await res.json();
+      if (!res.ok) {
+        setSaveWarning(json.error || "ސޭވްއެއް ނުވި");
+        setSaving(false);
+        return;
+      }
       if (json.data?.id) router.replace(`/admin/originals/${json.data.id}`);
     } else {
-      await fetch("/api/originals", {
-        method: "PATCH", headers: { "Content-Type": "application/json" },
+      const res = await fetch("/api/originals", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: params.id, ...payload }),
       });
+      const json = await res.json();
+      if (!res.ok) {
+        setSaveWarning(json.error || "ސޭވްއެއް ނުވި");
+        setSaving(false);
+        return;
+      }
     }
-    setSaving(false); setSaved(true);
+
+    setSaving(false);
+    setSaved(true);
     if (publish) setStatus("published");
     setTimeout(() => setSaved(false), 2000);
   }
@@ -619,7 +643,13 @@ export default function OriginalsEditPage() {
             <div className="space-y-4">
               <Field label="ސުރުޚީ">
                 <input type="text" value={title}
-                  onChange={e => { setTitle(e.target.value); if (isNew && e.target.value.trim().length > 3) setSlug(slugify(e.target.value)); }}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setTitle(val);
+                    if (isNew && val.trim().length > 2) {
+                      setSlug(slugify(val));
+                    }
+                  }}
                   className="w-full px-3 py-2.5 rounded-lg border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900 text-sm"
                   style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }} placeholder="ވީޑިއޯގެ ސުރުޚީ" />
               </Field>
@@ -726,7 +756,7 @@ export default function OriginalsEditPage() {
                 ކެންސަލް
               </button>
               <div className="flex items-center gap-3">
-                <button onClick={() => handleSave(false)} disabled={saving || uploadInFlight}
+                <button onClick={() => handleSave(false)} disabled={saving}
                   className="px-5 py-2.5 rounded-lg border border-neutral-300 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors disabled:opacity-50"
                   style={{ fontFamily: "MVTypewriter, serif" }}>
                   {saved ? "✓ ސޭވްވެއްޖެ" : "ޑްރާފްޓް ސޭވް"}
