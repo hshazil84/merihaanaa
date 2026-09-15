@@ -34,6 +34,9 @@ export default function NewArticlePage() {
   const [tags, setTags]                 = useState<{ name: string; slug: string }[]>([]);
   const [seriesId, setSeriesId]         = useState<string | null>(null);
   const [chapterNumber, setChapterNumber] = useState<number | null>(null);
+  // Book-review flag — currently only meaningful for the ވާހަކަ category,
+  // but stored independent of category so it survives a category switch.
+  const [isBookReview, setIsBookReview] = useState(false);
   const [saving, setSaving]       = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [error, setError]         = useState<string | null>(null);
@@ -73,8 +76,6 @@ export default function NewArticlePage() {
     if (value?.type === "video" && value.videoMeta?.thumbnailUrl && !ogImageUrl) {
       setOgImageUrl(value.videoMeta.thumbnailUrl);
     }
-    // Image covers now ship a separate 1200x630 card. Adopt it rather than
-    // clearing the field — the full-size master is far too heavy for WhatsApp.
     if (value?.type === "image") setOgImageUrl(value.ogImageUrl ?? "");
     if (!value) setOgImageUrl("");
   };
@@ -93,8 +94,6 @@ export default function NewArticlePage() {
         ? { cover_type: "video", cover_url: null, featured_image: null, cover_video_id: coverMedia.videoMeta?.videoId ?? null, cover_video_provider: coverMedia.videoMeta?.provider ?? null, cover_video_thumbnail: coverMedia.videoMeta?.thumbnailUrl ?? null }
         : { cover_type: null, cover_url: null, featured_image: null, cover_video_id: null, cover_video_provider: null, cover_video_thumbnail: null };
 
-    // Preference order: manual override → generated social card →
-    // the display master (heavy, last resort) → video thumbnail.
     const generatedCard = coverMedia?.type === "image" ? coverMedia.ogImageUrl ?? null : null;
     const resolvedOgImage =
       ogImageUrl?.trim() ||
@@ -117,6 +116,7 @@ export default function NewArticlePage() {
       homepage_slot: homepageSlot,
       homepage_featured: homepageFeatured,
       is_premium: isPremiumRef.current,
+      is_book_review: isBookReview,
       allow_comments: allowComments,
       og_title: ogTitle || title,
       og_description: ogDesc || excerpt,
@@ -170,6 +170,7 @@ export default function NewArticlePage() {
         title={title} excerpt={excerpt} body={body} categories={categories}
         categoryId={categoryId} placement={placement} homepageSlot={homepageSlot}
         homepageFeatured={homepageFeatured} isPremium={isPremium} allowComments={allowComments}
+        isBookReview={isBookReview}
         ogTitle={ogTitle} ogDesc={ogDesc} ogImageUrl={ogImageUrl} coverMedia={coverMedia}
         coverPortraitUrl={coverPortraitUrl}
         authorId={authorId} scheduledAt={scheduledFor} tags={tags}
@@ -179,6 +180,7 @@ export default function NewArticlePage() {
         onHomepageSlotChange={setHomepageSlot}
         onHomepageFeaturedChange={setHomepageFeatured}
         onIsPremiumChange={setIsPremium}
+        onIsBookReviewChange={setIsBookReview}
         onAllowCommentsChange={setAllowComments}
         onOgTitleChange={setOgTitle} onOgDescChange={setOgDesc} onOgImageUrlChange={setOgImageUrl}
         onCoverPortraitUrlChange={setCoverPortraitUrl}
