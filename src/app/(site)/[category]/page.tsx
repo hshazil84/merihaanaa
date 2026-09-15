@@ -9,7 +9,7 @@ import MusicCategoryPage from "./components/MusicCategoryPage";
 
 interface PageProps {
   params: { category: string };
-  searchParams: { page?: string; section?: string };
+  searchParams: { page?: string; section?: string; type?: string };
 }
 
 const PAGE_SIZE = 8;
@@ -17,8 +17,8 @@ const DEFAULT_PAGE_SIZE = 12;
 const SHORT_STORIES_PAGE_SIZE = 8;
 const LONG_STORIES_PAGE_SIZE = 8;
 const BOOK_REVIEWS_PAGE_SIZE = 8;
-// Items shown per row on the /vaahaka overview before a "see all" link appears.
 const STORIES_OVERVIEW_LIMIT = 4;
+const RAHA_PAGE_SIZE = 9;
 
 export async function generateMetadata({ params }: PageProps) {
   const supabase = await createServerSupabaseClient();
@@ -272,13 +272,8 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
 
   // ── VAAHAKA (Stories) ────────────────────────────────
   if (category.slug === "vaahaka") {
-    // Legacy links pointed at /vaahaka?page=N for what used to be the only
-    // paginated list (short stories). If a page beyond 1 arrives with no
-    // explicit section, keep those links working by treating it as the
-    // short-stories view.
     const section = searchParams.section ?? (page > 1 ? "short" : undefined);
 
-    // ── Focused: one section, fully paginated ──
     if (section === "long") {
       const from = (page - 1) * LONG_STORIES_PAGE_SIZE;
       const to = from + LONG_STORIES_PAGE_SIZE - 1;
@@ -290,7 +285,8 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         .order("created_at", { ascending: false })
         .range(from, to);
 
-      const seriesWithChapters = await hydrateSeries(supabase, seriesRaw ?? []);
+      const seriesWithChapters = (await hydrateSeries(supabase, seriesRaw ?? []))
+        .filter((s: any) => s.chapter_count > 0);
       const total = count ?? 0;
 
       return (
@@ -356,7 +352,6 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
       );
     }
 
-    // ── Overview: 4 of each, with see-all links ──
     const [
       { data: seriesRaw, count: seriesCount },
       { data: shortRaw, count: shortCount },
@@ -391,7 +386,8 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         .limit(STORIES_OVERVIEW_LIMIT),
     ]);
 
-    const seriesWithChapters = await hydrateSeries(supabase, seriesRaw ?? []);
+    const seriesWithChapters = (await hydrateSeries(supabase, seriesRaw ?? []))
+      .filter((s: any) => s.chapter_count > 0);
 
     return (
       <StoriesCategoryPage
@@ -404,6 +400,50 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         reviewTotal={reviewCount ?? 0}
         page={1}
         totalPages={1}
+      />
+    );
+  }
+
+  // ── RAHA (Food reviews) ──────────────────────────────
+  if (category.slug === "raha") {
+    const activeType = ["cafe", "restaurant", "recipe"].includes(searchParams.type ?? "")
+      ? (searchParams.type as "cafe" | "restaurant" | "recipe")
+      : null;
+
+    const from = (page - 1) * RAHA_PAGE_SIZE;
+    const to = from + RAHA_PAGE_SIZE - 1;
+
+    let query = supabase
+      .from("articles")
+      .select(
+        "id, title, slug, excerpt, featured_image, review_score, review_subject, review_area, review_type, reading_time_minutes, published_at, author:authors!author_id(full_name)",
+        { count: "exact" }
+      )
+      .eq("status", "published")
+      .eq("category_id", category.id)
+      .order("published_at", { ascending: false })
+      .range(from, to);
+
+    if (activeType) query = query.eq("review_type", activeType);
+
+    const { data: itemsRaw, count } = await query;
+    const items = itemsRaw ?? [];
+    const total = count ?? 0;
+
+    // The first item on the first page of any filtered view becomes the
+    // hero card; the rest fill the grid below it. Later pages are grid-only.
+    const featured = page === 1 && items.length > 0 ? items[0] : null;
+    const gridItems = page === 1 && items.length > 0 ? items.slice(1) : items;
+
+    return (
+      <ReviewsCategoryPage
+        category={category}
+        featured={featured}
+        articles={gridItems}
+        total={total}
+        totalPages={Math.ceil(total / RAHA_PAGE_SIZE)}
+        page={page}
+        activeType={activeType}
       />
     );
   }
@@ -426,10 +466,6 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   const allArticles = articles ?? [];
   const total = count ?? 0;
   const totalPages = Math.ceil(total / DEFAULT_PAGE_SIZE);
-
-  if (category.slug === "raha") {
-    return <ReviewsCategoryPage category={category} articles={allArticles} total={total} totalPages={totalPages} page={page} />;
-  }
 
   return <DefaultCategoryPage category={category} articles={allArticles} total={total} totalPages={totalPages} page={page} />;
 }
