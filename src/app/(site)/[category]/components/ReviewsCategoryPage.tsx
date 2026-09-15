@@ -14,9 +14,9 @@ const TABS: { value: ReviewType | null; label: string }[] = [
 ];
 
 const TYPE_META: Record<ReviewType, { label: string; bg: string; text: string }> = {
-  cafe:       { label: "ކެފޭ",          bg: "rgb(250,240,220)", text: "rgb(150,110,40)" },
+  cafe:       { label: "ކެފޭ",           bg: "rgb(250,240,220)", text: "rgb(150,110,40)" },
   restaurant: { label: "ރެސްޓޯރެންޓް",   bg: "rgb(250,231,224)", text: "rgb(160,75,45)"  },
-  recipe:     { label: "ރެސިޕީ",        bg: "rgb(231,240,220)", text: "rgb(75,105,50)"  },
+  recipe:     { label: "ރެސިޕީ",         bg: "rgb(231,240,220)", text: "rgb(75,105,50)"  },
 };
 
 function TypeBadge({ type }: { type: string | null }) {
@@ -49,8 +49,6 @@ function ScoreBadge({ score, size = 52 }: { score: number; size?: number }) {
 }
 
 function MetaRow({ article }: { article: any }) {
-  // Cafés and restaurants show area; recipes have no location, so they
-  // show reading time (a stand-in for prep time until a dedicated field exists).
   if (article.review_type === "recipe") {
     return (
       <p style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "11px", color: "rgb(160,158,152)", lineHeight: 1.8 }}>
@@ -179,7 +177,7 @@ export function ReviewsCategoryPage({
             const isActive = activeType === tab.value;
             const href = tab.value ? `/${category.slug}?type=${tab.value}` : `/${category.slug}`;
             return (
-              
+              <Link
                 key={tab.label}
                 href={href}
                 style={{
@@ -193,7 +191,7 @@ export function ReviewsCategoryPage({
                 }}
               >
                 {tab.label}
-              </a>
+              </Link>
             );
           })}
         </div>
