@@ -41,6 +41,9 @@ export default function EditArticlePage() {
   const [chapterNumber, setChapterNumber]       = useState<number | null>(null);
   const [featuredOnFilm, setFeaturedOnFilm]     = useState(false);
   const [featuredOnMusic, setFeaturedOnMusic]   = useState(false);
+  // Book-review flag — same field as new/page.tsx, loaded from the
+  // existing article and written back on save.
+  const [isBookReview, setIsBookReview]         = useState(false);
   const [loading, setLoading]     = useState(true);
   const [saving, setSaving]       = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -86,6 +89,7 @@ export default function EditArticlePage() {
       setHomepageFeatured(a.homepage_featured ?? false);
       setIsPremium(a.is_premium ?? false);
       isPremiumRef.current = a.is_premium ?? false;
+      setIsBookReview(a.is_book_review ?? false);
       setAllowComments(a.allow_comments ?? true);
       setOgTitle(a.og_title ?? "");
       setOgDesc(a.og_description ?? "");
@@ -101,7 +105,6 @@ export default function EditArticlePage() {
       setFeaturedOnMusic(a.featured_on_music_category ?? false);
 
       if (a.cover_type === "image" && (a.cover_url || a.featured_image)) {
-        // Carry the stored social card so a re-save doesn't drop it.
         setCoverMedia({
           type: "image",
           imageUrl: a.cover_url || a.featured_image,
@@ -131,7 +134,7 @@ export default function EditArticlePage() {
     if (!loading) isDirtyRef.current = true;
   }, [
     title, excerpt, body, categoryId, placement, homepageSlot, homepageFeatured,
-    isPremium, allowComments, ogTitle, ogDesc, ogImageUrl, coverMedia,
+    isPremium, isBookReview, allowComments, ogTitle, ogDesc, ogImageUrl, coverMedia,
     coverPortraitUrl, authorId, tags, seriesId, chapterNumber,
     featuredOnFilm, featuredOnMusic,
   ]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -150,8 +153,6 @@ export default function EditArticlePage() {
     if (value?.type === "video" && value.videoMeta?.thumbnailUrl && !ogImageUrl) {
       setOgImageUrl(value.videoMeta.thumbnailUrl);
     }
-    // Adopt the generated 1200x630 card. Clearing this field would leave
-    // og:image pointing at the full-size master, which WhatsApp rejects.
     if (value?.type === "image") setOgImageUrl(value.ogImageUrl ?? "");
     if (!value) setOgImageUrl("");
   };
@@ -174,8 +175,6 @@ export default function EditArticlePage() {
         ? { cover_type: "video", cover_url: null, featured_image: null, cover_video_id: coverMedia.videoMeta?.videoId ?? null, cover_video_provider: coverMedia.videoMeta?.provider ?? null, cover_video_thumbnail: coverMedia.videoMeta?.thumbnailUrl ?? null }
         : { cover_type: null, cover_url: null, featured_image: null, cover_video_id: null, cover_video_provider: null, cover_video_thumbnail: null };
 
-    // Manual override → generated social card → display master (heavy,
-    // last resort) → video thumbnail.
     const generatedCard = coverMedia?.type === "image" ? coverMedia.ogImageUrl ?? null : null;
     const resolvedOgImage =
       ogImageUrl?.trim() ||
@@ -198,6 +197,7 @@ export default function EditArticlePage() {
       homepage_slot: homepageSlot,
       homepage_featured: homepageFeatured,
       is_premium: isPremiumRef.current,
+      is_book_review: isBookReview,
       allow_comments: allowComments,
       og_title: ogTitle || title,
       og_description: ogDesc || excerpt,
@@ -253,6 +253,7 @@ export default function EditArticlePage() {
         title={title} excerpt={excerpt} body={body} categories={categories}
         categoryId={categoryId} placement={placement} homepageSlot={homepageSlot}
         homepageFeatured={homepageFeatured} isPremium={isPremium} allowComments={allowComments}
+        isBookReview={isBookReview}
         ogTitle={ogTitle} ogDesc={ogDesc} ogImageUrl={ogImageUrl} coverMedia={coverMedia}
         coverPortraitUrl={coverPortraitUrl}
         authorId={authorId} scheduledAt={scheduledFor} tags={tags} status={status}
@@ -265,6 +266,7 @@ export default function EditArticlePage() {
         onHomepageSlotChange={setHomepageSlot}
         onHomepageFeaturedChange={setHomepageFeatured}
         onIsPremiumChange={setIsPremium}
+        onIsBookReviewChange={setIsBookReview}
         onAllowCommentsChange={setAllowComments}
         onOgTitleChange={setOgTitle} onOgDescChange={setOgDesc} onOgImageUrlChange={setOgImageUrl}
         onCoverPortraitUrlChange={setCoverPortraitUrl}
