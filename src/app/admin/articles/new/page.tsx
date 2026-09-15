@@ -1,259 +1,471 @@
-"use client";
-import { useState, useRef, useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import ArticleEditor from "@/components/admin/ArticleEditor";
-import CoverMedia, { type CoverMediaValue } from "@/components/admin/CoverMedia";
-import ArticleSidebar from "@/components/admin/ArticleSidebar";
-import { generateArticleSlug, calculateReadingTime } from "@/lib/utils";
-import { Save, Eye, Send, Loader2 } from "lucide-react";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { notFound } from "next/navigation";
+import { DefaultCategoryPage } from "./components/DefaultCategoryPage";
+import { ReviewsCategoryPage } from "./components/ReviewsCategoryPage";
+import { StoriesCategoryPage } from "./components/StoriesCategoryPage";
+import { MeehunCategoryPage } from "./components/MeehunCategoryPage";
+import FilmCategoryPage from "./components/FilmCategoryPage";
+import MusicCategoryPage from "./components/MusicCategoryPage";
 
-interface Category { id: string; name: string; slug: string; }
+interface PageProps {
+  params: { category: string };
+  searchParams: { page?: string; section?: string; type?: string };
+}
 
-export default function NewArticlePage() {
-  const router   = useRouter();
-  const supabase = createClient();
+const PAGE_SIZE = 8;
+const DEFAULT_PAGE_SIZE = 12;
+const SHORT_STORIES_PAGE_SIZE = 8;
+const LONG_STORIES_PAGE_SIZE = 8;
+const BOOK_REVIEWS_PAGE_SIZE = 8;
+const STORIES_OVERVIEW_LIMIT = 4;
+const RAHA_PAGE_SIZE = 9;
 
-  const [title, setTitle]               = useState("");
-  const [excerpt, setExcerpt]           = useState("");
-  const [body, setBody]                 = useState<Record<string, unknown> | null>(null);
-  const [categoryId, setCategoryId]     = useState<string | null>(null);
-  const [categories, setCategories]     = useState<Category[]>([]);
-  const [placement, setPlacement]       = useState<string | null>(null);
-  const [homepageSlot, setHomepageSlot] = useState<number | null>(null);
-  const [homepageFeatured, setHomepageFeatured] = useState(false);
-  const [isPremium, setIsPremium]       = useState(false);
-  const [allowComments, setAllowComments] = useState(true);
-  const [ogTitle, setOgTitle]           = useState("");
-  const [ogDesc, setOgDesc]             = useState("");
-  const [ogImageUrl, setOgImageUrl]     = useState("");
-  const [coverMedia, setCoverMedia]     = useState<CoverMediaValue | null>(null);
-  const [coverPortraitUrl, setCoverPortraitUrl] = useState<string | null>(null);
-  const [authorId, setAuthorId]         = useState<string | null>(null);
-  const [scheduledFor, setScheduledFor] = useState<string | null>(null);
-  const [tags, setTags]                 = useState<{ name: string; slug: string }[]>([]);
-  const [seriesId, setSeriesId]         = useState<string | null>(null);
-  const [chapterNumber, setChapterNumber] = useState<number | null>(null);
-  // Book-review flag — currently only meaningful for the ވާހަކަ category,
-  // but stored independent of category so it survives a category switch.
-  const [isBookReview, setIsBookReview] = useState(false);
-  const [saving, setSaving]       = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [error, setError]         = useState<string | null>(null);
-  const [slug, setSlug]           = useState("");
-
-  const articleIdRef = useRef<string | null>(null);
-  const slugRef      = useRef<string>("");
-  const placementRef = useRef<string | null>(null);
-  const categoryRef  = useRef<string | null>(null);
-  const isPremiumRef = useRef(false);
-
-  useEffect(() => {
-    supabase.from("categories").select("id, name, slug").order("name")
-      .then(({ data }) => {
-        if (data) {
-          setCategories(data);
-          if (data.length > 0) { setCategoryId(data[0].id); categoryRef.current = data[0].id; }
-        }
-      });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => { placementRef.current = placement; }, [placement]);
-  useEffect(() => { categoryRef.current = categoryId; }, [categoryId]);
-  useEffect(() => { isPremiumRef.current = isPremium; }, [isPremium]);
-
-  const editorScrollRef = useRef<HTMLDivElement>(null);
-
-  const handleBodyChange = useCallback((newBody: Record<string, unknown>) => {
-    const el = editorScrollRef.current;
-    const scrollTop = el?.scrollTop ?? 0;
-    setBody(newBody);
-    requestAnimationFrame(() => { if (el) el.scrollTop = scrollTop; });
-  }, []);
-
-  const handleCoverMediaChange = (value: CoverMediaValue | null) => {
-    setCoverMedia(value);
-    if (value?.type === "video" && value.videoMeta?.thumbnailUrl && !ogImageUrl) {
-      setOgImageUrl(value.videoMeta.thumbnailUrl);
-    }
-    if (value?.type === "image") setOgImageUrl(value.ogImageUrl ?? "");
-    if (!value) setOgImageUrl("");
+export async function generateMetadata({ params }: PageProps) {
+  const supabase = await createServerSupabaseClient();
+  const { data: category } = await supabase
+    .from("categories")
+    .select("name, slug")
+    .eq("slug", params.category)
+    .single();
+  if (!category) return { title: "ކެޓަގަރީ ނުލިބުނު" };
+  return {
+    title: category.name,
+    description: category.name + " - މެރިހާނާ",
   };
+}
 
-  useEffect(() => {
-    if (!title.trim()) return;
-    const interval = setInterval(() => { handleSave("draft", true); }, 60000);
-    return () => clearInterval(interval);
-  }, [title, body, excerpt]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const buildPayload = (publishStatus: "draft" | "published" | "scheduled") => {
-    const coverFields =
-      coverMedia?.type === "image"
-        ? { cover_type: "image", cover_url: coverMedia.imageUrl ?? null, featured_image: coverMedia.imageUrl ?? null, cover_video_id: null, cover_video_provider: null, cover_video_thumbnail: null }
-        : coverMedia?.type === "video"
-        ? { cover_type: "video", cover_url: null, featured_image: null, cover_video_id: coverMedia.videoMeta?.videoId ?? null, cover_video_provider: coverMedia.videoMeta?.provider ?? null, cover_video_thumbnail: coverMedia.videoMeta?.thumbnailUrl ?? null }
-        : { cover_type: null, cover_url: null, featured_image: null, cover_video_id: null, cover_video_provider: null, cover_video_thumbnail: null };
-
-    const generatedCard = coverMedia?.type === "image" ? coverMedia.ogImageUrl ?? null : null;
-    const resolvedOgImage =
-      ogImageUrl?.trim() ||
-      generatedCard ||
-      coverFields.featured_image ||
-      coverFields.cover_video_thumbnail ||
-      null;
-
-    return {
-      title, excerpt, body,
-      category_id: categoryRef.current,
-      author_id: authorId,
-      content_type: "article",
-      ...coverFields,
-      cover_portrait_url: coverPortraitUrl,
-      status: publishStatus,
-      published_at: publishStatus === "published" ? new Date().toISOString() : null,
-      scheduled_for: publishStatus === "scheduled" ? scheduledFor : null,
-      homepage_placement: placementRef.current,
-      homepage_slot: homepageSlot,
-      homepage_featured: homepageFeatured,
-      is_premium: isPremiumRef.current,
-      is_book_review: isBookReview,
-      allow_comments: allowComments,
-      og_title: ogTitle || title,
-      og_description: ogDesc || excerpt,
-      og_image_url: resolvedOgImage,
-      tags,
-      series_id: seriesId,
-      chapter_number: chapterNumber,
-      reading_time_minutes: calculateReadingTime(body),
-    };
-  };
-
-  const handleSave = async (publishStatus: "draft" | "published" | "scheduled", silent = false) => {
-    if (!title.trim()) { if (!silent) setError("ސުރުހީ ލިޔެލާ"); return; }
-    if (!silent) { setSaving(true); setError(null); }
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push("/login"); return; }
-    const payload = buildPayload(publishStatus);
-    let data, err;
-    if (articleIdRef.current) {
-      ({ data, error: err } = await supabase.from("articles").update(payload).eq("id", articleIdRef.current).select().single());
-    } else {
-      const generatedSlug = generateArticleSlug(title);
-      slugRef.current = generatedSlug;
-      setSlug(generatedSlug);
-      ({ data, error: err } = await supabase.from("articles").insert({ ...payload, slug: generatedSlug }).select().single());
-    }
-    if (!silent) setSaving(false);
-    if (err) { if (!silent) setError("ލިޔުން ސޭވް ނުވި: " + err.message); return; }
-    if (data) {
-      articleIdRef.current = data.id;
-      slugRef.current = data.slug;
-      setSlug(data.slug);
-      setLastSaved(new Date());
-    }
-    if (!silent && (publishStatus === "published" || publishStatus === "scheduled")) {
-      router.push(`/admin/articles/${articleIdRef.current}`);
-    }
-  };
-
-  const handleTagsChange = useCallback(
-    (updater: { name: string; slug: string }[] | ((prev: { name: string; slug: string }[]) => { name: string; slug: string }[])) => {
-      if (typeof updater === "function") { setTags((prev) => updater(prev)); } else { setTags(updater); }
-    }, []
+async function hydrateSeries(supabase: any, seriesRaw: any[]) {
+  return Promise.all(
+    (seriesRaw ?? []).map(async (s: any) => {
+      const [{ data: latest }, { count: chapterCount }, { data: firstChapter }] = await Promise.all([
+        supabase
+          .from("articles")
+          .select("slug, chapter_number, published_at")
+          .eq("status", "published")
+          .eq("series_id", s.id)
+          .order("chapter_number", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("articles")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "published")
+          .eq("series_id", s.id),
+        supabase
+          .from("articles")
+          .select("slug, cover_portrait_url, featured_image")
+          .eq("status", "published")
+          .eq("series_id", s.id)
+          .order("chapter_number", { ascending: true })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+      return {
+        ...s,
+        latest_chapter:      latest?.chapter_number ?? null,
+        latest_slug:         latest?.slug ?? null,
+        first_slug:          (firstChapter as any)?.slug ?? null,
+        latest_published_at: latest?.published_at ?? null,
+        chapter_count:       chapterCount ?? 0,
+        thumbnail:           s.thumbnail ?? (firstChapter as any)?.cover_portrait_url ?? (firstChapter as any)?.featured_image ?? null,
+      };
+    })
   );
+}
 
-  const handlePreview = () => { window.open(`/preview/${slugRef.current || generateArticleSlug(title)}`, "_blank"); };
+export default async function CategoryPage({ params, searchParams }: PageProps) {
+  const page = Math.max(1, parseInt(searchParams.page ?? "1", 10));
+  const supabase = await createServerSupabaseClient();
 
-  return (
-    <div className="flex h-full">
-      <ArticleSidebar
-        title={title} excerpt={excerpt} body={body} categories={categories}
-        categoryId={categoryId} placement={placement} homepageSlot={homepageSlot}
-        homepageFeatured={homepageFeatured} isPremium={isPremium} allowComments={allowComments}
-        isBookReview={isBookReview}
-        ogTitle={ogTitle} ogDesc={ogDesc} ogImageUrl={ogImageUrl} coverMedia={coverMedia}
-        coverPortraitUrl={coverPortraitUrl}
-        authorId={authorId} scheduledAt={scheduledFor} tags={tags}
-        seriesId={seriesId} chapterNumber={chapterNumber}
-        onCategoryChange={(id) => { setCategoryId(id); categoryRef.current = id; }}
-        onPlacementChange={setPlacement}
-        onHomepageSlotChange={setHomepageSlot}
-        onHomepageFeaturedChange={setHomepageFeatured}
-        onIsPremiumChange={setIsPremium}
-        onIsBookReviewChange={setIsBookReview}
-        onAllowCommentsChange={setAllowComments}
-        onOgTitleChange={setOgTitle} onOgDescChange={setOgDesc} onOgImageUrlChange={setOgImageUrl}
-        onCoverPortraitUrlChange={setCoverPortraitUrl}
-        onAuthorIdChange={setAuthorId} onScheduledAtChange={setScheduledFor}
-        onTagsChange={handleTagsChange}
-        onSeriesIdChange={setSeriesId}
-        onChapterNumberChange={setChapterNumber}
-        onSaveDraft={() => handleSave("draft")}
-        onPublish={() => handleSave("published")}
-        onSchedule={() => handleSave("scheduled")}
-        onPreview={handlePreview}
-        saving={saving} lastSaved={lastSaved} error={error} slug={slug}
+  const { data: category } = await supabase
+    .from("categories")
+    .select("id, name, slug")
+    .eq("slug", params.category)
+    .single();
+
+  if (!category) notFound();
+
+  // ── MEEHUN ──────────────────────────────────────────
+  if (category.slug === "meehun") {
+    const { data: featuredArticle } = await supabase
+      .from("articles")
+      .select("id, title, slug, excerpt, featured_image, reading_time_minutes, published_at, view_count, tags, author:authors!author_id(full_name, avatar)")
+      .eq("status", "published")
+      .eq("category_id", category.id)
+      .eq("homepage_featured", true)
+      .order("published_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const featuredId = featuredArticle?.id ?? null;
+
+    let mostReadQuery = supabase
+      .from("articles")
+      .select("id, title, slug, view_count, author:authors!author_id(full_name)")
+      .eq("status", "published")
+      .eq("category_id", category.id)
+      .order("view_count", { ascending: false })
+      .limit(5);
+    if (featuredId) mostReadQuery = mostReadQuery.neq("id", featuredId);
+    const { data: mostReadRaw } = await mostReadQuery;
+
+    let recentQuery = supabase
+      .from("articles")
+      .select("id, title, slug, featured_image, published_at, tags, author:authors!author_id(full_name)")
+      .eq("status", "published")
+      .eq("category_id", category.id)
+      .order("published_at", { ascending: false })
+      .limit(3);
+    if (featuredId) recentQuery = recentQuery.neq("id", featuredId);
+    const { data: recentRaw } = await recentQuery;
+
+    const excludeIds = [
+      featuredId,
+      ...(recentRaw ?? []).map((a: any) => a.id),
+    ].filter(Boolean) as string[];
+
+    const from = (page - 1) * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+
+    let gridQuery = supabase
+      .from("articles")
+      .select("id, title, slug, excerpt, featured_image, reading_time_minutes, published_at, tags, author:authors!author_id(full_name)", { count: "exact" })
+      .eq("status", "published")
+      .eq("category_id", category.id)
+      .order("published_at", { ascending: false })
+      .range(from, to);
+
+    if (excludeIds.length > 0) {
+      gridQuery = gridQuery.not("id", "in", "(" + excludeIds.join(",") + ")");
+    }
+
+    const { data: gridRaw, count } = await gridQuery;
+
+    return (
+      <MeehunCategoryPage
+        category={category}
+        featuredArticle={featuredArticle ?? null}
+        mostRead={mostReadRaw ?? []}
+        recentArticles={recentRaw ?? []}
+        articles={gridRaw ?? []}
+        total={count ?? 0}
+        totalPages={Math.ceil((count ?? 0) / PAGE_SIZE)}
+        page={page}
       />
-      <div ref={editorScrollRef} className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-3xl mx-auto space-y-4">
-          <div className="flex gap-2 flex-wrap" dir="rtl">
-            {categories.map((cat) => (
-              <button key={cat.id} type="button"
-                onClick={() => { setCategoryId(cat.id); categoryRef.current = cat.id; }}
-                className={`font-body text-xs px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5 ${
-                  categoryId === cat.id ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
-                }`}>
-                {categoryId === cat.id && (
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                    <path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-                {cat.name}
-              </button>
-            ))}
-          </div>
-          <textarea value={title} onChange={(e) => setTitle(e.target.value)}
-            placeholder="ލިޔުމުގެ ސުރުހީ..." rows={2} dir="rtl"
-            className="w-full font-display text-3xl font-bold bg-transparent border-none outline-none resize-none text-foreground placeholder:text-muted-foreground/40 leading-tight" />
-          <textarea value={excerpt} onChange={(e) => setExcerpt(e.target.value)}
-            placeholder="ކުރު ތަޢާރަފެއް — ކިޔުންތެރިން ފުރަތަމަ ފެންނާ ބައި..." rows={6} dir="rtl"
-            className="w-full font-body text-base text-muted-foreground bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40 leading-relaxed" />
-          <CoverMedia value={coverMedia} onChange={handleCoverMediaChange} />
-          <ArticleEditor content={body ?? undefined} onChange={handleBodyChange} placeholder="ލިޔުން ފަށާ..." />
-          <div className="sticky bottom-4 z-20" dir="rtl">
-            <div className="flex items-center gap-2 p-2 rounded-2xl border border-border shadow-lg w-fit bg-card">
-              {lastSaved && (
-                <span className="flex items-center gap-1.5 px-2">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
-                  </span>
-                  <span className="font-body text-xs text-muted-foreground">
-                    {lastSaved.toLocaleTimeString("en", { hour: "2-digit", minute: "2-digit", hour12: false })}
-                  </span>
-                </span>
-              )}
-              <button type="button" onClick={() => handleSave("draft")} disabled={saving}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl font-body text-xs text-muted-foreground border border-border hover:bg-muted hover:text-foreground transition-colors disabled:opacity-40">
-                {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} ސޭވް
-              </button>
-              <button type="button" onClick={handlePreview}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl font-body text-xs text-muted-foreground border border-border hover:bg-muted hover:text-foreground transition-colors">
-                <Eye size={14} /> ޕްރިވިއު
-              </button>
-              <button type="button" onClick={() => handleSave("published")} disabled={saving}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl font-body text-xs bg-foreground text-background hover:opacity-80 transition-opacity disabled:opacity-40">
-                {saving ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} ޝާއިއު
-              </button>
-            </div>
-          </div>
-          {error && (
-            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-              <p className="font-body text-sm text-destructive">{error}</p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+    );
+  }
+
+  // ── FILM ─────────────────────────────────────────────
+  if (category.slug === "film") {
+    const from = (page - 1) * DEFAULT_PAGE_SIZE;
+    const to = from + DEFAULT_PAGE_SIZE - 1;
+
+    const [
+      { data: articles, count },
+      { data: cinemaRaw },
+      { data: ottRaw },
+      { data: topReadRaw },
+      { data: featuredOriginal },
+    ] = await Promise.all([
+      supabase
+        .from("articles")
+        .select(
+          "id, title, slug, excerpt, featured_image, cover_portrait_url, reading_time_minutes, published_at, tags, view_count, author:authors!author_id(full_name), category:categories!category_id(name, slug)",
+          { count: "exact" }
+        )
+        .eq("status", "published")
+        .eq("category_id", category.id)
+        .order("published_at", { ascending: false })
+        .range(from, to),
+      supabase
+        .from("charts")
+        .select("*")
+        .in("chart_type", ["cinema_now", "cinema_upcoming"])
+        .order("rank", { ascending: true }),
+      supabase
+        .from("chart_series")
+        .select("*")
+        .eq("is_active", true)
+        .order("rank", { ascending: true }),
+      supabase
+        .from("articles")
+        .select("id, title, slug, view_count")
+        .eq("status", "published")
+        .eq("category_id", category.id)
+        .order("view_count", { ascending: false })
+        .limit(5),
+      supabase
+        .from("originals")
+        .select("id, title, slug, description, thumbnail_url, cloudflare_stream_id, duration_seconds, type")
+        .eq("featured_on_film", true)
+        .eq("status", "published")
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    return (
+      <FilmCategoryPage
+        articles={(articles ?? []) as any[]}
+        cinemaEntries={(cinemaRaw ?? []) as any[]}
+        ottEntries={(ottRaw ?? []) as any[]}
+        topRead={(topReadRaw ?? []) as any[]}
+        featuredOriginal={featuredOriginal as any}
+        categorySlug={category.slug}
+        totalCount={count ?? 0}
+        page={page}
+      />
+    );
+  }
+
+  // ── MUSIC ─────────────────────────────────────────────
+  if (category.slug === "music") {
+    const from = (page - 1) * DEFAULT_PAGE_SIZE;
+    const to = from + DEFAULT_PAGE_SIZE - 1;
+
+    const [
+      { data: articles, count },
+      { data: trendingRaw },
+      { data: eventsRaw },
+      { data: featuredOriginal },
+    ] = await Promise.all([
+      supabase
+        .from("articles")
+        .select(
+          "id, title, slug, excerpt, featured_image, reading_time_minutes, published_at, tags, view_count, author:authors!author_id(full_name), category:categories!category_id(name, slug)",
+          { count: "exact" }
+        )
+        .eq("status", "published")
+        .eq("category_id", category.id)
+        .order("published_at", { ascending: false })
+        .range(from, to),
+      supabase
+        .from("charts")
+        .select("*")
+        .eq("chart_type", "music_trending")
+        .order("rank", { ascending: true }),
+      supabase
+        .from("charts")
+        .select("*")
+        .eq("chart_type", "music_event")
+        .order("showing_date", { ascending: true }),
+      supabase
+        .from("originals")
+        .select("id, title, slug, description, thumbnail_url, cloudflare_stream_id, duration_seconds, type")
+        .eq("featured_on_film", true)
+        .eq("status", "published")
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    return (
+      <MusicCategoryPage
+        articles={(articles ?? []) as any[]}
+        trendingSongs={(trendingRaw ?? []) as any[]}
+        musicEvents={(eventsRaw ?? []) as any[]}
+        featuredOriginal={featuredOriginal as any}
+        categorySlug={category.slug}
+        totalCount={count ?? 0}
+        page={page}
+      />
+    );
+  }
+
+  // ── VAAHAKA (Stories) ────────────────────────────────
+  if (category.slug === "vaahaka") {
+    const section = searchParams.section ?? (page > 1 ? "short" : undefined);
+
+    if (section === "long") {
+      const from = (page - 1) * LONG_STORIES_PAGE_SIZE;
+      const to = from + LONG_STORIES_PAGE_SIZE - 1;
+      const { data: seriesRaw, count } = await supabase
+        .from("series")
+        .select("id, title, slug, description, thumbnail, category_id", { count: "exact" })
+        .eq("category_id", category.id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .range(from, to);
+
+      const seriesWithChapters = (await hydrateSeries(supabase, seriesRaw ?? []))
+        .filter((s: any) => s.chapter_count > 0);
+      const total = count ?? 0;
+
+      return (
+        <StoriesCategoryPage
+          category={category}
+          focusedSection="long"
+          seriesList={seriesWithChapters}
+          page={page}
+          totalPages={Math.ceil(total / LONG_STORIES_PAGE_SIZE)}
+        />
+      );
+    }
+
+    if (section === "review") {
+      const from = (page - 1) * BOOK_REVIEWS_PAGE_SIZE;
+      const to = from + BOOK_REVIEWS_PAGE_SIZE - 1;
+      const { data: reviewRaw, count } = await supabase
+        .from("articles")
+        .select("id, title, slug, featured_image, review_score, review_subject, excerpt, published_at, reading_time_minutes", { count: "exact" })
+        .eq("status", "published")
+        .eq("category_id", category.id)
+        .filter("series_id", "is", null)
+        .eq("is_book_review", true)
+        .order("published_at", { ascending: false })
+        .range(from, to);
+
+      const total = count ?? 0;
+
+      return (
+        <StoriesCategoryPage
+          category={category}
+          focusedSection="review"
+          bookReviews={reviewRaw ?? []}
+          page={page}
+          totalPages={Math.ceil(total / BOOK_REVIEWS_PAGE_SIZE)}
+        />
+      );
+    }
+
+    if (section === "short") {
+      const from = (page - 1) * SHORT_STORIES_PAGE_SIZE;
+      const to = from + SHORT_STORIES_PAGE_SIZE - 1;
+      const { data: shortRaw, count } = await supabase
+        .from("articles")
+        .select("id, title, slug, cover_portrait_url, featured_image, reading_time_minutes, published_at, chapter_number, series_id, review_score, author:authors!author_id(full_name)", { count: "exact" })
+        .eq("status", "published")
+        .eq("category_id", category.id)
+        .filter("series_id", "is", null)
+        .eq("is_book_review", false)
+        .order("published_at", { ascending: false })
+        .range(from, to);
+
+      const total = count ?? 0;
+
+      return (
+        <StoriesCategoryPage
+          category={category}
+          focusedSection="short"
+          shortStories={shortRaw ?? []}
+          page={page}
+          totalPages={Math.ceil(total / SHORT_STORIES_PAGE_SIZE)}
+        />
+      );
+    }
+
+    const [
+      { data: seriesRaw, count: seriesCount },
+      { data: shortRaw, count: shortCount },
+      { data: reviewRaw, count: reviewCount },
+    ] = await Promise.all([
+      supabase
+        .from("series")
+        .select("id, title, slug, description, thumbnail, category_id", { count: "exact" })
+        .eq("category_id", category.id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(STORIES_OVERVIEW_LIMIT),
+
+      supabase
+        .from("articles")
+        .select("id, title, slug, cover_portrait_url, featured_image, reading_time_minutes, published_at, chapter_number, series_id, review_score, author:authors!author_id(full_name)", { count: "exact" })
+        .eq("status", "published")
+        .eq("category_id", category.id)
+        .filter("series_id", "is", null)
+        .eq("is_book_review", false)
+        .order("published_at", { ascending: false })
+        .limit(STORIES_OVERVIEW_LIMIT),
+
+      supabase
+        .from("articles")
+        .select("id, title, slug, featured_image, review_score, review_subject, excerpt, published_at, reading_time_minutes", { count: "exact" })
+        .eq("status", "published")
+        .eq("category_id", category.id)
+        .filter("series_id", "is", null)
+        .eq("is_book_review", true)
+        .order("published_at", { ascending: false })
+        .limit(STORIES_OVERVIEW_LIMIT),
+    ]);
+
+    const seriesWithChapters = (await hydrateSeries(supabase, seriesRaw ?? []))
+      .filter((s: any) => s.chapter_count > 0);
+
+    return (
+      <StoriesCategoryPage
+        category={category}
+        seriesList={seriesWithChapters}
+        shortStories={shortRaw ?? []}
+        bookReviews={reviewRaw ?? []}
+        seriesTotal={seriesCount ?? 0}
+        shortTotal={shortCount ?? 0}
+        reviewTotal={reviewCount ?? 0}
+        page={1}
+        totalPages={1}
+      />
+    );
+  }
+
+  // ── RAHA (Food reviews) ──────────────────────────────
+  if (category.slug === "raha") {
+    const activeType = ["cafe", "restaurant", "recipe"].includes(searchParams.type ?? "")
+      ? (searchParams.type as "cafe" | "restaurant" | "recipe")
+      : null;
+
+    const from = (page - 1) * RAHA_PAGE_SIZE;
+    const to = from + RAHA_PAGE_SIZE - 1;
+
+    let query = supabase
+      .from("articles")
+      .select(
+        "id, title, slug, excerpt, featured_image, review_score, review_subject, review_area, review_type, reading_time_minutes, published_at, author:authors!author_id(full_name)",
+        { count: "exact" }
+      )
+      .eq("status", "published")
+      .eq("category_id", category.id)
+      .order("published_at", { ascending: false })
+      .range(from, to);
+
+    if (activeType) query = query.eq("review_type", activeType);
+
+    const { data: itemsRaw, count } = await query;
+    const items = itemsRaw ?? [];
+    const total = count ?? 0;
+
+    // The first item on the first page of any filtered view becomes the
+    // hero card; the rest fill the grid below it. Later pages are grid-only.
+    const featured = page === 1 && items.length > 0 ? items[0] : null;
+    const gridItems = page === 1 && items.length > 0 ? items.slice(1) : items;
+
+    return (
+      <ReviewsCategoryPage
+        category={category}
+        featured={featured}
+        articles={gridItems}
+        total={total}
+        totalPages={Math.ceil(total / RAHA_PAGE_SIZE)}
+        page={page}
+        activeType={activeType}
+      />
+    );
+  }
+
+  // ── ALL OTHER CATEGORIES ─────────────────────────────
+  const from = (page - 1) * DEFAULT_PAGE_SIZE;
+  const to = from + DEFAULT_PAGE_SIZE - 1;
+
+  const { data: articles, count } = await supabase
+    .from("articles")
+    .select(
+      "id, title, slug, excerpt, featured_image, cover_type, cover_video_thumbnail, reading_time_minutes, published_at, review_score, review_subject, tags, author:authors!author_id(full_name)",
+      { count: "exact" }
+    )
+    .eq("status", "published")
+    .eq("category_id", category.id)
+    .order("published_at", { ascending: false })
+    .range(from, to);
+
+  const allArticles = articles ?? [];
+  const total = count ?? 0;
+  const totalPages = Math.ceil(total / DEFAULT_PAGE_SIZE);
+
+  return <DefaultCategoryPage category={category} articles={allArticles} total={total} totalPages={totalPages} page={page} />;
 }
