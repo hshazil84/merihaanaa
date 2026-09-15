@@ -29,6 +29,7 @@ interface SidebarProps {
   homepageFeatured: boolean;
   isPremium: boolean;
   allowComments: boolean;
+  isBookReview?: boolean;
   ogTitle: string;
   ogDesc: string;
   ogImageUrl: string;
@@ -47,6 +48,7 @@ interface SidebarProps {
   onHomepageSlotChange: (v: number | null) => void;
   onHomepageFeaturedChange: (v: boolean) => void;
   onIsPremiumChange: (v: boolean) => void;
+  onIsBookReviewChange?: (v: boolean) => void;
   onAllowCommentsChange: (v: boolean) => void;
   onOgTitleChange: (v: string) => void;
   onOgDescChange: (v: string) => void;
@@ -267,11 +269,11 @@ function CreateSeriesModal({ onClose, onCreate }: { onClose: () => void; onCreat
 // ── Main component ─────────────────────────────────────────────────────────
 export default function ArticleSidebar({
   title, excerpt, body, categories, categoryId, placement, homepageSlot, homepageFeatured,
-  isPremium, allowComments, ogTitle, ogDesc, ogImageUrl, coverMedia, coverPortraitUrl,
+  isPremium, allowComments, isBookReview = false, ogTitle, ogDesc, ogImageUrl, coverMedia, coverPortraitUrl,
   authorId, scheduledAt, tags = [], status, seriesId, chapterNumber,
   featuredOnFilm = false, featuredOnMusic = false,
   onCategoryChange, onPlacementChange, onHomepageSlotChange, onHomepageFeaturedChange,
-  onIsPremiumChange, onAllowCommentsChange, onOgTitleChange, onOgDescChange,
+  onIsPremiumChange, onIsBookReviewChange, onAllowCommentsChange, onOgTitleChange, onOgDescChange,
   onOgImageUrlChange, onCoverPortraitUrlChange, onAuthorIdChange, onScheduledAtChange,
   onTagsChange, onSeriesIdChange, onChapterNumberChange,
   onFeaturedOnFilmChange, onFeaturedOnMusicChange,
@@ -325,6 +327,12 @@ export default function ArticleSidebar({
   useEffect(() => {
     if (!placement || slotCount <= 1) onHomepageSlotChange(null);
   }, [placement]);
+
+  // A book review is never a series chapter — clear series assignment if
+  // the flag is turned on while one happens to be set.
+  useEffect(() => {
+    if (isBookReview && seriesId) onSeriesIdChange?.(null);
+  }, [isBookReview]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addTag = useCallback((tag: TagItem) => {
     if (!onTagsChange) return;
@@ -486,7 +494,7 @@ export default function ArticleSidebar({
 
           <Divider />
 
-          {/* ── ވާހަކަ: Series ── */}
+          {/* ── ވާހަކަ: Series + Book Review flag ── */}
           {isStoryCategory && (
             <>
               <Section>
@@ -494,18 +502,19 @@ export default function ArticleSidebar({
                 <div className="flex items-center gap-2 mb-3">
                   <div className="relative flex-1">
                     <select value={seriesId ?? ""} onChange={(e) => onSeriesIdChange?.(e.target.value || null)} dir="rtl"
-                      className="w-full font-body text-xs py-2 px-3 pr-8 rounded-lg border border-border bg-muted/40 outline-none focus:border-foreground appearance-none cursor-pointer transition-colors text-foreground">
+                      disabled={isBookReview}
+                      className="w-full font-body text-xs py-2 px-3 pr-8 rounded-lg border border-border bg-muted/40 outline-none focus:border-foreground appearance-none cursor-pointer transition-colors text-foreground disabled:opacity-40 disabled:cursor-not-allowed">
                       <option value="">ސީރީޒް ނެތް</option>
                       {seriesList.map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}
                     </select>
                     <ChevronDown size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                   </div>
-                  <button onClick={() => setShowSeriesModal(true)}
-                    className="flex-none w-7 h-7 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-foreground transition-all flex items-center justify-center text-lg font-light">
+                  <button onClick={() => setShowSeriesModal(true)} disabled={isBookReview}
+                    className="flex-none w-7 h-7 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-foreground transition-all flex items-center justify-center text-lg font-light disabled:opacity-40 disabled:cursor-not-allowed">
                     +
                   </button>
                 </div>
-                {seriesId && (
+                {seriesId && !isBookReview && (
                   <div>
                     <p className="font-body text-[10px] font-semibold text-muted-foreground mb-1.5">ބާބު ނަންބަރ</p>
                     <input type="number" value={chapterNumber ?? ""}
@@ -516,6 +525,29 @@ export default function ArticleSidebar({
                 )}
               </Section>
               <Divider />
+
+              {onIsBookReviewChange && (
+                <>
+                  <Section>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Star size={11} className="text-muted-foreground" />
+                        <div>
+                          <p className="font-body text-[11px] font-semibold text-foreground">ބުކް ރިވިއު</p>
+                          <p className="font-body text-[9px] text-muted-foreground mt-0.5">ފޮތު ރިވިއުއެއްގެ ގޮތުގައި ދައްކާ</p>
+                        </div>
+                      </div>
+                      <Toggle value={isBookReview} onChange={onIsBookReviewChange} />
+                    </div>
+                    {isBookReview && (
+                      <p className="font-body text-[9px] text-amber-600 mt-2">
+                        ✦ ވާހަކަ ޕޭޖްގައި މިއީ ބުކް ރިވިއުއެއްގެ ގޮތުގައި ދައްކާނެ
+                      </p>
+                    )}
+                  </Section>
+                  <Divider />
+                </>
+              )}
             </>
           )}
 
