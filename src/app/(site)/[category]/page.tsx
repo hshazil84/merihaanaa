@@ -270,15 +270,10 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
     );
   }
 
-  // ── VAAHAKA (Stories) ────────────────────────────────
+    // ── VAAHAKA (Stories) ────────────────────────────────
   if (category.slug === "vaahaka") {
-    // Legacy links pointed at /vaahaka?page=N for what used to be the only
-    // paginated list (short stories). If a page beyond 1 arrives with no
-    // explicit section, keep those links working by treating it as the
-    // short-stories view.
     const section = searchParams.section ?? (page > 1 ? "short" : undefined);
 
-    // ── Focused: one section, fully paginated ──
     if (section === "long") {
       const from = (page - 1) * LONG_STORIES_PAGE_SIZE;
       const to = from + LONG_STORIES_PAGE_SIZE - 1;
@@ -313,7 +308,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         .eq("status", "published")
         .eq("category_id", category.id)
         .filter("series_id", "is", null)
-        .not("review_score", "is", null)
+        .eq("is_book_review", true)
         .order("published_at", { ascending: false })
         .range(from, to);
 
@@ -339,7 +334,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         .eq("status", "published")
         .eq("category_id", category.id)
         .filter("series_id", "is", null)
-        .filter("review_score", "is", null)
+        .eq("is_book_review", false)
         .order("published_at", { ascending: false })
         .range(from, to);
 
@@ -376,7 +371,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         .eq("status", "published")
         .eq("category_id", category.id)
         .filter("series_id", "is", null)
-        .filter("review_score", "is", null)
+        .eq("is_book_review", false)
         .order("published_at", { ascending: false })
         .limit(STORIES_OVERVIEW_LIMIT),
 
@@ -386,7 +381,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         .eq("status", "published")
         .eq("category_id", category.id)
         .filter("series_id", "is", null)
-        .not("review_score", "is", null)
+        .eq("is_book_review", true)
         .order("published_at", { ascending: false })
         .limit(STORIES_OVERVIEW_LIMIT),
     ]);
@@ -407,29 +402,3 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
       />
     );
   }
-
-  // ── ALL OTHER CATEGORIES ─────────────────────────────
-  const from = (page - 1) * DEFAULT_PAGE_SIZE;
-  const to = from + DEFAULT_PAGE_SIZE - 1;
-
-  const { data: articles, count } = await supabase
-    .from("articles")
-    .select(
-      "id, title, slug, excerpt, featured_image, cover_type, cover_video_thumbnail, reading_time_minutes, published_at, review_score, review_subject, tags, author:authors!author_id(full_name)",
-      { count: "exact" }
-    )
-    .eq("status", "published")
-    .eq("category_id", category.id)
-    .order("published_at", { ascending: false })
-    .range(from, to);
-
-  const allArticles = articles ?? [];
-  const total = count ?? 0;
-  const totalPages = Math.ceil(total / DEFAULT_PAGE_SIZE);
-
-  if (category.slug === "raha") {
-    return <ReviewsCategoryPage category={category} articles={allArticles} total={total} totalPages={totalPages} page={page} />;
-  }
-
-  return <DefaultCategoryPage category={category} articles={allArticles} total={total} totalPages={totalPages} page={page} />;
-}
