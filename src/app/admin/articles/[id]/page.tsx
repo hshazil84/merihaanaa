@@ -27,6 +27,9 @@ export default function EditArticlePage() {
   const [homepageFeatured, setHomepageFeatured] = useState(false);
   const [isPremium, setIsPremium]               = useState(false);
   const [allowComments, setAllowComments]       = useState(true);
+  const [isBookReview, setIsBookReview]         = useState(false);
+  const [reviewType, setReviewType]             = useState<string | null>(null);
+  const [reviewArea, setReviewArea]             = useState("");
   const [ogTitle, setOgTitle]                   = useState("");
   const [ogDesc, setOgDesc]                     = useState("");
   const [ogImageUrl, setOgImageUrl]             = useState("");
@@ -41,9 +44,6 @@ export default function EditArticlePage() {
   const [chapterNumber, setChapterNumber]       = useState<number | null>(null);
   const [featuredOnFilm, setFeaturedOnFilm]     = useState(false);
   const [featuredOnMusic, setFeaturedOnMusic]   = useState(false);
-  // Book-review flag — same field as new/page.tsx, loaded from the
-  // existing article and written back on save.
-  const [isBookReview, setIsBookReview]         = useState(false);
   const [loading, setLoading]     = useState(true);
   const [saving, setSaving]       = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -90,6 +90,8 @@ export default function EditArticlePage() {
       setIsPremium(a.is_premium ?? false);
       isPremiumRef.current = a.is_premium ?? false;
       setIsBookReview(a.is_book_review ?? false);
+      setReviewType(a.review_type ?? null);
+      setReviewArea(a.review_area ?? "");
       setAllowComments(a.allow_comments ?? true);
       setOgTitle(a.og_title ?? "");
       setOgDesc(a.og_description ?? "");
@@ -134,7 +136,7 @@ export default function EditArticlePage() {
     if (!loading) isDirtyRef.current = true;
   }, [
     title, excerpt, body, categoryId, placement, homepageSlot, homepageFeatured,
-    isPremium, isBookReview, allowComments, ogTitle, ogDesc, ogImageUrl, coverMedia,
+    isPremium, isBookReview, reviewType, reviewArea, allowComments, ogTitle, ogDesc, ogImageUrl, coverMedia,
     coverPortraitUrl, authorId, tags, seriesId, chapterNumber,
     featuredOnFilm, featuredOnMusic,
   ]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -198,6 +200,8 @@ export default function EditArticlePage() {
       homepage_featured: homepageFeatured,
       is_premium: isPremiumRef.current,
       is_book_review: isBookReview,
+      review_type: reviewType,
+      review_area: reviewArea || null,
       allow_comments: allowComments,
       og_title: ogTitle || title,
       og_description: ogDesc || excerpt,
@@ -253,7 +257,7 @@ export default function EditArticlePage() {
         title={title} excerpt={excerpt} body={body} categories={categories}
         categoryId={categoryId} placement={placement} homepageSlot={homepageSlot}
         homepageFeatured={homepageFeatured} isPremium={isPremium} allowComments={allowComments}
-        isBookReview={isBookReview}
+        isBookReview={isBookReview} reviewType={reviewType} reviewArea={reviewArea}
         ogTitle={ogTitle} ogDesc={ogDesc} ogImageUrl={ogImageUrl} coverMedia={coverMedia}
         coverPortraitUrl={coverPortraitUrl}
         authorId={authorId} scheduledAt={scheduledFor} tags={tags} status={status}
@@ -267,6 +271,8 @@ export default function EditArticlePage() {
         onHomepageFeaturedChange={setHomepageFeatured}
         onIsPremiumChange={setIsPremium}
         onIsBookReviewChange={setIsBookReview}
+        onReviewTypeChange={setReviewType}
+        onReviewAreaChange={setReviewArea}
         onAllowCommentsChange={setAllowComments}
         onOgTitleChange={setOgTitle} onOgDescChange={setOgDesc} onOgImageUrlChange={setOgImageUrl}
         onCoverPortraitUrlChange={setCoverPortraitUrl}
