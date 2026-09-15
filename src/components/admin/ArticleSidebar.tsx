@@ -7,7 +7,7 @@ import {
   Send, Save, Eye, Clock, Star, BookOpen, FileText,
   Check, Calendar, User, Globe, Lock, MessageCircle, RefreshCw,
   Sparkles, X, UploadCloud, Loader2, Home, ChevronDown, Tag, BookMarked,
-  ImageIcon, Flame,
+  ImageIcon, Flame, MapPin,
 } from "lucide-react";
 import { calculateReadingTime } from "@/lib/utils";
 import { processImage, ACCEPTED_IMAGE_TYPES } from "@/lib/imageUtils";
@@ -30,6 +30,8 @@ interface SidebarProps {
   isPremium: boolean;
   allowComments: boolean;
   isBookReview?: boolean;
+  reviewType?: string | null;
+  reviewArea?: string;
   ogTitle: string;
   ogDesc: string;
   ogImageUrl: string;
@@ -49,6 +51,8 @@ interface SidebarProps {
   onHomepageFeaturedChange: (v: boolean) => void;
   onIsPremiumChange: (v: boolean) => void;
   onIsBookReviewChange?: (v: boolean) => void;
+  onReviewTypeChange?: (v: string | null) => void;
+  onReviewAreaChange?: (v: string) => void;
   onAllowCommentsChange: (v: boolean) => void;
   onOgTitleChange: (v: string) => void;
   onOgDescChange: (v: string) => void;
@@ -79,9 +83,16 @@ const PLACEMENTS = [
   { value: "review",         label: "ރިވިއު",          icon: FileText, desc: "3 ގްރިޑް",  slots: 3 },
 ];
 
-const STORY_CATEGORY_SLUG = "vaahaka";
-const FILM_CATEGORY_SLUG  = "film";
-const MUSIC_CATEGORY_SLUG = "music";
+const REVIEW_TYPES = [
+  { value: "cafe",       label: "ކެފޭ" },
+  { value: "restaurant", label: "ރެސްޓޯރެންޓް" },
+  { value: "recipe",     label: "ރެސިޕީ" },
+];
+
+const STORY_CATEGORY_SLUG  = "vaahaka";
+const FILM_CATEGORY_SLUG   = "film";
+const MUSIC_CATEGORY_SLUG  = "music";
+const REVIEW_CATEGORY_SLUG = "raha";
 
 function slugify(text: string) {
   const trimmed = text.trim();
@@ -219,7 +230,15 @@ function PortraitUploader({
 }
 
 // ── Create Series Modal ────────────────────────────────────────────────────
-function CreateSeriesModal({ onClose, onCreate }: { onClose: () => void; onCreate: (s: SeriesItem) => void; }) {
+function CreateSeriesModal({
+  categoryId,
+  onClose,
+  onCreate,
+}: {
+  categoryId: string | null;
+  onClose: () => void;
+  onCreate: (s: SeriesItem) => void;
+}) {
   const supabase = createClient();
   const [title, setTitle] = useState("");
   const [saving, setSaving] = useState(false);
@@ -231,8 +250,10 @@ function CreateSeriesModal({ onClose, onCreate }: { onClose: () => void; onCreat
     const slug = title.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "")
       + "-" + Math.random().toString(36).slice(2, 5);
     const { data, error: err } = await supabase
-      .from("series").insert({ title: title.trim(), slug, is_active: true })
-      .select("id, title").single();
+      .from("series")
+      .insert({ title: title.trim(), slug, is_active: true, category_id: categoryId })
+      .select("id, title")
+      .single();
     setSaving(false);
     if (err) { setError(err.message); return; }
     onCreate(data);
@@ -269,11 +290,13 @@ function CreateSeriesModal({ onClose, onCreate }: { onClose: () => void; onCreat
 // ── Main component ─────────────────────────────────────────────────────────
 export default function ArticleSidebar({
   title, excerpt, body, categories, categoryId, placement, homepageSlot, homepageFeatured,
-  isPremium, allowComments, isBookReview = false, ogTitle, ogDesc, ogImageUrl, coverMedia, coverPortraitUrl,
+  isPremium, allowComments, isBookReview = false, reviewType = null, reviewArea = "",
+  ogTitle, ogDesc, ogImageUrl, coverMedia, coverPortraitUrl,
   authorId, scheduledAt, tags = [], status, seriesId, chapterNumber,
   featuredOnFilm = false, featuredOnMusic = false,
   onCategoryChange, onPlacementChange, onHomepageSlotChange, onHomepageFeaturedChange,
-  onIsPremiumChange, onIsBookReviewChange, onAllowCommentsChange, onOgTitleChange, onOgDescChange,
+  onIsPremiumChange, onIsBookReviewChange, onReviewTypeChange, onReviewAreaChange,
+  onAllowCommentsChange, onOgTitleChange, onOgDescChange,
   onOgImageUrlChange, onCoverPortraitUrlChange, onAuthorIdChange, onScheduledAtChange,
   onTagsChange, onSeriesIdChange, onChapterNumberChange,
   onFeaturedOnFilmChange, onFeaturedOnMusicChange,
@@ -308,6 +331,7 @@ export default function ArticleSidebar({
   const isStoryCategory  = currentCategorySlug === STORY_CATEGORY_SLUG;
   const isFilmCategory   = currentCategorySlug === FILM_CATEGORY_SLUG;
   const isMusicCategory  = currentCategorySlug === MUSIC_CATEGORY_SLUG;
+  const isReviewCategory = currentCategorySlug === REVIEW_CATEGORY_SLUG;
   const isReviewPlacement = placement === "review";
   const showPortrait = isStoryCategory || isFilmCategory || isMusicCategory || isReviewPlacement;
 
@@ -320,9 +344,22 @@ export default function ArticleSidebar({
     supabase.from("authors").select("id, full_name, role")
       .eq("is_active", true).order("full_name")
       .then(({ data }) => { if (data) setAuthors(data); });
-    supabase.from("series").select("id, title").eq("is_active", true).order("title")
-      .then(({ data }) => { if (data) setSeriesList(data); });
   }, []);
+
+  // Series list is scoped to the current category so a video series
+  // (created from the originals admin, category_id null) can never be
+  // picked as a chapter's series here, and vice versa. Refetches whenever
+  // the category selector changes.
+  useEffect(() => {
+    if (!categoryId) { setSeriesList([]); return; }
+    supabase
+      .from("series")
+      .select("id, title")
+      .eq("is_active", true)
+      .eq("category_id", categoryId)
+      .order("title")
+      .then(({ data }) => { if (data) setSeriesList(data); });
+  }, [categoryId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!placement || slotCount <= 1) onHomepageSlotChange(null);
@@ -333,6 +370,11 @@ export default function ArticleSidebar({
   useEffect(() => {
     if (isBookReview && seriesId) onSeriesIdChange?.(null);
   }, [isBookReview]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A recipe has no location — clear area if the type is switched to recipe.
+  useEffect(() => {
+    if (reviewType === "recipe" && reviewArea) onReviewAreaChange?.("");
+  }, [reviewType]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addTag = useCallback((tag: TagItem) => {
     if (!onTagsChange) return;
@@ -389,7 +431,6 @@ export default function ArticleSidebar({
     if (newVal && articleId) {
       setFeaturedToggling(true);
       try {
-        // Unset any other article currently featured on film
         await supabase
           .from("articles")
           .update({ featured_on_film_category: false })
@@ -421,6 +462,7 @@ export default function ArticleSidebar({
     <>
       {showSeriesModal && (
         <CreateSeriesModal
+          categoryId={categoryId}
           onClose={() => setShowSeriesModal(false)}
           onCreate={(s) => {
             setSeriesList(prev => [...prev, s]);
@@ -493,6 +535,34 @@ export default function ArticleSidebar({
           </Section>
 
           <Divider />
+
+          {/* ── ރަހަ: Review type + area ── */}
+          {isReviewCategory && (
+            <>
+              <Section>
+                <SectionLabel icon={<Star size={11} />}>ރިވިއު ބާވަތް</SectionLabel>
+                <div className="relative mb-3">
+                  <select value={reviewType ?? ""} onChange={(e) => onReviewTypeChange?.(e.target.value || null)} dir="rtl"
+                    className="w-full font-body text-xs py-2 px-3 pr-8 rounded-lg border border-border bg-muted/40 outline-none focus:border-foreground appearance-none cursor-pointer transition-colors text-foreground">
+                    <option value="">ހޮވާ...</option>
+                    {REVIEW_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                  <ChevronDown size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                </div>
+                {reviewType && reviewType !== "recipe" && (
+                  <div>
+                    <p className="font-body text-[10px] font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
+                      <MapPin size={10} /> ސަރަހައްދު
+                    </p>
+                    <input type="text" value={reviewArea} onChange={(e) => onReviewAreaChange?.(e.target.value)} dir="rtl"
+                      className="w-full font-body text-xs py-2 px-3 rounded-lg border border-border bg-muted/40 outline-none focus:border-foreground transition-colors text-foreground"
+                      placeholder="މާލެ، ހުޅުމާލެ..." />
+                  </div>
+                )}
+              </Section>
+              <Divider />
+            </>
+          )}
 
           {/* ── ވާހަކަ: Series + Book Review flag ── */}
           {isStoryCategory && (
