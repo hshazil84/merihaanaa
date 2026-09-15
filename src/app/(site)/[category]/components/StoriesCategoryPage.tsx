@@ -28,7 +28,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 function SeeAllLink({ href }: { href: string }) {
   return (
     <div style={{ display: "flex", justifyContent: "center", marginTop: "1.25rem" }}>
-      
+      <a
         href={href}
         style={{
           fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: TEXT,
