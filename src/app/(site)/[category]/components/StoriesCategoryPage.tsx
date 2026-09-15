@@ -36,7 +36,7 @@ function SeeAllLink({ href }: { href: string }) {
           border: "1px solid " + GOLD, backgroundColor: "rgba(180,160,110,0.08)",
         }}
       >
-        {"ބައްލަވާ ހުރިހާ →"}
+        {"އިތުރަށް ކިޔާލުމަށް →"}
       </a>
     </div>
   );
