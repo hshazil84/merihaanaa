@@ -26,7 +26,7 @@ export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު" }:
     "." + cls + "{",
     "position:relative;",
     "width:" + size.width + ";",
-    size.height ? "height:" + size.height + ";" : "",
+    size.fill ? "height:100%;" : size.height ? "height:" + size.height + ";" : "",
     size.aspectRatio ? "aspect-ratio:" + size.aspectRatio + ";" : "",
     "border-radius:10px;",
     "overflow:hidden;",
