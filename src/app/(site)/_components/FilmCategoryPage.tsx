@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { StandardArticleCard } from "./StandardArticleCard";
+import { AdSlot } from "./AdSlot";
 
 interface Article {
   id: string; title: string; slug: string; excerpt: string | null;
@@ -31,7 +32,7 @@ const TEXT_MUTED = "rgb(140,138,132)";
 const DIVIDER = "rgba(0,0,0,0.07)";
 
 const CSS = [
-  ".film-featured{display:grid;grid-template-columns:3fr 4fr;gap:2rem;align-items:stretch;}",
+  ".film-featured{display:grid;grid-template-columns:32% 43% 25%;gap:1.5rem;align-items:stretch;}",
   ".film-3col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.25rem;}",
   ".film-4col{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1.25rem;}",
   ".film-review-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1.25rem;}",
@@ -121,7 +122,7 @@ export default function FilmCategoryPage({ articles, categorySlug, totalCount, p
               <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug} style={{ textDecoration: "none", display: "block" }}>
                 <div style={{ aspectRatio: "4/3", overflow: "hidden", borderRadius: "10px", background: BG_CARD, position: "relative", height: "100%" }}>
                   {featured.featured_image
-                    ? <Image src={featured.featured_image} alt={featured.title} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" priority />
+                    ? <Image src={featured.featured_image} alt={featured.title} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" priority />
                     : <div style={{ width: "100%", height: "100%", background: BG_CARD }} />
                   }
                 </div>
@@ -134,7 +135,7 @@ export default function FilmCategoryPage({ articles, categorySlug, totalCount, p
                     </span>
                   )}
                   <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug} style={{ textDecoration: "none" }}>
-                    <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "clamp(1.2rem,2.8vw,1.6rem)", lineHeight: 1.8, margin: "0 0 10px", color: TEXT }}>{featured.title}</h2>
+                    <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "clamp(1.1rem,2.4vw,1.5rem)", lineHeight: 1.8, margin: "0 0 10px", color: TEXT }}>{featured.title}</h2>
                   </Link>
                   {featured.excerpt && (
                     <p style={{ fontFamily: FONT, fontSize: "14px", color: "rgb(60,58,52)", lineHeight: 2, margin: "0 0 14px" }} className="lc4">{featured.excerpt}</p>
@@ -150,6 +151,7 @@ export default function FilmCategoryPage({ articles, categorySlug, totalCount, p
                   {featured.reading_time_minutes && <p style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED, margin: 0 }}>{featured.reading_time_minutes + " މިނެޓު"}</p>}
                 </div>
               </div>
+              <AdSlot />
             </div>
             <div style={{ borderTop: "0.5px solid " + DIVIDER, marginBottom: "1.5rem" }} />
           </>
