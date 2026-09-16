@@ -2,7 +2,7 @@ import Link from "next/link";
 import NewsletterCTA from "@/components/public/NewsletterCTA";
 import { StarRating } from "../[category]/components/StarRating";
 import { Pagination } from "../[category]/components/Pagination";
-import { formatDhivehiDate } from "@/lib/formatDhivehiDate";
+import { StandardArticleCard } from "./StandardArticleCard";
 
 type ReviewType = "cafe" | "restaurant" | "recipe";
 
@@ -13,106 +13,56 @@ const TABS: { value: ReviewType | null; label: string }[] = [
   { value: "recipe",     label: "ރެސިޕީ" },
 ];
 
-const TYPE_META: Record<ReviewType, { label: string; bg: string; text: string }> = {
-  cafe:       { label: "ކެފޭ",          bg: "rgb(250,240,220)", text: "rgb(150,110,40)" },
-  restaurant: { label: "ރެސްޓޯރެންޓް",   bg: "rgb(250,231,224)", text: "rgb(160,75,45)"  },
-  recipe:     { label: "ރެސިޕީ",        bg: "rgb(231,240,220)", text: "rgb(75,105,50)"  },
+const TYPE_LABELS: Record<ReviewType, string> = {
+  cafe: "ކެފޭ",
+  restaurant: "ރެސްޓޯރެންޓް",
+  recipe: "ރެސިޕީ",
 };
 
-function TypeBadge({ type }: { type: string | null }) {
-  if (!type || !(type in TYPE_META)) return null;
-  const meta = TYPE_META[type as ReviewType];
+function NeutralBadge({ label }: { label: string }) {
   return (
     <span
-      className="inline-block"
-      style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "11px", padding: "2px 10px", borderRadius: "9999px", backgroundColor: meta.bg, color: meta.text }}
+      className="inline-block text-[10px] px-2.5 py-1 rounded-full border"
+      style={{
+        fontFamily: "'MVTypewriter', 'MV Boli', sans-serif",
+        color: "rgb(100, 100, 100)",
+        borderColor: "rgb(210, 207, 200)",
+        backgroundColor: "rgb(240, 239, 233)",
+      }}
     >
-      {meta.label}
+      {label}
     </span>
   );
 }
 
-function ScoreBadge({ score, size = 52 }: { score: number; size?: number }) {
+function ScoreOverlay({ score, size = 40 }: { score: number; size?: number }) {
   return (
     <div
-      className="flex-shrink-0 flex flex-col items-center justify-center rounded-xl"
+      className="flex flex-col items-center justify-center rounded-lg"
       style={{ width: size, height: size, backgroundColor: "rgb(26,26,26)", color: "rgb(249,248,245)" }}
     >
-      <span style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: size > 44 ? "18px" : "14px", fontWeight: 700, lineHeight: 1 }}>
+      <span style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: size > 44 ? "16px" : "13px", fontWeight: 700, lineHeight: 1 }}>
         {score}
       </span>
-      <span style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "9px", color: "rgb(160,158,152)", lineHeight: 1.4 }}>
+      <span style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "8px", color: "rgb(200,198,192)", lineHeight: 1.3 }}>
         /5
       </span>
     </div>
   );
 }
 
-function MetaRow({ article }: { article: any }) {
-  // Cafés and restaurants show area; recipes have no location, so they
-  // show reading time (a stand-in for prep time until a dedicated field exists).
+function ReviewMeta({ article }: { article: any }) {
   if (article.review_type === "recipe") {
-    return (
-      <p style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "11px", color: "rgb(160,158,152)", lineHeight: 1.8 }}>
-        {article.reading_time_minutes ? article.reading_time_minutes + " މިނެޓު" : ""}
-      </p>
-    );
+    return article.reading_time_minutes ? article.reading_time_minutes + " މިނެޓު" : null;
   }
-  if (article.review_area) {
-    return (
-      <p style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "11px", color: "rgb(160,158,152)", lineHeight: 1.8 }}>
-        {article.review_area}
-      </p>
-    );
-  }
-  return null;
-}
-
-function ReviewCard({ article, categorySlug }: { article: any; categorySlug: string }) {
-  return (
-    <Link href={`/${categorySlug}/${article.slug}`} className="group block">
-      <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgb(224,221,214)" }}>
-        <div className="overflow-hidden" style={{ height: "140px", backgroundColor: "rgb(230,227,218)" }}>
-          {article.featured_image ? (
-            <img src={article.featured_image} alt={article.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              style={{ objectPosition: "50% 20%" }} />
-          ) : (
-            <div className="w-full h-full" />
-          )}
-        </div>
-        <div className="p-3" style={{ backgroundColor: "rgb(244,242,237)" }}>
-          <div className="flex items-center gap-2 mb-1.5">
-            <TypeBadge type={article.review_type} />
-          </div>
-          <h3 className="line-clamp-2 group-hover:opacity-70 transition-opacity" style={{
-            fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
-            fontWeight: 700, fontSize: "14px", color: "rgb(26,26,26)", lineHeight: 1.8,
-          }}>
-            {article.review_subject || article.title}
-          </h3>
-          <div className="flex items-center justify-between mt-1.5">
-            <MetaRow article={article} />
-            {article.review_score != null && (
-              <div className="flex items-center gap-1">
-                <StarRating score={article.review_score} />
-                <span style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "11px", color: "rgb(140,138,132)" }}>
-                  {article.review_score}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </Link>
-  );
+  return article.review_area || null;
 }
 
 function FeaturedCard({ article, categorySlug }: { article: any; categorySlug: string }) {
   return (
     <Link href={`/${categorySlug}/${article.slug}`} className="group block mb-6">
       <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid rgb(224,221,214)" }}>
-        <div className="overflow-hidden" style={{ height: "260px", backgroundColor: "rgb(230,227,218)" }}>
+        <div className="overflow-hidden relative" style={{ height: "260px", backgroundColor: "rgb(232,229,222)" }}>
           {article.featured_image ? (
             <img src={article.featured_image} alt={article.title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -120,21 +70,27 @@ function FeaturedCard({ article, categorySlug }: { article: any; categorySlug: s
           ) : (
             <div className="w-full h-full" />
           )}
-        </div>
-        <div className="p-5" style={{ backgroundColor: "rgb(244,242,237)" }}>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="mb-1.5"><TypeBadge type={article.review_type} /></div>
-              <h2 className="group-hover:opacity-70 transition-opacity line-clamp-2" style={{
-                fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
-                fontWeight: 700, fontSize: "20px", color: "rgb(26,26,26)", lineHeight: 1.7,
-              }}>
-                {article.review_subject || article.title}
-              </h2>
-              <div className="mt-1"><MetaRow article={article} /></div>
+          {article.review_score != null && (
+            <div style={{ position: "absolute", top: 12, insetInlineEnd: 12 }}>
+              <ScoreOverlay score={article.review_score} size={48} />
             </div>
-            {article.review_score != null && <ScoreBadge score={article.review_score} size={56} />}
-          </div>
+          )}
+        </div>
+        <div className="p-5" style={{ backgroundColor: "white" }}>
+          {article.review_type && (
+            <div className="mb-2"><NeutralBadge label={TYPE_LABELS[article.review_type as ReviewType] ?? article.review_type} /></div>
+          )}
+          {ReviewMeta({ article }) && (
+            <p style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "11px", fontWeight: 700, color: "rgb(140,138,132)", margin: "0 0 4px" }}>
+              {ReviewMeta({ article })}
+            </p>
+          )}
+          <h2 className="group-hover:opacity-70 transition-opacity line-clamp-2" style={{
+            fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
+            fontWeight: 700, fontSize: "20px", color: "rgb(26,26,26)", lineHeight: 1.7,
+          }}>
+            {article.review_subject || article.title}
+          </h2>
           {article.excerpt && (
             <p className="line-clamp-2 mt-3" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "13px", color: "rgb(100,98,92)", lineHeight: 2 }}>
               {article.excerpt}
@@ -181,7 +137,7 @@ export function ReviewsCategoryPage({
             const isActive = activeType === tab.value;
             const href = tab.value ? `/${category.slug}?type=${tab.value}` : `/${category.slug}`;
             return (
-              <a
+              
                 key={tab.label}
                 href={href}
                 style={{
@@ -207,7 +163,17 @@ export function ReviewsCategoryPage({
         {articles.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {articles.map((article: any) => (
-              <ReviewCard key={article.id} article={article} categorySlug={category.slug} />
+              <StandardArticleCard
+                key={article.id}
+                href={`/${category.slug}/${article.slug}`}
+                title={article.review_subject || article.title}
+                excerpt={article.excerpt}
+                featuredImage={article.featured_image}
+                badgeLabel={article.review_type ? (TYPE_LABELS[article.review_type as ReviewType] ?? article.review_type) : null}
+                eyebrow={ReviewMeta({ article })}
+                imageOverlayTopEnd={article.review_score != null ? <ScoreOverlay score={article.review_score} /> : undefined}
+                imageSizes="(max-width: 480px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              />
             ))}
           </div>
         ) : !featured ? (
