@@ -55,4 +55,21 @@ export default async function RahaPage({ searchParams }: PageProps) {
   if (activeType) query = query.eq("review_type", activeType);
 
   const { data: itemsRaw, count } = await query;
-  const items = itemsRaw ??
+  const items = itemsRaw ?? [];
+  const total = count ?? 0;
+
+  const featured = page === 1 && items.length > 0 ? items[0] : null;
+  const gridItems = page === 1 && items.length > 0 ? items.slice(1) : items;
+
+  return (
+    <ReviewsCategoryPage
+      category={category}
+      featured={featured}
+      articles={gridItems}
+      total={total}
+      totalPages={Math.ceil(total / RAHA_PAGE_SIZE)}
+      page={page}
+      activeType={activeType}
+    />
+  );
+}
