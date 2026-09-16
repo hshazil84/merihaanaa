@@ -32,14 +32,14 @@ const TEXT_MUTED = "rgb(140,138,132)";
 const DIVIDER = "rgba(0,0,0,0.07)";
 
 const CSS = [
-  ".film-featured{display:grid;grid-template-columns:32% 43% 25%;gap:1.5rem;align-items:stretch;}",
+  ".film-featured{display:grid;grid-template-columns:1.15fr 1fr;gap:2.5rem;align-items:stretch;}",
   ".film-3col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.25rem;}",
   ".film-4col{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1.25rem;}",
   ".film-review-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1.25rem;}",
   ".lc2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}",
   ".lc3{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}",
   ".lc4{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}",
-  "@media(max-width:768px){.film-featured{grid-template-columns:1fr!important;}.film-3col{grid-template-columns:1fr 1fr!important;}.film-4col{grid-template-columns:1fr 1fr!important;}",
+  "@media(max-width:768px){.film-featured{grid-template-columns:1fr!important;gap:1.5rem!important;}.film-3col{grid-template-columns:1fr 1fr!important;}.film-4col{grid-template-columns:1fr 1fr!important;}",
   ".film-review-grid{display:flex!important;grid-template-columns:none!important;overflow-x:auto;gap:1rem!important;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scroll-padding:0 1.5rem;}",
   ".film-review-grid::-webkit-scrollbar{display:none;}",
   ".film-review-card{flex:0 0 70%;scroll-snap-align:start;}",
@@ -68,15 +68,15 @@ function hasTag(tags: any[] | null, name: string): boolean {
 
 function ReviewCard({ article, categorySlug }: { article: Article; categorySlug: string }) {
   const slug = article.category?.slug ?? categorySlug;
-  const cover = article.cover_portrait_url || article.featured_image;
+  const cover = article.featured_image || article.cover_portrait_url;
   return (
     <Link href={"/" + slug + "/" + article.slug} className="film-review-card" style={{ textDecoration: "none", display: "block" }}>
-      <div style={{ aspectRatio: "3/4", overflow: "hidden", borderRadius: "10px", backgroundColor: BG_CARD, marginBottom: "10px", position: "relative" }}>
+      <div style={{ aspectRatio: "4/3", overflow: "hidden", borderRadius: "10px", backgroundColor: BG_CARD, marginBottom: "10px", position: "relative" }}>
         {cover
-          ? <Image src={cover} alt={article.title} fill sizes="(max-width: 480px) 78vw, (max-width: 768px) 70vw, (max-width: 1024px) 24vw, 16vw" className="object-cover" />
+          ? <Image src={cover} alt={article.title} fill sizes="(max-width: 480px) 78vw, (max-width: 768px) 70vw, (max-width: 1024px) 33vw, 22vw" className="object-cover" />
           : <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
         }
-        <div style={{ position: "absolute", top: "10px", right: "10px" }}>
+        <div style={{ position: "absolute", top: "10px", insetInlineEnd: "10px" }}>
           <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, padding: "3px 10px", borderRadius: "20px", background: RED, color: "white" }}>ރިވިއު</span>
         </div>
       </div>
@@ -118,68 +118,66 @@ export default function FilmCategoryPage({ articles, categorySlug, totalCount, p
 
         {featured && (
           <>
-            <div className="film-featured" style={{ marginBottom: "1.5rem" }}>
+            <div className="film-featured" style={{ marginBottom: "2rem" }}>
               <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug} style={{ textDecoration: "none", display: "block" }}>
-                <div style={{ aspectRatio: "4/3", overflow: "hidden", borderRadius: "10px", background: BG_CARD, position: "relative", height: "100%" }}>
+                <div style={{ aspectRatio: "3/2", overflow: "hidden", borderRadius: "12px", background: BG_CARD, position: "relative", height: "100%" }}>
                   {featured.featured_image
-                    ? <Image src={featured.featured_image} alt={featured.title} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" priority />
+                    ? <Image src={featured.featured_image} alt={featured.title} fill sizes="(max-width: 768px) 100vw, 55vw" className="object-cover" priority />
                     : <div style={{ width: "100%", height: "100%", background: BG_CARD }} />
                   }
                 </div>
               </Link>
-              <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%" }}>
-                <div>
-                  {getFirstTag(featured.tags) && (
-                    <span style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: RED, border: "1.5px solid " + RED, padding: "4px 12px", borderRadius: "20px", display: "inline-block", marginBottom: "12px", letterSpacing: "0.05em", lineHeight: 1.6 }}>
-                      {getFirstTag(featured.tags)}
-                    </span>
-                  )}
-                  <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug} style={{ textDecoration: "none" }}>
-                    <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "clamp(1.1rem,2.4vw,1.5rem)", lineHeight: 1.8, margin: "0 0 10px", color: TEXT }}>{featured.title}</h2>
-                  </Link>
-                  {featured.excerpt && (
-                    <p style={{ fontFamily: FONT, fontSize: "14px", color: "rgb(60,58,52)", lineHeight: 2, margin: "0 0 14px" }} className="lc4">{featured.excerpt}</p>
-                  )}
-                  <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug}
-                    style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "4px", marginBottom: "16px", borderBottom: "1px solid rgba(186,42,49,0.3)", paddingBottom: "1px" }}>
-                    {"މުޅި އާޓިކަލް ކިޔާލަން ←"}
-                  </Link>
-                </div>
+              <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", height: "100%" }}>
+                {getFirstTag(featured.tags) && (
+                  <span style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: RED, border: "1.5px solid " + RED, padding: "4px 12px", borderRadius: "20px", display: "inline-block", alignSelf: "flex-start", marginBottom: "14px", letterSpacing: "0.05em", lineHeight: 1.6 }}>
+                    {getFirstTag(featured.tags)}
+                  </span>
+                )}
+                <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug} style={{ textDecoration: "none" }}>
+                  <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "clamp(1.3rem,3vw,1.9rem)", lineHeight: 1.75, margin: "0 0 14px", color: TEXT }}>{featured.title}</h2>
+                </Link>
+                {featured.excerpt && (
+                  <p style={{ fontFamily: FONT, fontSize: "14px", color: "rgb(60,58,52)", lineHeight: 2, margin: "0 0 18px" }} className="lc4">{featured.excerpt}</p>
+                )}
+                <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug}
+                  style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none", display: "inline-flex", alignSelf: "flex-start", alignItems: "center", gap: "4px", marginBottom: "20px", borderBottom: "1px solid rgba(186,42,49,0.3)", paddingBottom: "1px" }}>
+                  {"މުޅި އާޓިކަލް ކިޔާލަން ←"}
+                </Link>
                 <div>
                   {featured.author && <p style={{ fontFamily: FONT, fontSize: "11px", color: TEXT_MUTED, margin: "0 0 3px" }}>{featured.author.full_name}</p>}
                   {featured.published_at && <p style={{ fontFamily: "system-ui,sans-serif", fontSize: "11px", color: TEXT_MUTED, margin: "0 0 3px", opacity: 0.75 }}>{formatDate(featured.published_at)}</p>}
                   {featured.reading_time_minutes && <p style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED, margin: 0 }}>{featured.reading_time_minutes + " މިނެޓު"}</p>}
                 </div>
               </div>
-              <AdSlot />
             </div>
             <div style={{ borderTop: "0.5px solid " + DIVIDER, marginBottom: "1.5rem" }} />
           </>
         )}
 
         {grid3.length > 0 && (
-          <>
-            <div className="film-3col" style={{ marginBottom: "1.5rem" }}>
-              {grid3.map(function(a) {
-                return (
-                  <StandardArticleCard
-                    key={a.id}
-                    href={"/" + (a.category?.slug ?? categorySlug) + "/" + a.slug}
-                    title={a.title}
-                    excerpt={a.excerpt}
-                    featuredImage={a.featured_image}
-                    badgeLabel={getFirstTag(a.tags)}
-                    imageSizes="(max-width: 480px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                  />
-                );
-              })}
-            </div>
-            <div style={{ borderTop: "0.5px solid " + DIVIDER }} />
-          </>
+          <div className="film-3col" style={{ marginBottom: "2rem" }}>
+            {grid3.map(function(a) {
+              return (
+                <StandardArticleCard
+                  key={a.id}
+                  href={"/" + (a.category?.slug ?? categorySlug) + "/" + a.slug}
+                  title={a.title}
+                  excerpt={a.excerpt}
+                  featuredImage={a.featured_image}
+                  badgeLabel={getFirstTag(a.tags)}
+                  imageSizes="(max-width: 480px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                />
+              );
+            })}
+          </div>
         )}
 
+        <div style={{ marginBottom: "2rem" }}>
+          <AdSlot variant="banner" />
+        </div>
+
         {reviewArticles.length > 0 && (
-          <div style={{ margin: "1.5rem 0", padding: "1.5rem", borderRadius: "14px", background: "rgba(186,42,49,0.035)" }}>
+          <div style={{ marginBottom: "2rem", padding: "1.75rem", borderRadius: "14px", background: "rgba(186,42,49,0.035)" }}>
             <div style={{ marginBottom: "1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <div style={{ width: "3px", height: "14px", background: RED, borderRadius: "2px", flexShrink: 0 }} />
