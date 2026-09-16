@@ -45,7 +45,7 @@ const NAV_GROUPS = [
     { href: "/admin/homepage",     label: "ހޯމްޕޭޖް",        icon: Home,            comingSoon: false },
     { href: "/admin/charts",       label: "ޗާޓްސް",           icon: BarChart2,       comingSoon: false },
     { href: "/admin/production",   label: "ޕްރޮޑަކްޝަން",    icon: Clapperboard,    comingSoon: false },
-    { href: "/admin/ads",          label: "އިޝްތިހާރު",      icon: Megaphone,       comingSoon: true  },
+    { href: "/admin/ads",          label: "އިޝްތިހާރު",      icon: Megaphone,       comingSoon: false  },
   ],
   [
     { href: "/admin/videos",       label: "ވީޑިއޯތައް",      icon: Video,           comingSoon: false },
