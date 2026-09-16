@@ -1,10 +1,13 @@
 export type AdSlotSize = {
   /** CSS width — px for fixed slots, "100%" for fluid */
   width: string;
-  /** CSS height — px, or null when aspectRatio drives it */
+  /** CSS height — px, or null when aspectRatio drives it. This is the creative
+   *  size you sell, and what the inventory table shows, even when `fill` is set. */
   height: string | null;
   /** used when height is null */
   aspectRatio?: string;
+  /** when true the slot fills its grid/flex track instead of using `height` */
+  fill?: boolean;
   /** label for the rate card / inventory sheet */
   label: string;
 };
@@ -28,7 +31,7 @@ export const AD_SLOTS: AdSlotDef[] = [
     id: "film-hero-rail",
     page: "film",
     placement: "Beside the featured story and news row; on mobile, between the news row and reviews",
-    desktop: { width: "300px", height: "600px", label: "300×600 half page" },
+    desktop: { width: "300px", height: "600px", fill: true, label: "300×600 half page" },
     mobile: { width: "100%", height: null, aspectRatio: "4/3", label: "300×250 medium rectangle" },
   },
 ];
