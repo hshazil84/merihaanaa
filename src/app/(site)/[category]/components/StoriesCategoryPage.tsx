@@ -1,6 +1,6 @@
 import { BookCover } from "./BookCover";
 import { BookReviewCard } from "./BookReviewCard";
-import { Pagination } from "./Pagination";
+import { Pagination } from "../../_components/Pagination";
 
 const GOLD = "rgb(180,160,110)";
 const FONT = '"MVTypewriter","Noto Sans Thaana",sans-serif';
