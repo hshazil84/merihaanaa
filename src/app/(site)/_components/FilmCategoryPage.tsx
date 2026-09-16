@@ -30,7 +30,7 @@ const TEXT_MUTED = "rgb(140,138,132)";
 const DIVIDER = "rgba(0,0,0,0.07)";
 
 const CSS = [
-  ".film-featured{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;}",
+  ".film-featured{display:grid;grid-template-columns:3fr 4fr;gap:2rem;align-items:start;}",
   ".film-3col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.25rem;}",
   ".film-4col{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1.25rem;}",
   ".film-review-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1.25rem;}",
@@ -48,12 +48,6 @@ const CSS = [
 function formatDate(d: string | null) {
   if (!d) return null;
   return new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-}
-function formatDuration(s: number | null) {
-  if (!s) return null;
-  const m = Math.floor(s / 60);
-  const sec = s % 60;
-  return m + ":" + (sec < 10 ? "0" : "") + sec;
 }
 function getFirstTag(tags: any[] | null): string | null {
   if (!tags || !Array.isArray(tags) || tags.length === 0) return null;
@@ -128,7 +122,7 @@ export default function FilmCategoryPage({ articles, categorySlug, totalCount, p
     <div style={{ backgroundColor: BG, minHeight: "100vh" }} dir="rtl">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
-      <header style={{ maxWidth: "72rem", margin: "0 auto", padding: "2rem 1.5rem 1.5rem", textAlign: "center" }}>
+      <header style={{ maxWidth: "84rem", margin: "0 auto", padding: "2rem 1.5rem 1.5rem", textAlign: "center" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1rem" }}>
           <span style={{ color: "rgba(0,0,0,0.18)", fontSize: "11px" }}>{"✦"}</span>
           <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(2rem,5vw,3.5rem)", color: RED, lineHeight: 1.5, fontWeight: 400, margin: 0 }}>ފިލްމު</h1>
@@ -136,13 +130,13 @@ export default function FilmCategoryPage({ articles, categorySlug, totalCount, p
         </div>
       </header>
 
-      <div style={{ maxWidth: "72rem", margin: "0 auto", padding: "0 1.5rem 4rem" }}>
+      <div style={{ maxWidth: "84rem", margin: "0 auto", padding: "0 1.5rem 4rem" }}>
 
         {featured && (
           <>
             <div className="film-featured" style={{ marginBottom: "1.5rem" }}>
               <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug} style={{ textDecoration: "none", display: "block" }}>
-                <div style={{ aspectRatio: "1/1", overflow: "hidden", borderRadius: "10px", background: BG_CARD, position: "relative" }}>
+                <div style={{ aspectRatio: "4/3", overflow: "hidden", borderRadius: "10px", background: BG_CARD, position: "relative" }}>
                   {featured.featured_image
                     ? <Image src={featured.featured_image} alt={featured.title} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" priority />
                     : <div style={{ width: "100%", height: "100%", background: BG_CARD }} />
@@ -157,7 +151,7 @@ export default function FilmCategoryPage({ articles, categorySlug, totalCount, p
                     </span>
                   )}
                   <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug} style={{ textDecoration: "none" }}>
-                    <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "clamp(1.1rem,2.5vw,1.4rem)", lineHeight: 1.8, margin: "0 0 10px", color: TEXT }}>{featured.title}</h2>
+                    <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "clamp(1.2rem,2.8vw,1.6rem)", lineHeight: 1.8, margin: "0 0 10px", color: TEXT }}>{featured.title}</h2>
                   </Link>
                   {featured.excerpt && (
                     <p style={{ fontFamily: FONT, fontSize: "14px", color: "rgb(60,58,52)", lineHeight: 2, margin: "0 0 14px" }} className="lc4">{featured.excerpt}</p>
