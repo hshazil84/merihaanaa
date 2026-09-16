@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { StandardArticleCard } from "./StandardArticleCard";
@@ -146,13 +147,17 @@ export default function FilmCategoryPage({ articles, reviews, categorySlug }: Pr
           </div>
 
           <div className="film-ad-rail">
-            <AdSlot id="film-hero-rail" breakpoint="desktop" />
+            <Suspense fallback={null}>
+              <AdSlot id="film-hero-rail" breakpoint="desktop" />
+            </Suspense>
           </div>
 
         </div>
 
         <div style={{ marginBottom: "2rem" }}>
-          <AdSlot id="film-hero-rail" breakpoint="mobile" />
+          <Suspense fallback={null}>
+            <AdSlot id="film-hero-rail" breakpoint="mobile" />
+          </Suspense>
         </div>
 
         {reviewArticles.length > 0 && (
