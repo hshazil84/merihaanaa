@@ -1,7 +1,7 @@
 import Link from "next/link";
 import NewsletterCTA from "@/components/public/NewsletterCTA";
-import { StarRating } from "./StarRating";
-import { Pagination } from "./Pagination";
+import { StarRating } from "../[category]/components/StarRating";
+import { Pagination } from "../[category]/components/Pagination";
 import { formatDhivehiDate } from "@/lib/formatDhivehiDate";
 
 type ReviewType = "cafe" | "restaurant" | "recipe";
