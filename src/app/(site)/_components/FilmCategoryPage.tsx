@@ -86,13 +86,6 @@ export default function FilmCategoryPage({ articles, reviews, categorySlug }: Pr
   const featured = articles[0] ?? null;
   const grid3 = articles.slice(1, 4);
   const reviewArticles = reviews;
-    .filter(function(a) { return hasTag(a.tags, "ރިވިއު"); })
-    .sort(function(a, b) {
-      const dateA = a.created_at ?? a.published_at ?? "";
-      const dateB = b.created_at ?? b.published_at ?? "";
-      return dateB.localeCompare(dateA);
-    })
-    .slice(0, 8);
 
   return (
     <div style={{ backgroundColor: BG, minHeight: "100vh" }} dir="rtl">
