@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { StandardArticleCard } from "./StandardArticleCard";
 
 interface Article {
   id: string; title: string; slug: string; excerpt: string | null;
@@ -62,24 +63,6 @@ function hasTag(tags: any[] | null, name: string): boolean {
     const val = typeof raw === "string" ? raw : (raw && typeof raw === "object" ? raw.name : null);
     return typeof val === "string" && val.toLowerCase() === name.toLowerCase();
   });
-}
-
-function ArticleCard({ article, categorySlug }: { article: Article; categorySlug: string }) {
-  const slug = article.category?.slug ?? categorySlug;
-  const tag = getFirstTag(article.tags);
-  return (
-    <Link href={"/" + slug + "/" + article.slug} style={{ textDecoration: "none", display: "block" }}>
-      <div style={{ aspectRatio: "4/3", overflow: "hidden", borderRadius: "8px", backgroundColor: BG_CARD, marginBottom: "10px", position: "relative" }}>
-        {article.featured_image
-          ? <Image src={article.featured_image} alt={article.title} fill sizes="(max-width: 480px) 100vw, (max-width: 1024px) 50vw, 25vw" className="object-cover" style={{ transition: "transform 0.5s ease" }} />
-          : <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
-        }
-      </div>
-      {tag && <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, color: RED, border: "1px solid " + RED, padding: "2px 8px", borderRadius: "20px", display: "inline-block", marginBottom: "5px" }}>{tag}</span>}
-      <h3 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "13px", color: TEXT, lineHeight: 1.9, margin: "0 0 4px" }} className="lc2">{article.title}</h3>
-      {article.author && <p style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED, margin: 0 }}>{article.author.full_name}</p>}
-    </Link>
-  );
 }
 
 function ReviewCard({ article, categorySlug }: { article: Article; categorySlug: string }) {
@@ -175,7 +158,19 @@ export default function FilmCategoryPage({ articles, categorySlug, totalCount, p
         {grid3.length > 0 && (
           <>
             <div className="film-3col" style={{ marginBottom: "1.5rem" }}>
-              {grid3.map(function(a) { return <ArticleCard key={a.id} article={a} categorySlug={categorySlug} />; })}
+              {grid3.map(function(a) {
+                return (
+                  <StandardArticleCard
+                    key={a.id}
+                    href={"/" + (a.category?.slug ?? categorySlug) + "/" + a.slug}
+                    title={a.title}
+                    excerpt={a.excerpt}
+                    featuredImage={a.featured_image}
+                    badgeLabel={getFirstTag(a.tags)}
+                    imageSizes="(max-width: 480px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                  />
+                );
+              })}
             </div>
             <div style={{ borderTop: "0.5px solid " + DIVIDER }} />
           </>
@@ -201,19 +196,22 @@ export default function FilmCategoryPage({ articles, categorySlug, totalCount, p
         {grid4.length > 0 && (
           <>
             <div className="film-4col" style={{ marginBottom: "2rem" }}>
-              {grid4.map(function(a) { return <ArticleCard key={a.id} article={a} categorySlug={categorySlug} />; })}
+              {grid4.map(function(a) {
+                return (
+                  <StandardArticleCard
+                    key={a.id}
+                    href={"/" + (a.category?.slug ?? categorySlug) + "/" + a.slug}
+                    title={a.title}
+                    excerpt={a.excerpt}
+                    featuredImage={a.featured_image}
+                    badgeLabel={getFirstTag(a.tags)}
+                    imageSizes="(max-width: 480px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                  />
+                );
+              })}
             </div>
             {totalPages > 1 && (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", paddingTop: "1rem", borderTop: "0.5px solid " + DIVIDER }}>
                 {page > 1 && <a href={"/" + categorySlug + "?page=" + (page - 1)} style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none", padding: "6px 14px", border: "0.5px solid " + RED, borderRadius: "6px" }}>{"← ކުރީ"}</a>}
                 <span style={{ fontFamily: FONT, fontSize: "12px", color: TEXT_MUTED }}>{page + " / " + totalPages}</span>
-                {page < totalPages && <a href={"/" + categorySlug + "?page=" + (page + 1)} style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none", padding: "6px 14px", border: "0.5px solid " + RED, borderRadius: "6px" }}>{"ފަހަތް →"}</a>}
-              </div>
-            )}
-          </>
-        )}
-
-      </div>
-    </div>
-  );
-}
+                {page < totalPages && <a href={"/" + categorySlug + "?page=" + (page +
