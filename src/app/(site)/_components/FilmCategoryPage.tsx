@@ -12,11 +12,6 @@ interface Article {
   author?: { full_name: string } | null;
   created_at?: string | null;
 }
-interface FeaturedOriginal {
-  id: string; title: string; slug: string; description: string | null;
-  thumbnail_url: string | null; cloudflare_stream_id: string | null;
-  duration_seconds: number | null; type: string | null;
-}
 interface Props {
   articles: Article[];
   reviews: Article[];
@@ -33,13 +28,13 @@ const TEXT_MUTED = "rgb(140,138,132)";
 const DIVIDER = "rgba(0,0,0,0.07)";
 
 const CSS = [
-  ".film-top{display:grid;grid-template-columns:1fr 220px;gap:1.5rem;align-items:stretch;}",
+  ".film-top{display:grid;grid-template-columns:1fr 300px;gap:1.5rem;align-items:stretch;}",
   ".film-hero{display:grid;grid-template-columns:1.1fr 1fr;gap:1.75rem;align-items:stretch;margin-bottom:1.5rem;}",
   ".film-3col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.25rem;}",
   ".film-review-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1.25rem;}",
   ".lc2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}",
   ".lc4{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}",
-  "@media(max-width:1024px){.film-top{grid-template-columns:1fr!important;}.film-ad-rail{display:none!important;}}",
+  "@media(max-width:1024px){.film-top{grid-template-columns:1fr!important;}}",
   "@media(max-width:768px){.film-hero{grid-template-columns:1fr!important;gap:1.25rem!important;}.film-3col{grid-template-columns:1fr 1fr!important;}.film-review-grid{grid-template-columns:1fr 1fr!important;}}",
   "@media(max-width:480px){.film-3col{grid-template-columns:1fr!important;}.film-review-grid{grid-template-columns:1fr 1fr!important;gap:0.75rem!important;}}",
 ].join("");
@@ -54,13 +49,6 @@ function getFirstTag(tags: any[] | null): string | null {
   if (typeof raw === "string") return raw;
   if (typeof raw === "object" && raw !== null) return raw.name ?? null;
   return null;
-}
-function hasTag(tags: any[] | null, name: string): boolean {
-  if (!tags || !Array.isArray(tags)) return false;
-  return tags.some(function(raw) {
-    const val = typeof raw === "string" ? raw : (raw && typeof raw === "object" ? raw.name : null);
-    return typeof val === "string" && val.toLowerCase() === name.toLowerCase();
-  });
 }
 
 function PosterCard({ article, categorySlug }: { article: Article; categorySlug: string }) {
@@ -158,9 +146,13 @@ export default function FilmCategoryPage({ articles, reviews, categorySlug }: Pr
           </div>
 
           <div className="film-ad-rail">
-            <AdSlot variant="rail" />
+            <AdSlot id="film-hero-rail" breakpoint="desktop" />
           </div>
 
+        </div>
+
+        <div style={{ marginBottom: "2rem" }}>
+          <AdSlot id="film-hero-rail" breakpoint="mobile" />
         </div>
 
         {reviewArticles.length > 0 && (
