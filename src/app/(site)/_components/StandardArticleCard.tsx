@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import type { ReactNode } from "react";
 
 interface StandardArticleCardProps {
   href: string;
@@ -7,6 +8,9 @@ interface StandardArticleCardProps {
   excerpt?: string | null;
   featuredImage?: string | null;
   badgeLabel?: string | null;
+  eyebrow?: string | null;
+  imageOverlayTopStart?: ReactNode;
+  imageOverlayTopEnd?: ReactNode;
   imageSizes?: string;
 }
 
@@ -16,6 +20,9 @@ export function StandardArticleCard({
   excerpt,
   featuredImage,
   badgeLabel,
+  eyebrow,
+  imageOverlayTopStart,
+  imageOverlayTopEnd,
   imageSizes = "(max-width: 768px) 68vw, 25vw",
 }: StandardArticleCardProps) {
   return (
@@ -29,6 +36,12 @@ export function StandardArticleCard({
             sizes={imageSizes}
             className="object-cover group-hover:scale-105 transition-transform duration-500"
           />
+        )}
+        {imageOverlayTopStart && (
+          <div style={{ position: "absolute", top: 8, insetInlineStart: 8 }}>{imageOverlayTopStart}</div>
+        )}
+        {imageOverlayTopEnd && (
+          <div style={{ position: "absolute", top: 8, insetInlineEnd: 8 }}>{imageOverlayTopEnd}</div>
         )}
       </div>
       {badgeLabel && (
@@ -45,6 +58,19 @@ export function StandardArticleCard({
             {badgeLabel}
           </span>
         </div>
+      )}
+      {eyebrow && (
+        <p
+          className="mb-1"
+          style={{
+            fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
+            fontWeight: 700,
+            fontSize: "11px",
+            color: "rgb(140, 138, 132)",
+          }}
+        >
+          {eyebrow}
+        </p>
       )}
       <h3
         className="leading-none line-clamp-2"
