@@ -32,19 +32,15 @@ const TEXT_MUTED = "rgb(140,138,132)";
 const DIVIDER = "rgba(0,0,0,0.07)";
 
 const CSS = [
-  ".film-featured{display:grid;grid-template-columns:1.15fr 1fr;gap:2.5rem;align-items:stretch;}",
+  ".film-top{display:grid;grid-template-columns:1fr 220px;gap:1.5rem;align-items:stretch;}",
+  ".film-hero{display:grid;grid-template-columns:1.1fr 1fr;gap:1.75rem;align-items:stretch;margin-bottom:1.5rem;}",
   ".film-3col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.25rem;}",
-  ".film-4col{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1.25rem;}",
   ".film-review-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1.25rem;}",
   ".lc2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}",
-  ".lc3{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}",
   ".lc4{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}",
-  "@media(max-width:768px){.film-featured{grid-template-columns:1fr!important;gap:1.5rem!important;}.film-3col{grid-template-columns:1fr 1fr!important;}.film-4col{grid-template-columns:1fr 1fr!important;}",
-  ".film-review-grid{display:flex!important;grid-template-columns:none!important;overflow-x:auto;gap:1rem!important;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scroll-padding:0 1.5rem;}",
-  ".film-review-grid::-webkit-scrollbar{display:none;}",
-  ".film-review-card{flex:0 0 70%;scroll-snap-align:start;}",
-  "}",
-  "@media(max-width:480px){.film-3col,.film-4col{grid-template-columns:1fr!important;}.film-review-card{flex:0 0 78%;}}",
+  "@media(max-width:1024px){.film-top{grid-template-columns:1fr!important;}.film-ad-rail{display:none!important;}}",
+  "@media(max-width:768px){.film-hero{grid-template-columns:1fr!important;gap:1.25rem!important;}.film-3col{grid-template-columns:1fr 1fr!important;}.film-review-grid{grid-template-columns:1fr 1fr!important;}}",
+  "@media(max-width:480px){.film-3col{grid-template-columns:1fr!important;}.film-review-grid{grid-template-columns:1fr 1fr!important;gap:0.75rem!important;}}",
 ].join("");
 
 function formatDate(d: string | null) {
@@ -66,32 +62,29 @@ function hasTag(tags: any[] | null, name: string): boolean {
   });
 }
 
-function ReviewCard({ article, categorySlug }: { article: Article; categorySlug: string }) {
+function PosterCard({ article, categorySlug }: { article: Article; categorySlug: string }) {
   const slug = article.category?.slug ?? categorySlug;
-  const cover = article.featured_image || article.cover_portrait_url;
+  const cover = article.cover_portrait_url || article.featured_image;
   return (
-    <Link href={"/" + slug + "/" + article.slug} className="film-review-card" style={{ textDecoration: "none", display: "block" }}>
-      <div style={{ aspectRatio: "4/3", overflow: "hidden", borderRadius: "10px", backgroundColor: BG_CARD, marginBottom: "10px", position: "relative" }}>
+    <Link href={"/" + slug + "/" + article.slug} style={{ textDecoration: "none", display: "block" }}>
+      <div style={{ aspectRatio: "3/4", overflow: "hidden", borderRadius: "10px", backgroundColor: BG_CARD, marginBottom: "10px", position: "relative" }}>
         {cover
-          ? <Image src={cover} alt={article.title} fill sizes="(max-width: 480px) 78vw, (max-width: 768px) 70vw, (max-width: 1024px) 33vw, 22vw" className="object-cover" />
+          ? <Image src={cover} alt={article.title} fill sizes="(max-width: 480px) 45vw, (max-width: 768px) 45vw, 20vw" className="object-cover" />
           : <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
         }
         <div style={{ position: "absolute", top: "10px", insetInlineEnd: "10px" }}>
           <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, padding: "3px 10px", borderRadius: "20px", background: RED, color: "white" }}>ރިވިއު</span>
         </div>
       </div>
-      <h3 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "13px", color: TEXT, lineHeight: 1.9, margin: "0 0 5px" }} className="lc2">{article.title}</h3>
-      {article.excerpt && <p style={{ fontFamily: FONT, fontSize: "11px", color: TEXT_MUTED, lineHeight: 1.8, margin: 0 }} className="lc3">{article.excerpt}</p>}
+      <h3 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "13px", color: TEXT, lineHeight: 1.9, margin: 0 }} className="lc2">{article.title}</h3>
     </Link>
   );
 }
 
 export default function FilmCategoryPage({ articles, categorySlug, totalCount, page }: Props) {
-  const featured   = articles[0] ?? null;
-  const nonReview  = articles.slice(1).filter(function(a) { return !hasTag(a.tags, "ރިވިއު"); });
-  const grid3      = nonReview.slice(0, 3);
-  const grid4      = nonReview.slice(3, 7);
-  const totalPages = Math.ceil(totalCount / 12);
+  const nonReview = articles.filter(function(a) { return !hasTag(a.tags, "ރިވިއު"); });
+  const featured  = nonReview[0] ?? null;
+  const grid3     = nonReview.slice(1, 4);
 
   const reviewArticles = articles
     .filter(function(a) { return hasTag(a.tags, "ރިވިއު"); })
@@ -100,7 +93,7 @@ export default function FilmCategoryPage({ articles, categorySlug, totalCount, p
       const dateB = b.created_at ?? b.published_at ?? "";
       return dateB.localeCompare(dateA);
     })
-    .slice(0, 4);
+    .slice(0, 8);
 
   return (
     <div style={{ backgroundColor: BG, minHeight: "100vh" }} dir="rtl">
@@ -116,64 +109,66 @@ export default function FilmCategoryPage({ articles, categorySlug, totalCount, p
 
       <div style={{ maxWidth: "84rem", margin: "0 auto", padding: "0 1.5rem 4rem" }}>
 
-        {featured && (
-          <>
-            <div className="film-featured" style={{ marginBottom: "2rem" }}>
-              <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug} style={{ textDecoration: "none", display: "block" }}>
-                <div style={{ aspectRatio: "3/2", overflow: "hidden", borderRadius: "12px", background: BG_CARD, position: "relative", height: "100%" }}>
-                  {featured.featured_image
-                    ? <Image src={featured.featured_image} alt={featured.title} fill sizes="(max-width: 768px) 100vw, 55vw" className="object-cover" priority />
-                    : <div style={{ width: "100%", height: "100%", background: BG_CARD }} />
-                  }
-                </div>
-              </Link>
-              <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", height: "100%" }}>
-                {getFirstTag(featured.tags) && (
-                  <span style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: RED, border: "1.5px solid " + RED, padding: "4px 12px", borderRadius: "20px", display: "inline-block", alignSelf: "flex-start", marginBottom: "14px", letterSpacing: "0.05em", lineHeight: 1.6 }}>
-                    {getFirstTag(featured.tags)}
-                  </span>
-                )}
-                <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug} style={{ textDecoration: "none" }}>
-                  <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "clamp(1.3rem,3vw,1.9rem)", lineHeight: 1.75, margin: "0 0 14px", color: TEXT }}>{featured.title}</h2>
+        <div className="film-top" style={{ marginBottom: "2rem" }}>
+
+          <div>
+            {featured && (
+              <div className="film-hero">
+                <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug} style={{ textDecoration: "none", display: "block" }}>
+                  <div style={{ aspectRatio: "3/2", overflow: "hidden", borderRadius: "12px", background: BG_CARD, position: "relative", height: "100%" }}>
+                    {featured.featured_image
+                      ? <Image src={featured.featured_image} alt={featured.title} fill sizes="(max-width: 768px) 100vw, 40vw" className="object-cover" priority />
+                      : <div style={{ width: "100%", height: "100%", background: BG_CARD }} />
+                    }
+                  </div>
                 </Link>
-                {featured.excerpt && (
-                  <p style={{ fontFamily: FONT, fontSize: "14px", color: "rgb(60,58,52)", lineHeight: 2, margin: "0 0 18px" }} className="lc4">{featured.excerpt}</p>
-                )}
-                <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug}
-                  style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none", display: "inline-flex", alignSelf: "flex-start", alignItems: "center", gap: "4px", marginBottom: "20px", borderBottom: "1px solid rgba(186,42,49,0.3)", paddingBottom: "1px" }}>
-                  {"މުޅި އާޓިކަލް ކިޔާލަން ←"}
-                </Link>
-                <div>
-                  {featured.author && <p style={{ fontFamily: FONT, fontSize: "11px", color: TEXT_MUTED, margin: "0 0 3px" }}>{featured.author.full_name}</p>}
-                  {featured.published_at && <p style={{ fontFamily: "system-ui,sans-serif", fontSize: "11px", color: TEXT_MUTED, margin: "0 0 3px", opacity: 0.75 }}>{formatDate(featured.published_at)}</p>}
-                  {featured.reading_time_minutes && <p style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED, margin: 0 }}>{featured.reading_time_minutes + " މިނެޓު"}</p>}
+                <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", height: "100%" }}>
+                  {getFirstTag(featured.tags) && (
+                    <span style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: RED, border: "1.5px solid " + RED, padding: "4px 12px", borderRadius: "20px", display: "inline-block", alignSelf: "flex-start", marginBottom: "12px", letterSpacing: "0.05em", lineHeight: 1.6 }}>
+                      {getFirstTag(featured.tags)}
+                    </span>
+                  )}
+                  <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug} style={{ textDecoration: "none" }}>
+                    <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "clamp(1.2rem,2.6vw,1.7rem)", lineHeight: 1.75, margin: "0 0 12px", color: TEXT }}>{featured.title}</h2>
+                  </Link>
+                  {featured.excerpt && (
+                    <p style={{ fontFamily: FONT, fontSize: "14px", color: "rgb(60,58,52)", lineHeight: 2, margin: "0 0 16px" }} className="lc4">{featured.excerpt}</p>
+                  )}
+                  <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug}
+                    style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none", display: "inline-flex", alignSelf: "flex-start", alignItems: "center", gap: "4px", marginBottom: "16px", borderBottom: "1px solid rgba(186,42,49,0.3)", paddingBottom: "1px" }}>
+                    {"މުޅި އާޓިކަލް ކިޔާލަން ←"}
+                  </Link>
+                  <div>
+                    {featured.author && <p style={{ fontFamily: FONT, fontSize: "11px", color: TEXT_MUTED, margin: "0 0 3px" }}>{featured.author.full_name}</p>}
+                    {featured.published_at && <p style={{ fontFamily: "system-ui,sans-serif", fontSize: "11px", color: TEXT_MUTED, margin: "0 0 3px", opacity: 0.75 }}>{formatDate(featured.published_at)}</p>}
+                  </div>
                 </div>
               </div>
-            </div>
-            <div style={{ borderTop: "0.5px solid " + DIVIDER, marginBottom: "1.5rem" }} />
-          </>
-        )}
+            )}
 
-        {grid3.length > 0 && (
-          <div className="film-3col" style={{ marginBottom: "2rem" }}>
-            {grid3.map(function(a) {
-              return (
-                <StandardArticleCard
-                  key={a.id}
-                  href={"/" + (a.category?.slug ?? categorySlug) + "/" + a.slug}
-                  title={a.title}
-                  excerpt={a.excerpt}
-                  featuredImage={a.featured_image}
-                  badgeLabel={getFirstTag(a.tags)}
-                  imageSizes="(max-width: 480px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                />
-              );
-            })}
+            {grid3.length > 0 && (
+              <div className="film-3col">
+                {grid3.map(function(a) {
+                  return (
+                    <StandardArticleCard
+                      key={a.id}
+                      href={"/" + (a.category?.slug ?? categorySlug) + "/" + a.slug}
+                      title={a.title}
+                      excerpt={a.excerpt}
+                      featuredImage={a.featured_image}
+                      badgeLabel={getFirstTag(a.tags)}
+                      imageSizes="(max-width: 480px) 100vw, (max-width: 1024px) 50vw, 22vw"
+                    />
+                  );
+                })}
+              </div>
+            )}
           </div>
-        )}
 
-        <div style={{ marginBottom: "2rem" }}>
-          <AdSlot variant="banner" />
+          <div className="film-ad-rail">
+            <AdSlot variant="rail" />
+          </div>
+
         </div>
 
         {reviewArticles.length > 0 && (
@@ -188,37 +183,17 @@ export default function FilmCategoryPage({ articles, categorySlug, totalCount, p
               </Link>
             </div>
             <div className="film-review-grid">
-              {reviewArticles.map(function(a) { return <ReviewCard key={a.id} article={a} categorySlug={categorySlug} />; })}
+              {reviewArticles.map(function(a) { return <PosterCard key={a.id} article={a} categorySlug={categorySlug} />; })}
             </div>
           </div>
         )}
 
-        {grid4.length > 0 && (
-          <>
-            <div className="film-4col" style={{ marginBottom: "2rem" }}>
-              {grid4.map(function(a) {
-                return (
-                  <StandardArticleCard
-                    key={a.id}
-                    href={"/" + (a.category?.slug ?? categorySlug) + "/" + a.slug}
-                    title={a.title}
-                    excerpt={a.excerpt}
-                    featuredImage={a.featured_image}
-                    badgeLabel={getFirstTag(a.tags)}
-                    imageSizes="(max-width: 480px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                  />
-                );
-              })}
-            </div>
-            {totalPages > 1 && (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", paddingTop: "1rem", borderTop: "0.5px solid " + DIVIDER }}>
-                {page > 1 && <a href={"/" + categorySlug + "?page=" + (page - 1)} style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none", padding: "6px 14px", border: "0.5px solid " + RED, borderRadius: "6px" }}>{"← ކުރީ"}</a>}
-                <span style={{ fontFamily: FONT, fontSize: "12px", color: TEXT_MUTED }}>{page + " / " + totalPages}</span>
-                {page < totalPages && <a href={"/" + categorySlug + "?page=" + (page + 1)} style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none", padding: "6px 14px", border: "0.5px solid " + RED, borderRadius: "6px" }}>{"ފަހަތް →"}</a>}
-              </div>
-            )}
-          </>
-        )}
+        <div style={{ display: "flex", justifyContent: "center", paddingTop: "1rem", borderTop: "0.5px solid " + DIVIDER }}>
+          <Link href={"/" + categorySlug + "/archive"}
+            style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none", padding: "8px 20px", border: "0.5px solid " + RED, borderRadius: "8px" }}>
+            {"އިތުރު ލިޔުންތައް ←"}
+          </Link>
+        </div>
 
       </div>
     </div>
