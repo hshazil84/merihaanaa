@@ -18,8 +18,9 @@ interface FeaturedOriginal {
   duration_seconds: number | null; type: string | null;
 }
 interface Props {
-  articles: Article[]; topRead: any[]; featuredOriginal: FeaturedOriginal | null;
-  categorySlug: string; totalCount: number; page: number;
+  articles: Article[];
+  reviews: Article[];
+  categorySlug: string;
 }
 
 const RED = "#ba2a31";
@@ -81,12 +82,10 @@ function PosterCard({ article, categorySlug }: { article: Article; categorySlug:
   );
 }
 
-export default function FilmCategoryPage({ articles, categorySlug, totalCount, page }: Props) {
-  const nonReview = articles.filter(function(a) { return !hasTag(a.tags, "ރިވިއު"); });
-  const featured  = nonReview[0] ?? null;
-  const grid3     = nonReview.slice(1, 4);
-
-  const reviewArticles = articles
+export default function FilmCategoryPage({ articles, reviews, categorySlug }: Props) {
+  const featured = articles[0] ?? null;
+  const grid3 = articles.slice(1, 4);
+  const reviewArticles = reviews;
     .filter(function(a) { return hasTag(a.tags, "ރިވިއު"); })
     .sort(function(a, b) {
       const dateA = a.created_at ?? a.published_at ?? "";
