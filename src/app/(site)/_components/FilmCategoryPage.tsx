@@ -31,7 +31,7 @@ const TEXT_MUTED = "rgb(140,138,132)";
 const DIVIDER = "rgba(0,0,0,0.07)";
 
 const CSS = [
-  ".film-featured{display:grid;grid-template-columns:3fr 4fr;gap:2rem;align-items:start;}",
+  ".film-featured{display:grid;grid-template-columns:3fr 4fr;gap:2rem;align-items:stretch;}",
   ".film-3col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.25rem;}",
   ".film-4col{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1.25rem;}",
   ".film-review-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1.25rem;}",
@@ -119,14 +119,14 @@ export default function FilmCategoryPage({ articles, categorySlug, totalCount, p
           <>
             <div className="film-featured" style={{ marginBottom: "1.5rem" }}>
               <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug} style={{ textDecoration: "none", display: "block" }}>
-                <div style={{ aspectRatio: "4/3", overflow: "hidden", borderRadius: "10px", background: BG_CARD, position: "relative" }}>
+                <div style={{ aspectRatio: "4/3", overflow: "hidden", borderRadius: "10px", background: BG_CARD, position: "relative", height: "100%" }}>
                   {featured.featured_image
                     ? <Image src={featured.featured_image} alt={featured.title} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" priority />
                     : <div style={{ width: "100%", height: "100%", background: BG_CARD }} />
                   }
                 </div>
               </Link>
-              <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%" }}>
                 <div>
                   {getFirstTag(featured.tags) && (
                     <span style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: RED, border: "1.5px solid " + RED, padding: "4px 12px", borderRadius: "20px", display: "inline-block", marginBottom: "12px", letterSpacing: "0.05em", lineHeight: 1.6 }}>
@@ -177,7 +177,7 @@ export default function FilmCategoryPage({ articles, categorySlug, totalCount, p
         )}
 
         {reviewArticles.length > 0 && (
-          <div style={{ margin: "1.5rem 0" }}>
+          <div style={{ margin: "1.5rem 0", padding: "1.5rem", borderRadius: "14px", background: "rgba(186,42,49,0.035)" }}>
             <div style={{ marginBottom: "1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <div style={{ width: "3px", height: "14px", background: RED, borderRadius: "2px", flexShrink: 0 }} />
