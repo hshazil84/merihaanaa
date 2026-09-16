@@ -13,10 +13,10 @@ const TABS: { value: DestType | null; label: string }[] = [
   { value: null,         label: "ހުރިހާ" },
   { value: "resort",     label: "ރިސޯޓް" },
   { value: "guesthouse", label: "ގެސްޓްހައުސް" },
-  { value: "liveaboard", label: "ލައިވްބޯޑް" },
+  { value: "liveaboard", label: "ލިވްއަބޯޑް" },
 ];
 
-const TYPE_LABELS: Record<DestType, string> = { resort: "ރިސޯޓް", guesthouse: "ގެސްޓްހައުސް", liveaboard: "ލައިވްބޯޑް" };
+const TYPE_LABELS: Record<DestType, string> = { resort: "ރިސޯޓް", guesthouse: "ގެސްޓްހައުސް", liveaboard: "ލިވްއަބޯޑް" };
 
 function TypeBadge({ type }: { type: string | null }) {
   if (!type || !(type in TYPE_LABELS)) return null;
@@ -35,27 +35,35 @@ function ContentKindBadge({ isReview }: { isReview: boolean }) {
   );
 }
 
-// Right-side slot: score for reviews, read time for guides — same position, different content.
+// Right-side slot: score for reviews, read time for guides — fixed height so the
+// title row is the same size whether a card has this content or not.
 function InfoSlot({ article }: { article: any }) {
   if (article.review_score != null) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, borderRadius: 10, background: "rgb(26,26,26)", color: "white", flexShrink: 0 }}>
-        <span style={{ fontFamily: FONT, fontSize: "14px", fontWeight: 700 }}>{article.review_score}</span>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 40, height: 40, borderRadius: 10, background: "rgb(26,26,26)", color: "white", flexShrink: 0 }}>
+        <span style={{ fontFamily: FONT, fontSize: "13px", fontWeight: 700 }}>{article.review_score}</span>
       </div>
     );
   }
-  if (article.reading_time_minutes) {
-    return <span style={{ fontFamily: FONT, fontSize: "11px", color: TEXT_MUTED }}>{article.reading_time_minutes + " މިނެޓު"}</span>;
-  }
-  return null;
+  return (
+    <div style={{ width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      {article.reading_time_minutes && (
+        <span style={{ fontFamily: FONT, fontSize: "10px", color: TEXT_MUTED, textAlign: "center", lineHeight: 1.3 }}>
+          {article.reading_time_minutes}
+          <br />
+          މިނެޓު
+        </span>
+      )}
+    </div>
+  );
 }
 
 function DestinationCard({ article, categorySlug }: { article: any; categorySlug: string }) {
   const isReview = article.review_score != null;
   return (
-    <Link href={`/${categorySlug}/${article.slug}`} className="group block">
-      <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(0,0,0,0.08)" }}>
-        <div className="overflow-hidden relative" style={{ height: "150px", backgroundColor: "#E2ECEA" }}>
+    <Link href={`/${categorySlug}/${article.slug}`} className="group block" style={{ height: "100%" }}>
+      <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(0,0,0,0.08)", height: "100%", display: "flex", flexDirection: "column" }}>
+        <div className="overflow-hidden relative" style={{ height: "150px", backgroundColor: "#E2ECEA", flexShrink: 0 }}>
           {article.featured_image && (
             <img src={article.featured_image} alt={article.title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -68,12 +76,13 @@ function DestinationCard({ article, categorySlug }: { article: any; categorySlug
             <ContentKindBadge isReview={isReview} />
           </div>
         </div>
-        <div className="p-3" style={{ backgroundColor: "white" }}>
-          {article.review_area && (
-            <p style={{ fontFamily: FONT, fontSize: "10px", color: TEAL, margin: "0 0 3px", fontWeight: 700 }}>{article.review_area}</p>
-          )}
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="line-clamp-2 group-hover:opacity-70 transition-opacity" style={{ fontFamily: FONT, fontWeight: 700, fontSize: "14px", color: TEXT, lineHeight: 1.8, margin: 0 }}>
+        <div className="p-3" style={{ backgroundColor: "white", flex: 1, display: "flex", flexDirection: "column" }}>
+          {/* Reserved-height line: always occupies the same space, visible only when review_area exists */}
+          <p style={{ fontFamily: FONT, fontSize: "10px", color: TEAL, margin: "0 0 3px", fontWeight: 700, minHeight: "14px", visibility: article.review_area ? "visible" : "hidden" }}>
+            {article.review_area || "-"}
+          </p>
+          <div className="flex items-start justify-between gap-2" style={{ minHeight: "44px" }}>
+            <h3 className="line-clamp-2 group-hover:opacity-70 transition-opacity" style={{ fontFamily: FONT, fontWeight: 700, fontSize: "14px", color: TEXT, lineHeight: 1.8, margin: 0, minHeight: "calc(1.8em * 2)" }}>
               {article.review_subject || article.title}
             </h3>
             <InfoSlot article={article} />
@@ -141,7 +150,7 @@ export function DhathuruCategoryPage({
           {category.name}
         </h1>
         <p style={{ fontFamily: FONT, fontSize: "13px", color: TEXT_MUTED, lineHeight: 2, marginTop: 4 }}>
-          ރިސޯޓް، ގެސްޓްހައުސް، ލައިވްބޯޑް — ދިވެހިރާއްޖޭގެ ދަތުރު ގައިޑް
+          ރިސޯޓް، ގެސްޓްހައުސް، ލިވްއަބޯޑް — ދިވެހިރާއްޖޭގެ ދަތުރު ގައިޑް
         </p>
         <p style={{ fontFamily: FONT, fontSize: "11px", color: TEXT_MUTED, lineHeight: 2 }}>{total} ލިޔުން</p>
       </header>
@@ -168,7 +177,7 @@ export function DhathuruCategoryPage({
       <div className="max-w-5xl mx-auto px-6 pb-16">
         {featured && <FeaturedCard article={featured} categorySlug={category.slug} />}
         {articles.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4" style={{ alignItems: "stretch" }}>
             {articles.map((a: any) => <DestinationCard key={a.id} article={a} categorySlug={category.slug} />)}
           </div>
         ) : !featured ? (
