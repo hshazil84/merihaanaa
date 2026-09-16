@@ -1,6 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import FilmCategoryPage from "@/components/category-pages/FilmCategoryPage";
+import FilmCategoryPage from "../_components/FilmCategoryPage";
 
 const DEFAULT_PAGE_SIZE = 12;
 
