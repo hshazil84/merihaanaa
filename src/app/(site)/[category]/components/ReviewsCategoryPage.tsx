@@ -14,9 +14,9 @@ const TABS: { value: ReviewType | null; label: string }[] = [
 ];
 
 const TYPE_META: Record<ReviewType, { label: string; bg: string; text: string }> = {
-  cafe:       { label: "ކެފޭ",           bg: "rgb(250,240,220)", text: "rgb(150,110,40)" },
+  cafe:       { label: "ކެފޭ",          bg: "rgb(250,240,220)", text: "rgb(150,110,40)" },
   restaurant: { label: "ރެސްޓޯރެންޓް",   bg: "rgb(250,231,224)", text: "rgb(160,75,45)"  },
-  recipe:     { label: "ރެސިޕީ",         bg: "rgb(231,240,220)", text: "rgb(75,105,50)"  },
+  recipe:     { label: "ރެސިޕީ",        bg: "rgb(231,240,220)", text: "rgb(75,105,50)"  },
 };
 
 function TypeBadge({ type }: { type: string | null }) {
@@ -49,6 +49,8 @@ function ScoreBadge({ score, size = 52 }: { score: number; size?: number }) {
 }
 
 function MetaRow({ article }: { article: any }) {
+  // Cafés and restaurants show area; recipes have no location, so they
+  // show reading time (a stand-in for prep time until a dedicated field exists).
   if (article.review_type === "recipe") {
     return (
       <p style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "11px", color: "rgb(160,158,152)", lineHeight: 1.8 }}>
@@ -73,7 +75,8 @@ function ReviewCard({ article, categorySlug }: { article: any; categorySlug: str
         <div className="overflow-hidden" style={{ height: "140px", backgroundColor: "rgb(230,227,218)" }}>
           {article.featured_image ? (
             <img src={article.featured_image} alt={article.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              style={{ objectPosition: "50% 20%" }} />
           ) : (
             <div className="w-full h-full" />
           )}
@@ -112,7 +115,8 @@ function FeaturedCard({ article, categorySlug }: { article: any; categorySlug: s
         <div className="overflow-hidden" style={{ height: "260px", backgroundColor: "rgb(230,227,218)" }}>
           {article.featured_image ? (
             <img src={article.featured_image} alt={article.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              style={{ objectPosition: "50% 20%" }} />
           ) : (
             <div className="w-full h-full" />
           )}
@@ -155,7 +159,7 @@ export function ReviewsCategoryPage({
 }) {
   return (
     <div className="bg-[#F5F3EF] min-h-screen" dir="rtl">
-      <header className="max-w-5xl mx-auto px-6 pt-12 pb-4 text-center">
+      <header className="max-w-5xl mx-auto px-6 pt-8 pb-4 text-center">
         <h1 style={{
           fontFamily: '"SanguSuruhee", "MVTypewriter", "Noto Sans Thaana", sans-serif',
           fontSize: "clamp(2.5rem, 6vw, 4rem)",
@@ -177,7 +181,7 @@ export function ReviewsCategoryPage({
             const isActive = activeType === tab.value;
             const href = tab.value ? `/${category.slug}?type=${tab.value}` : `/${category.slug}`;
             return (
-              <Link
+              
                 key={tab.label}
                 href={href}
                 style={{
@@ -191,7 +195,7 @@ export function ReviewsCategoryPage({
                 }}
               >
                 {tab.label}
-              </Link>
+              </a>
             );
           })}
         </div>
