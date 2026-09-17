@@ -5,11 +5,14 @@ import FilmCategoryPage from "../_components/FilmCategoryPage";
 const ARTICLE_SELECT =
   "id, title, slug, excerpt, featured_image, cover_portrait_url, reading_time_minutes, published_at, tags, view_count, author:authors!author_id(full_name), category:categories!category_id(name, slug)";
 
+// Substring match, not exact equality — catches compound tags like
+// "ފިލްމު ރިވިއު" (film review), not just a bare "ރިވިއު" tag.
 function hasTag(tags: any[] | null, name: string): boolean {
   if (!tags || !Array.isArray(tags)) return false;
+  const needle = name.toLowerCase();
   return tags.some(function (raw) {
     const val = typeof raw === "string" ? raw : raw && typeof raw === "object" ? raw.name : null;
-    return typeof val === "string" && val.toLowerCase() === name.toLowerCase();
+    return typeof val === "string" && val.toLowerCase().includes(needle);
   });
 }
 
@@ -38,8 +41,6 @@ export default async function FilmPage() {
 
   if (!category) notFound();
 
-  // An editor-flagged article takes the hero slot. If none is flagged,
-  // fall back to the latest non-review article so the hero is never empty.
   const { data: flaggedFeatured } = await supabase
     .from("articles")
     .select(ARTICLE_SELECT)
