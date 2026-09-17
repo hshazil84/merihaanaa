@@ -129,13 +129,17 @@ export function ReviewsCategoryPage({
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
       <header className="max-w-5xl mx-auto px-6 pt-8 pb-4 text-center">
-        <h1 style={{
-          fontFamily: '"SanguSuruhee", "MVTypewriter", "Noto Sans Thaana", sans-serif',
-          fontSize: "clamp(2.5rem, 6vw, 4rem)",
-          color: "rgb(26,26,26)", lineHeight: 1.6, fontWeight: 400,
-        }}>
-          {category.name}
-        </h1>
+        <div className="flex items-center justify-center gap-4">
+          <span style={{ color: "rgba(0,0,0,0.18)", fontSize: "11px" }}>{"✦"}</span>
+          <h1 style={{
+            fontFamily: '"SanguSuruhee", "MVTypewriter", "Noto Sans Thaana", sans-serif',
+            fontSize: "clamp(2.5rem, 6vw, 4rem)",
+            color: "rgb(26,26,26)", lineHeight: 1.6, fontWeight: 400, margin: 0,
+          }}>
+            {category.name}
+          </h1>
+          <span style={{ color: "rgba(0,0,0,0.18)", fontSize: "11px" }}>{"✦"}</span>
+        </div>
         <p style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "13px", color: "rgb(140,138,132)", lineHeight: 2, marginTop: "4px" }}>
           ކެފޭ، ރެސްޓޯރެންޓް، ރެސިޕީ — ތެދުވެރި ރަހަ ތަޖުރިބާ
         </p>
@@ -150,7 +154,7 @@ export function ReviewsCategoryPage({
             const isActive = activeType === tab.value;
             const href = tab.value ? `/${category.slug}?type=${tab.value}` : `/${category.slug}`;
             return (
-              <a
+              
                 key={tab.label}
                 href={href}
                 style={{
