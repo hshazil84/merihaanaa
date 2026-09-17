@@ -38,9 +38,18 @@ export default async function FilmPage() {
 
   if (!category) notFound();
 
-  // Two separate reads: the news band needs the latest non-review articles,
-  // the review strip needs the latest tagged reviews. Tags live in JSONB so
-  // the review filter happens in JS over a wider window.
+  // An editor-flagged article takes the hero slot. If none is flagged,
+  // fall back to the latest non-review article so the hero is never empty.
+  const { data: flaggedFeatured } = await supabase
+    .from("articles")
+    .select(ARTICLE_SELECT)
+    .eq("status", "published")
+    .eq("category_id", category.id)
+    .eq("featured_on_film_category", true)
+    .order("published_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const [{ data: newsRaw }, { data: reviewPool }] = await Promise.all([
     supabase
       .from("articles")
@@ -58,11 +67,14 @@ export default async function FilmPage() {
       .limit(200),
   ]);
 
-  const news = (newsRaw ?? []).filter((a: any) => !hasTag(a.tags, "ރިވިއު")).slice(0, 4);
+  const nonReviewNews = (newsRaw ?? []).filter((a: any) => !hasTag(a.tags, "ރިވިއު"));
+  const featured = flaggedFeatured ?? nonReviewNews[0] ?? null;
+  const news = nonReviewNews.filter((a: any) => a.id !== featured?.id).slice(0, 3);
   const reviews = (reviewPool ?? []).filter((a: any) => hasTag(a.tags, "ރިވިއު")).slice(0, 8);
 
   return (
     <FilmCategoryPage
+      featured={featured as any}
       articles={news as any[]}
       reviews={reviews as any[]}
       categorySlug={category.slug}
