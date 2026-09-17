@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Pagination } from "../[category]/components/Pagination";
+import { AdSlot } from "./AdSlot";
 
 const TEAL = "rgb(20,110,110)";
 const FONT = '"MVTypewriter","Noto Sans Thaana",sans-serif';
@@ -17,6 +19,11 @@ const TABS: { value: DestType | null; label: string }[] = [
 ];
 
 const TYPE_LABELS: Record<DestType, string> = { resort: "ރިސޯޓް", guesthouse: "ގެސްޓްހައުސް", liveaboard: "ލިވްއަބޯޑް" };
+
+const CSS = [
+  ".dhathuru-top{display:grid;grid-template-columns:1fr 300px;gap:1.5rem;align-items:stretch;}",
+  "@media(max-width:1024px){.dhathuru-top{grid-template-columns:1fr!important;}}",
+].join("");
 
 function TypeBadge({ type }: { type: string | null }) {
   if (!type || !(type in TYPE_LABELS)) return null;
@@ -77,7 +84,6 @@ function DestinationCard({ article, categorySlug }: { article: any; categorySlug
           </div>
         </div>
         <div className="p-3" style={{ backgroundColor: "white", flex: 1, display: "flex", flexDirection: "column" }}>
-          {/* Reserved-height line: always occupies the same space, visible only when review_area exists */}
           <p style={{ fontFamily: FONT, fontSize: "10px", color: TEAL, margin: "0 0 3px", fontWeight: 700, minHeight: "14px", visibility: article.review_area ? "visible" : "hidden" }}>
             {article.review_area || "-"}
           </p>
@@ -145,7 +151,9 @@ export function DhathuruCategoryPage({
 }) {
   return (
     <div className="bg-[#F4F7F6] min-h-screen" dir="rtl">
-      <header className="max-w-5xl mx-auto px-6 pt-8 pb-4 text-center">
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+
+      <header style={{ maxWidth: "84rem", margin: "0 auto" }} className="px-6 pt-8 pb-4 text-center">
         <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(2.5rem, 6vw, 4rem)", color: TEAL, lineHeight: 1.6, fontWeight: 400 }}>
           {category.name}
         </h1>
@@ -155,7 +163,7 @@ export function DhathuruCategoryPage({
         <p style={{ fontFamily: FONT, fontSize: "11px", color: TEXT_MUTED, lineHeight: 2 }}>{total} ލިޔުން</p>
       </header>
 
-      <div className="max-w-5xl mx-auto px-6 mb-6">
+      <div style={{ maxWidth: "84rem", margin: "0 auto" }} className="px-6 mb-6">
         <div className="flex items-center justify-center gap-2 flex-wrap">
           {TABS.map((tab) => {
             const isActive = activeType === tab.value;
@@ -174,15 +182,33 @@ export function DhathuruCategoryPage({
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 pb-16">
-        {featured && <FeaturedCard article={featured} categorySlug={category.slug} />}
-        {articles.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4" style={{ alignItems: "stretch" }}>
-            {articles.map((a: any) => <DestinationCard key={a.id} article={a} categorySlug={category.slug} />)}
+      <div style={{ maxWidth: "84rem", margin: "0 auto" }} className="px-6 pb-16">
+
+        <div className="dhathuru-top" style={{ marginBottom: "1.5rem" }}>
+          <div>
+            {featured && <FeaturedCard article={featured} categorySlug={category.slug} />}
+            {articles.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4" style={{ alignItems: "stretch" }}>
+                {articles.map((a: any) => <DestinationCard key={a.id} article={a} categorySlug={category.slug} />)}
+              </div>
+            ) : !featured ? (
+              <p className="text-center py-16" style={{ fontFamily: FONT, fontSize: "13px", color: TEXT_MUTED }}>ލިޔުމެއް ނެތް</p>
+            ) : null}
           </div>
-        ) : !featured ? (
-          <p className="text-center py-16" style={{ fontFamily: FONT, fontSize: "13px", color: TEXT_MUTED }}>ލިޔުމެއް ނެތް</p>
-        ) : null}
+
+          <div className="dhathuru-ad-rail">
+            <Suspense fallback={null}>
+              <AdSlot id="dhathuru-hero-rail" breakpoint="desktop" />
+            </Suspense>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: "1.5rem" }}>
+          <Suspense fallback={null}>
+            <AdSlot id="dhathuru-hero-rail" breakpoint="mobile" />
+          </Suspense>
+        </div>
+
       </div>
 
       <Pagination
