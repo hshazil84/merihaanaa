@@ -46,21 +46,25 @@ function ColLabel({ children }: { children: string }) {
   );
 }
 
+// Circle diameter for the desktop recent column. Bigger circles fill more of
+// the left column's height, closing the gap with the 600px ad rail beside it.
+const RECENT_CIRCLE_SIZE = 130;
+
 function RecentArticleCard({ article, categorySlug, isLast, priority = false }: { article: any; categorySlug: string; isLast: boolean; priority?: boolean }) {
   return (
     <Link
       href={"/" + categorySlug + "/" + article.slug}
-      style={{ display: "block", textDecoration: "none", paddingBottom: isLast ? "0" : "14px", marginBottom: isLast ? "0" : "14px", borderBottom: isLast ? "none" : "0.5px solid " + DIVIDER, textAlign: "center" }}
+      style={{ display: "block", textDecoration: "none", paddingBottom: isLast ? "0" : "18px", marginBottom: isLast ? "0" : "18px", borderBottom: isLast ? "none" : "0.5px solid " + DIVIDER, textAlign: "center" }}
       className="recent-card"
     >
-      <div style={{ width: "88px", height: "88px", borderRadius: "999px", overflow: "hidden", backgroundColor: BG_CARD, margin: "0 auto 10px", position: "relative" }}>
+      <div style={{ width: RECENT_CIRCLE_SIZE, height: RECENT_CIRCLE_SIZE, borderRadius: "999px", overflow: "hidden", backgroundColor: BG_CARD, margin: "0 auto 12px", position: "relative" }}>
         {article.featured_image ? (
-          <Image src={article.featured_image} alt={article.title} fill sizes="88px" className="object-cover" quality={90} priority={priority} />
+          <Image src={article.featured_image} alt={article.title} fill sizes={RECENT_CIRCLE_SIZE + "px"} className="object-cover" quality={90} priority={priority} />
         ) : (
           <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
         )}
       </div>
-      <p style={{ fontFamily: FONT_THAANA, fontSize: "11px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: 0 }} className="line-clamp-2">
+      <p style={{ fontFamily: FONT_THAANA, fontSize: "12px", color: TEXT_PRIMARY, lineHeight: 1.7, margin: 0 }} className="line-clamp-2">
         {article.title}
       </p>
     </Link>
@@ -72,7 +76,7 @@ const CSS = `
     display: grid;
     grid-template-columns: 140px 1fr 300px;
     gap: 2.5rem;
-    align-items: start;
+    align-items: stretch;
   }
   .meehun-col-left, .meehun-col-center, .meehun-ad-rail { display: block; }
   .meehun-mobile-only { display: none; }
@@ -125,11 +129,13 @@ export function MeehunCategoryPage({
           ))}
         </div>
 
-        {/* CENTER: Featured — always the latest published article */}
-        <div className="meehun-col-center">
+        {/* CENTER: Featured — always the latest published article. Stretches
+            to fill the row height (set by the 600px ad rail) instead of a
+            fixed 3:2 crop, so it no longer sits noticeably shorter. */}
+        <div className="meehun-col-center" style={{ height: "100%" }}>
           {featuredArticle ? (
-            <Link href={"/" + category.slug + "/" + featuredArticle.slug} style={{ display: "block", textDecoration: "none", position: "relative" }} className="featured-link">
-              <div style={{ width: "100%", aspectRatio: "3/2", borderRadius: "12px", overflow: "hidden", backgroundColor: BG_CARD, position: "relative" }}>
+            <Link href={"/" + category.slug + "/" + featuredArticle.slug} style={{ display: "block", textDecoration: "none", position: "relative", height: "100%" }} className="featured-link">
+              <div style={{ width: "100%", height: "100%", minHeight: "420px", borderRadius: "12px", overflow: "hidden", backgroundColor: BG_CARD, position: "relative" }}>
                 {featuredArticle.featured_image ? (
                   <Image src={featuredArticle.featured_image} alt={featuredArticle.title} fill sizes="(max-width: 1024px) 100vw, 600px" className="object-cover" priority quality={95} />
                 ) : (
