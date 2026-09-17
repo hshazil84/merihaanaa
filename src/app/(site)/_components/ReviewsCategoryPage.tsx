@@ -1,8 +1,9 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import NewsletterCTA from "@/components/public/NewsletterCTA";
-import { StarRating } from "../[category]/components/StarRating";
 import { Pagination } from "../[category]/components/Pagination";
 import { StandardArticleCard } from "./StandardArticleCard";
+import { AdSlot } from "./AdSlot";
 
 type ReviewType = "cafe" | "restaurant" | "recipe";
 
@@ -18,6 +19,13 @@ const TYPE_LABELS: Record<ReviewType, string> = {
   restaurant: "ރެސްޓޯރެންޓް",
   recipe: "ރެސިޕީ",
 };
+
+const CSS = [
+  ".raha-top{display:grid;grid-template-columns:1fr 300px;gap:1.5rem;align-items:stretch;}",
+  ".raha-hero{display:grid;grid-template-columns:1.1fr 1fr;gap:1.75rem;align-items:stretch;}",
+  "@media(max-width:1024px){.raha-top{grid-template-columns:1fr!important;}}",
+  "@media(max-width:768px){.raha-hero{grid-template-columns:1fr!important;gap:1.25rem!important;}}",
+].join("");
 
 function NeutralBadge({ label }: { label: string }) {
   return (
@@ -51,7 +59,7 @@ function ScoreOverlay({ score, size = 40 }: { score: number; size?: number }) {
   );
 }
 
-function ReviewMeta({ article }: { article: any }) {
+function getReviewMeta(article: any): string | null {
   if (article.review_type === "recipe") {
     return article.reading_time_minutes ? article.reading_time_minutes + " މިނެޓު" : null;
   }
@@ -59,13 +67,14 @@ function ReviewMeta({ article }: { article: any }) {
 }
 
 function FeaturedCard({ article, categorySlug }: { article: any; categorySlug: string }) {
+  const meta = getReviewMeta(article);
   return (
-    <Link href={`/${categorySlug}/${article.slug}`} className="group block mb-6">
-      <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid rgb(224,221,214)" }}>
-        <div className="overflow-hidden relative" style={{ height: "260px", backgroundColor: "rgb(232,229,222)" }}>
+    <div className="raha-hero" style={{ marginBottom: "1.5rem" }}>
+      <Link href={`/${categorySlug}/${article.slug}`} style={{ textDecoration: "none", display: "block" }}>
+        <div className="overflow-hidden relative rounded-2xl" style={{ aspectRatio: "3/2", backgroundColor: "rgb(232,229,222)", height: "100%" }}>
           {article.featured_image ? (
             <img src={article.featured_image} alt={article.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              className="w-full h-full object-cover"
               style={{ objectPosition: "50% 20%" }} />
           ) : (
             <div className="w-full h-full" />
@@ -76,29 +85,31 @@ function FeaturedCard({ article, categorySlug }: { article: any; categorySlug: s
             </div>
           )}
         </div>
-        <div className="p-5" style={{ backgroundColor: "white" }}>
-          {article.review_type && (
-            <div className="mb-2"><NeutralBadge label={TYPE_LABELS[article.review_type as ReviewType] ?? article.review_type} /></div>
-          )}
-          {ReviewMeta({ article }) && (
-            <p style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "11px", fontWeight: 700, color: "rgb(140,138,132)", margin: "0 0 4px" }}>
-              {ReviewMeta({ article })}
-            </p>
-          )}
-          <h2 className="group-hover:opacity-70 transition-opacity line-clamp-2" style={{
+      </Link>
+      <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", height: "100%" }}>
+        {article.review_type && (
+          <div className="mb-2"><NeutralBadge label={TYPE_LABELS[article.review_type as ReviewType] ?? article.review_type} /></div>
+        )}
+        {meta && (
+          <p style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "11px", fontWeight: 700, color: "rgb(140,138,132)", margin: "0 0 6px" }}>
+            {meta}
+          </p>
+        )}
+        <Link href={`/${categorySlug}/${article.slug}`} style={{ textDecoration: "none" }}>
+          <h2 className="line-clamp-2" style={{
             fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
-            fontWeight: 700, fontSize: "20px", color: "rgb(26,26,26)", lineHeight: 1.7,
+            fontWeight: 700, fontSize: "clamp(1.2rem,2.6vw,1.7rem)", color: "rgb(26,26,26)", lineHeight: 1.75, margin: 0,
           }}>
             {article.review_subject || article.title}
           </h2>
-          {article.excerpt && (
-            <p className="line-clamp-2 mt-3" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "13px", color: "rgb(100,98,92)", lineHeight: 2 }}>
-              {article.excerpt}
-            </p>
-          )}
-        </div>
+        </Link>
+        {article.excerpt && (
+          <p className="line-clamp-2" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "14px", color: "rgb(100,98,92)", lineHeight: 2, margin: "14px 0 0" }}>
+            {article.excerpt}
+          </p>
+        )}
       </div>
-    </Link>
+    </div>
   );
 }
 
@@ -115,6 +126,8 @@ export function ReviewsCategoryPage({
 }) {
   return (
     <div className="bg-[#F5F3EF] min-h-screen" dir="rtl">
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+
       <header className="max-w-5xl mx-auto px-6 pt-8 pb-4 text-center">
         <h1 style={{
           fontFamily: '"SanguSuruhee", "MVTypewriter", "Noto Sans Thaana", sans-serif',
@@ -137,7 +150,7 @@ export function ReviewsCategoryPage({
             const isActive = activeType === tab.value;
             const href = tab.value ? `/${category.slug}?type=${tab.value}` : `/${category.slug}`;
             return (
-              <a
+              
                 key={tab.label}
                 href={href}
                 style={{
@@ -158,29 +171,48 @@ export function ReviewsCategoryPage({
       </div>
 
       <div className="max-w-5xl mx-auto px-6 pb-16">
-        {featured && <FeaturedCard article={featured} categorySlug={category.slug} />}
+        <div className="raha-top" style={{ marginBottom: "2rem" }}>
+          <div>
+            {featured && <FeaturedCard article={featured} categorySlug={category.slug} />}
 
-        {articles.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {articles.map((article: any) => (
-              <StandardArticleCard
-                key={article.id}
-                href={`/${category.slug}/${article.slug}`}
-                title={article.review_subject || article.title}
-                excerpt={article.excerpt}
-                featuredImage={article.featured_image}
-                badgeLabel={article.review_type ? (TYPE_LABELS[article.review_type as ReviewType] ?? article.review_type) : null}
-                eyebrow={ReviewMeta({ article })}
-                imageOverlayTopEnd={article.review_score != null ? <ScoreOverlay score={article.review_score} /> : undefined}
-                imageSizes="(max-width: 480px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              />
-            ))}
+            {articles.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {articles.map((article: any) => {
+                  const meta = getReviewMeta(article);
+                  return (
+                    <StandardArticleCard
+                      key={article.id}
+                      href={`/${category.slug}/${article.slug}`}
+                      title={article.review_subject || article.title}
+                      excerpt={article.excerpt}
+                      featuredImage={article.featured_image}
+                      badgeLabel={article.review_type ? (TYPE_LABELS[article.review_type as ReviewType] ?? article.review_type) : null}
+                      eyebrow={meta}
+                      imageOverlayTopEnd={article.review_score != null ? <ScoreOverlay score={article.review_score} /> : undefined}
+                      imageSizes="(max-width: 480px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                    />
+                  );
+                })}
+              </div>
+            ) : !featured ? (
+              <p className="text-center py-16" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "13px", color: "rgb(160,158,152)" }}>
+                ރިވިއު ނެތް
+              </p>
+            ) : null}
           </div>
-        ) : !featured ? (
-          <p className="text-center py-16" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "13px", color: "rgb(160,158,152)" }}>
-            ރިވިއު ނެތް
-          </p>
-        ) : null}
+
+          <div className="raha-ad-rail">
+            <Suspense fallback={null}>
+              <AdSlot id="raha-hero-rail" breakpoint="desktop" />
+            </Suspense>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: "1rem" }}>
+          <Suspense fallback={null}>
+            <AdSlot id="raha-hero-rail" breakpoint="mobile" />
+          </Suspense>
+        </div>
       </div>
 
       <Pagination
