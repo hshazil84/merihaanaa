@@ -31,11 +31,14 @@ function getFirstTag(tags: any[] | null): string | null {
   return null;
 }
 
+// Substring match, not exact equality — catches compound tags like
+// "ފިލްމު ރިވިއު" (film review), not just a bare "ރިވިއު" tag.
 function hasTag(tags: any[] | null, name: string): boolean {
   if (!tags || !Array.isArray(tags)) return false;
+  const needle = name.toLowerCase();
   return tags.some(function (raw) {
     const val = typeof raw === "string" ? raw : raw && typeof raw === "object" ? raw.name : null;
-    return typeof val === "string" && val.toLowerCase() === name.toLowerCase();
+    return typeof val === "string" && val.toLowerCase().includes(needle);
   });
 }
 
@@ -58,12 +61,10 @@ export default async function FilmArchivePage({ searchParams }: PageProps) {
 
   if (!category) notFound();
 
-  // Reviews live at /film/reviews, so they're excluded here. Tags are JSONB,
-  // so the filter happens in JS over a wider window rather than in SQL.
   const { data: articlesRaw } = await supabase
     .from("articles")
     .select(
-      "id, title, slug, excerpt, featured_image, published_at, tags, author:authors!author_id(full_name), category:categories!category_id(name, slug)"
+      "id, title, slug, excerpt, featured_image, cover_portrait_url, reading_time_minutes, published_at, tags, view_count, author:authors!author_id(full_name), category:categories!category_id(name, slug)"
     )
     .eq("status", "published")
     .eq("category_id", category.id)
