@@ -34,6 +34,14 @@ export const AD_SLOTS: AdSlotDef[] = [
     desktop: { width: "300px", height: "600px", fill: true, label: "300×600 half page" },
     mobile: { width: "100%", height: null, aspectRatio: "4/3", label: "300×250 medium rectangle" },
   },
+  
+  {
+    id: "dhathuru-hero-rail",
+    page: "dhathuru",
+    placement: "Beside the featured destination and grid; on mobile, below the filter tabs",
+    desktop: { width: "300px", height: "600px", fill: true, label: "300×600 half page" },
+    mobile: { width: "100%", height: null, aspectRatio: "4/3", label: "300×250 medium rectangle" },
+  },
 ];
 
 export function getAdSlot(id: string): AdSlotDef | undefined {
