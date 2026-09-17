@@ -14,6 +14,15 @@ interface StandardArticleCardProps {
   imageSizes?: string;
 }
 
+function PinIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
 export function StandardArticleCard({
   href,
   title,
@@ -47,12 +56,13 @@ export function StandardArticleCard({
       {badgeLabel && (
         <div className="mb-2">
           <span
-            className="inline-block text-[10px] px-2.5 py-1 rounded-full border"
+            className="inline-flex items-center justify-center text-[10px] px-2.5 py-1 rounded-full border"
             style={{
               fontFamily: "'MVTypewriter', 'MV Boli', sans-serif",
               color: "rgb(100, 100, 100)",
               borderColor: "rgb(210, 207, 200)",
               backgroundColor: "rgb(240, 239, 233)",
+              lineHeight: 1,
             }}
           >
             {badgeLabel}
@@ -61,7 +71,7 @@ export function StandardArticleCard({
       )}
       {eyebrow && (
         <p
-          className="mb-1"
+          className="mb-1 flex items-center gap-1"
           style={{
             fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
             fontWeight: 700,
@@ -69,6 +79,7 @@ export function StandardArticleCard({
             color: "rgb(140, 138, 132)",
           }}
         >
+          <PinIcon />
           {eyebrow}
         </p>
       )}
