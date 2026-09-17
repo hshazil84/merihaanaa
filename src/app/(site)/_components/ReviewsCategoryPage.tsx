@@ -45,6 +45,7 @@ function TerracottaOutlineBadge({ label }: { label: string }) {
       border: "1.5px solid " + TERRACOTTA, padding: "4px 12px", borderRadius: "9999px",
       display: "inline-flex", alignItems: "center", justifyContent: "center",
       letterSpacing: "0.03em", lineHeight: 1,
+      transform: "translateY(-2px)",
     }}>
       {label}
     </span>
