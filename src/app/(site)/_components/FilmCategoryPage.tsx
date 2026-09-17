@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { StandardArticleCard } from "./StandardArticleCard";
 import { AdSlot } from "./AdSlot";
+import { getFirstTag } from "@/lib/tags";
 
 interface Article {
   id: string; title: string; slug: string; excerpt: string | null;
@@ -44,13 +45,6 @@ const CSS = [
 function formatDate(d: string | null) {
   if (!d) return null;
   return new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-}
-function getFirstTag(tags: any[] | null): string | null {
-  if (!tags || !Array.isArray(tags) || tags.length === 0) return null;
-  const raw = tags[0];
-  if (typeof raw === "string") return raw;
-  if (typeof raw === "object" && raw !== null) return raw.name ?? null;
-  return null;
 }
 
 function PosterCard({ article, categorySlug }: { article: Article; categorySlug: string }) {
