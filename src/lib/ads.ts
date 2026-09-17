@@ -35,5 +35,5 @@ export async function getLiveBooking(slotKey: string): Promise<AdBooking | null>
     .limit(1)
     .maybeSingle();
 
-  return (data as AdBooking) ?? null;
+  return (data as unknown as AdBooking) ?? null;
 }
