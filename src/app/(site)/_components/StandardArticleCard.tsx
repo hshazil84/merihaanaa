@@ -63,6 +63,7 @@ export function StandardArticleCard({
               borderColor: "rgb(210, 207, 200)",
               backgroundColor: "rgb(240, 239, 233)",
               lineHeight: 1,
+              transform: "translateY(-2px)",
             }}
           >
             {badgeLabel}
