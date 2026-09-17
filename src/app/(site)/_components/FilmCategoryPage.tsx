@@ -14,6 +14,7 @@ interface Article {
   created_at?: string | null;
 }
 interface Props {
+  featured: Article | null;
   articles: Article[];
   reviews: Article[];
   categorySlug: string;
@@ -71,9 +72,8 @@ function PosterCard({ article, categorySlug }: { article: Article; categorySlug:
   );
 }
 
-export default function FilmCategoryPage({ articles, reviews, categorySlug }: Props) {
-  const featured = articles[0] ?? null;
-  const grid3 = articles.slice(1, 4);
+export default function FilmCategoryPage({ featured, articles, reviews, categorySlug }: Props) {
+  const grid3 = articles.slice(0, 3);
   const reviewArticles = reviews;
 
   return (
