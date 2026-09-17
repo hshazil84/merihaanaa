@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { getAdSlot, AD_MOBILE_MAX } from "@/lib/adSlots";
 import { getLiveBooking } from "@/lib/ads";
 
@@ -34,6 +33,7 @@ export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު" }:
     "align-items:center;justify-content:center;",
     "margin-inline:auto;",
     "}",
+    "." + cls + " img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}",
   ].join("");
 
   const visibility =
@@ -41,14 +41,10 @@ export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު" }:
       ? "." + cls + "{display:flex;}@media(max-width:" + AD_MOBILE_MAX + "px){." + cls + "{display:none;}}"
       : "." + cls + "{display:none;}@media(max-width:" + AD_MOBILE_MAX + "px){." + cls + "{display:flex;}}";
 
+  // Plain <img>, not next/image — the optimizer flattens animated GIFs to a
+  // single frame, which would silently kill any animated creative.
   const inner = creative ? (
-    <Image
-      src={creative}
-      alt={booking?.advertiser ?? ""}
-      fill
-      sizes={size.width === "100%" ? "100vw" : size.width}
-      className="object-cover"
-    />
+    <img src={creative} alt={booking?.advertiser?.name ?? ""} loading="lazy" />
   ) : (
     <span
       style={{
@@ -68,12 +64,12 @@ export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު" }:
       <style dangerouslySetInnerHTML={{ __html: base + visibility }} />
       <div className={cls} data-ad-slot={id}>
         {creative && booking?.click_url ? (
-          <a
+          
             href={booking.click_url}
             target="_blank"
             rel="noopener noreferrer sponsored"
             style={{ position: "absolute", inset: 0, display: "block" }}
-            aria-label={booking.advertiser}
+            aria-label={booking.advertiser?.name ?? ""}
           >
             {inner}
           </a>
