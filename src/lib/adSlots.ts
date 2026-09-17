@@ -44,6 +44,13 @@ export const AD_SLOTS: AdSlotDef[] = [
     desktop: { width: "300px", height: "600px", label: "300×600 half page" },
     mobile: { width: "100%", height: null, aspectRatio: "4/3", label: "300×250 medium rectangle" },
   },
+  {
+    id: "raha-hero-rail",
+    page: "raha",
+    placement: "Beside the featured review and grid; on mobile, below the type tabs",
+    desktop: { width: "300px", height: "600px", label: "300×600 half page" },
+    mobile: { width: "100%", height: null, aspectRatio: "4/3", label: "300×250 medium rectangle" },
+  },
 ];
 
 export function getAdSlot(id: string): AdSlotDef | undefined {
