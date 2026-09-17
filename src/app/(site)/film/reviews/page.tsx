@@ -27,11 +27,14 @@ const CSS = [
   "@media(max-width:480px){.reviews-grid{grid-template-columns:1fr!important;}}",
 ].join("");
 
+// Substring match, not exact equality — catches compound tags like
+// "ފިލްމު ރިވިއު" (film review), not just a bare "ރިވިއު" tag.
 function hasTag(tags: any[] | null, name: string): boolean {
   if (!tags || !Array.isArray(tags)) return false;
+  const needle = name.toLowerCase();
   return tags.some(function (raw) {
     const val = typeof raw === "string" ? raw : raw && typeof raw === "object" ? raw.name : null;
-    return typeof val === "string" && val.toLowerCase() === name.toLowerCase();
+    return typeof val === "string" && val.toLowerCase().includes(needle);
   });
 }
 
@@ -54,8 +57,6 @@ export default async function FilmReviewsPage({ searchParams }: PageProps) {
 
   if (!category) notFound();
 
-  // Fetch a wider window of recent film articles, then filter by the
-  // ރިވިއު tag client-side (tags are stored as JSON, not relational).
   const { data: articlesRaw } = await supabase
     .from("articles")
     .select(
@@ -112,7 +113,7 @@ export default async function FilmReviewsPage({ searchParams }: PageProps) {
                       ) : (
                         <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
                       )}
-                      <div style={{ position: "absolute", top: "10px", right: "10px" }}>
+                      <div style={{ position: "absolute", top: "10px", insetInlineEnd: "10px" }}>
                         <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, padding: "3px 10px", borderRadius: "20px", background: RED, color: "white" }}>ރިވިއު</span>
                       </div>
                     </div>
