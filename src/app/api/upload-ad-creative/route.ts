@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getAdSlot } from "@/lib/adSlots";
 
+// Scoped to the merihaanaa-ads bucket only — this token cannot touch
+// editorial media, even if this route or its dependencies are compromised.
 const s3 = new S3Client({
   region: "auto",
   endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
   credentials: {
-    accessKeyId:     process.env.CLOUDFLARE_R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY!,
+    accessKeyId:     process.env.CLOUDFLARE_R2_ADS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.CLOUDFLARE_R2_ADS_SECRET_ACCESS_KEY!,
   },
 });
 
