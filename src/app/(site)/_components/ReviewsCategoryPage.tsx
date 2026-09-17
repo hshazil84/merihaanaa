@@ -29,9 +29,23 @@ const CSS = [
   "@media(max-width:768px){.raha-hero{grid-template-columns:1fr!important;gap:1.25rem!important;}}",
 ].join("");
 
+function PinIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
 function TerracottaOutlineBadge({ label }: { label: string }) {
   return (
-    <span style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "10px", fontWeight: 700, color: TERRACOTTA, border: "1.5px solid " + TERRACOTTA, padding: "4px 12px", borderRadius: "9999px", display: "inline-block", letterSpacing: "0.03em", lineHeight: 1.6 }}>
+    <span style={{
+      fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "10px", fontWeight: 700, color: TERRACOTTA,
+      border: "1.5px solid " + TERRACOTTA, padding: "4px 12px", borderRadius: "9999px",
+      display: "inline-flex", alignItems: "center", justifyContent: "center",
+      letterSpacing: "0.03em", lineHeight: 1,
+    }}>
       {label}
     </span>
   );
@@ -53,15 +67,7 @@ function ScoreOverlay({ score, size = 40 }: { score: number; size?: number }) {
   );
 }
 
-function getReviewMeta(article: any): string | null {
-  if (article.review_type === "recipe") {
-    return article.reading_time_minutes ? article.reading_time_minutes + " މިނެޓު" : null;
-  }
-  return article.review_area || null;
-}
-
 function FeaturedCard({ article, categorySlug }: { article: any; categorySlug: string }) {
-  const meta = getReviewMeta(article);
   return (
     <div className="raha-hero" style={{ marginBottom: "1.5rem" }}>
       <Link href={`/${categorySlug}/${article.slug}`} style={{ textDecoration: "none", display: "block" }}>
@@ -84,9 +90,10 @@ function FeaturedCard({ article, categorySlug }: { article: any; categorySlug: s
         {article.review_type && (
           <div className="mb-2"><TerracottaOutlineBadge label={TYPE_LABELS[article.review_type as ReviewType] ?? article.review_type} /></div>
         )}
-        {meta && (
-          <p style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "11px", fontWeight: 700, color: TERRACOTTA, margin: "0 0 6px" }}>
-            {meta}
+        {article.review_area && (
+          <p className="flex items-center gap-1" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "11px", fontWeight: 700, color: TERRACOTTA, margin: "0 0 6px" }}>
+            <PinIcon />
+            {article.review_area}
           </p>
         )}
         <Link href={`/${categorySlug}/${article.slug}`} style={{ textDecoration: "none" }}>
@@ -175,22 +182,19 @@ export function ReviewsCategoryPage({
 
             {articles.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {articles.map((article: any) => {
-                  const meta = getReviewMeta(article);
-                  return (
-                    <StandardArticleCard
-                      key={article.id}
-                      href={`/${category.slug}/${article.slug}`}
-                      title={article.review_subject || article.title}
-                      excerpt={article.excerpt}
-                      featuredImage={article.featured_image}
-                      badgeLabel={article.review_type ? (TYPE_LABELS[article.review_type as ReviewType] ?? article.review_type) : null}
-                      eyebrow={meta}
-                      imageOverlayTopEnd={article.review_score != null ? <ScoreOverlay score={article.review_score} /> : undefined}
-                      imageSizes="(max-width: 480px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                    />
-                  );
-                })}
+                {articles.map((article: any) => (
+                  <StandardArticleCard
+                    key={article.id}
+                    href={`/${category.slug}/${article.slug}`}
+                    title={article.review_subject || article.title}
+                    excerpt={article.excerpt}
+                    featuredImage={article.featured_image}
+                    badgeLabel={article.review_type ? (TYPE_LABELS[article.review_type as ReviewType] ?? article.review_type) : null}
+                    eyebrow={article.review_area || null}
+                    imageOverlayTopEnd={article.review_score != null ? <ScoreOverlay score={article.review_score} /> : undefined}
+                    imageSizes="(max-width: 480px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                  />
+                ))}
               </div>
             ) : !featured ? (
               <p className="text-center py-16" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "13px", color: "rgb(160,158,152)" }}>
