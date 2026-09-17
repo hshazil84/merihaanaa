@@ -63,7 +63,7 @@ export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު" }:
       <style dangerouslySetInnerHTML={{ __html: base + visibility }} />
       <div className={cls} data-ad-slot={id}>
         {creative && booking?.click_url ? (
-          
+          <a
             href={booking.click_url}
             target="_blank"
             rel="noopener noreferrer sponsored"
