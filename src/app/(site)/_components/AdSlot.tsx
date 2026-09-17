@@ -32,6 +32,7 @@ export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު" }:
     creative ? "" : "border:1.5px dashed rgba(0,0,0,0.13);background:rgba(0,0,0,0.015);",
     "align-items:center;justify-content:center;",
     "margin-inline:auto;",
+    breakpoint === "desktop" && !size.fill ? "position:sticky;top:96px;align-self:start;" : "",
     "}",
     "." + cls + " img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}",
   ].join("");
@@ -41,8 +42,6 @@ export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު" }:
       ? "." + cls + "{display:flex;}@media(max-width:" + AD_MOBILE_MAX + "px){." + cls + "{display:none;}}"
       : "." + cls + "{display:none;}@media(max-width:" + AD_MOBILE_MAX + "px){." + cls + "{display:flex;}}";
 
-  // Plain <img>, not next/image — the optimizer flattens animated GIFs to a
-  // single frame, which would silently kill any animated creative.
   const inner = creative ? (
     <img src={creative} alt={booking?.advertiser?.name ?? ""} loading="lazy" />
   ) : (
@@ -64,7 +63,7 @@ export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު" }:
       <style dangerouslySetInnerHTML={{ __html: base + visibility }} />
       <div className={cls} data-ad-slot={id}>
         {creative && booking?.click_url ? (
-          <a
+          
             href={booking.click_url}
             target="_blank"
             rel="noopener noreferrer sponsored"
