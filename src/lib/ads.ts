@@ -3,7 +3,8 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 export type AdBooking = {
   id: string;
   slot_key: string;
-  advertiser: string;
+  advertiser_id: string;
+  advertiser: { name: string } | null;
   status: string;
   creative_url: string | null;
   creative_url_mobile: string | null;
@@ -23,7 +24,9 @@ export async function getLiveBooking(slotKey: string): Promise<AdBooking | null>
 
   const { data } = await supabase
     .from("ad_bookings")
-    .select("id, slot_key, advertiser, status, creative_url, creative_url_mobile, click_url, starts_on, ends_on")
+    .select(
+      "id, slot_key, advertiser_id, status, creative_url, creative_url_mobile, click_url, starts_on, ends_on, advertiser:advertisers!advertiser_id(name)"
+    )
     .eq("slot_key", slotKey)
     .eq("status", "live")
     .lte("starts_on", today)
