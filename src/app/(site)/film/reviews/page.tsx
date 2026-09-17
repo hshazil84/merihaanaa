@@ -2,6 +2,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { hasTag } from "@/lib/tags";
 
 interface PageProps {
   searchParams: { page?: string };
@@ -26,17 +27,6 @@ const CSS = [
   "@media(max-width:768px){.reviews-grid{grid-template-columns:1fr 1fr!important;}}",
   "@media(max-width:480px){.reviews-grid{grid-template-columns:1fr!important;}}",
 ].join("");
-
-// Substring match, not exact equality — catches compound tags like
-// "ފިލްމު ރިވިއު" (film review), not just a bare "ރިވިއު" tag.
-function hasTag(tags: any[] | null, name: string): boolean {
-  if (!tags || !Array.isArray(tags)) return false;
-  const needle = name.toLowerCase();
-  return tags.some(function (raw) {
-    const val = typeof raw === "string" ? raw : raw && typeof raw === "object" ? raw.name : null;
-    return typeof val === "string" && val.toLowerCase().includes(needle);
-  });
-}
 
 export async function generateMetadata() {
   return {
