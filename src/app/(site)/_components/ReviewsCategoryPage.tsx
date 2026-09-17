@@ -7,6 +7,8 @@ import { AdSlot } from "./AdSlot";
 
 type ReviewType = "cafe" | "restaurant" | "recipe";
 
+const TERRACOTTA = "rgb(193,99,59)";
+
 const TABS: { value: ReviewType | null; label: string }[] = [
   { value: null,         label: "ހުރިހާ" },
   { value: "cafe",       label: "ކެފޭ" },
@@ -27,17 +29,9 @@ const CSS = [
   "@media(max-width:768px){.raha-hero{grid-template-columns:1fr!important;gap:1.25rem!important;}}",
 ].join("");
 
-function NeutralBadge({ label }: { label: string }) {
+function TerracottaOutlineBadge({ label }: { label: string }) {
   return (
-    <span
-      className="inline-block text-[10px] px-2.5 py-1 rounded-full border"
-      style={{
-        fontFamily: "'MVTypewriter', 'MV Boli', sans-serif",
-        color: "rgb(100, 100, 100)",
-        borderColor: "rgb(210, 207, 200)",
-        backgroundColor: "rgb(240, 239, 233)",
-      }}
-    >
+    <span style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "10px", fontWeight: 700, color: TERRACOTTA, border: "1.5px solid " + TERRACOTTA, padding: "4px 12px", borderRadius: "9999px", display: "inline-block", letterSpacing: "0.03em", lineHeight: 1.6 }}>
       {label}
     </span>
   );
@@ -47,12 +41,12 @@ function ScoreOverlay({ score, size = 40 }: { score: number; size?: number }) {
   return (
     <div
       className="flex flex-col items-center justify-center rounded-lg"
-      style={{ width: size, height: size, backgroundColor: "rgb(26,26,26)", color: "rgb(249,248,245)" }}
+      style={{ width: size, height: size, backgroundColor: TERRACOTTA, color: "white" }}
     >
       <span style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: size > 44 ? "16px" : "13px", fontWeight: 700, lineHeight: 1 }}>
         {score}
       </span>
-      <span style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "8px", color: "rgb(200,198,192)", lineHeight: 1.3 }}>
+      <span style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "8px", color: "rgba(255,255,255,0.75)", lineHeight: 1.3 }}>
         /5
       </span>
     </div>
@@ -88,10 +82,10 @@ function FeaturedCard({ article, categorySlug }: { article: any; categorySlug: s
       </Link>
       <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", height: "100%" }}>
         {article.review_type && (
-          <div className="mb-2"><NeutralBadge label={TYPE_LABELS[article.review_type as ReviewType] ?? article.review_type} /></div>
+          <div className="mb-2"><TerracottaOutlineBadge label={TYPE_LABELS[article.review_type as ReviewType] ?? article.review_type} /></div>
         )}
         {meta && (
-          <p style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "11px", fontWeight: 700, color: "rgb(140,138,132)", margin: "0 0 6px" }}>
+          <p style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "11px", fontWeight: 700, color: TERRACOTTA, margin: "0 0 6px" }}>
             {meta}
           </p>
         )}
@@ -128,13 +122,13 @@ export function ReviewsCategoryPage({
     <div className="bg-[#F5F3EF] min-h-screen" dir="rtl">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
-      <header className="max-w-5xl mx-auto px-6 pt-8 pb-4 text-center">
+      <header className="max-w-[84rem] mx-auto px-6 pt-8 pb-4 text-center">
         <div className="flex items-center justify-center gap-4">
           <span style={{ color: "rgba(0,0,0,0.18)", fontSize: "11px" }}>{"✦"}</span>
           <h1 style={{
             fontFamily: '"SanguSuruhee", "MVTypewriter", "Noto Sans Thaana", sans-serif',
             fontSize: "clamp(2.5rem, 6vw, 4rem)",
-            color: "rgb(26,26,26)", lineHeight: 1.6, fontWeight: 400, margin: 0,
+            color: TERRACOTTA, lineHeight: 1.6, fontWeight: 400, margin: 0,
           }}>
             {category.name}
           </h1>
@@ -148,7 +142,7 @@ export function ReviewsCategoryPage({
         </p>
       </header>
 
-      <div className="max-w-5xl mx-auto px-6 mb-6">
+      <div className="max-w-[84rem] mx-auto px-6 mb-6">
         <div className="flex items-center justify-center gap-2 flex-wrap">
           {TABS.map((tab) => {
             const isActive = activeType === tab.value;
@@ -162,9 +156,9 @@ export function ReviewsCategoryPage({
                   fontSize: "13px",
                   padding: "6px 18px",
                   borderRadius: "9999px",
-                  border: "1px solid " + (isActive ? "rgb(26,26,26)" : "rgb(224,221,214)"),
-                  backgroundColor: isActive ? "rgb(26,26,26)" : "transparent",
-                  color: isActive ? "rgb(249,248,245)" : "rgb(100,98,92)",
+                  border: "1px solid " + (isActive ? TERRACOTTA : "rgb(224,221,214)"),
+                  backgroundColor: isActive ? TERRACOTTA : "transparent",
+                  color: isActive ? "white" : "rgb(100,98,92)",
                 }}
               >
                 {tab.label}
@@ -174,7 +168,7 @@ export function ReviewsCategoryPage({
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 pb-16">
+      <div className="max-w-[84rem] mx-auto px-6 pb-16">
         <div className="raha-top" style={{ marginBottom: "2rem" }}>
           <div>
             {featured && <FeaturedCard article={featured} categorySlug={category.slug} />}
