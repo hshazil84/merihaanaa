@@ -9,6 +9,7 @@ const FONT_DISPLAY = '"SanguSuruhee","MVTypewriter","Noto Sans Thaana",sans-seri
 const TEXT = "rgb(26,26,26)";
 const TEXT_MUTED = "rgb(140,138,132)";
 const DIVIDER = "rgba(0,0,0,0.07)";
+const BG_CARD = "#E2ECEA";
 
 type DestType = "resort" | "guesthouse" | "liveaboard";
 
@@ -23,15 +24,16 @@ const TYPE_LABELS: Record<DestType, string> = { resort: "ރިސޯޓް", guesthou
 
 const CSS = [
   ".dhathuru-top{display:grid;grid-template-columns:1fr 300px;gap:1.5rem;align-items:stretch;}",
+  ".dhathuru-hero{display:grid;grid-template-columns:1.1fr 1fr;gap:1.75rem;align-items:stretch;}",
   ".dhathuru-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.25rem;}",
   "@media(max-width:1024px){.dhathuru-top{grid-template-columns:1fr!important;}}",
-  "@media(max-width:768px){.dhathuru-grid{grid-template-columns:1fr 1fr!important;}}",
+  "@media(max-width:768px){.dhathuru-hero{grid-template-columns:1fr!important;gap:1.25rem!important;}.dhathuru-grid{grid-template-columns:1fr 1fr!important;}}",
   "@media(max-width:480px){.dhathuru-grid{grid-template-columns:1fr!important;}}",
 ].join("");
 
 function TealOutlineBadge({ label }: { label: string }) {
   return (
-    <span style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: TEAL, border: "1.5px solid " + TEAL, padding: "4px 12px", borderRadius: "9999px", display: "inline-block", letterSpacing: "0.03em", lineHeight: 1.6 }}>
+    <span style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: TEAL, border: "1.5px solid " + TEAL, padding: "4px 12px", borderRadius: "9999px", display: "inline-block", alignSelf: "flex-start", letterSpacing: "0.03em", lineHeight: 1.6 }}>
       {label}
     </span>
   );
@@ -72,39 +74,39 @@ function FeaturedCard({ article, categorySlug }: { article: any; categorySlug: s
   const typeLabel = getTypeLabel(article);
 
   return (
-    <Link href={`/${categorySlug}/${article.slug}`} className="group block mb-6">
-      <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid rgba(0,0,0,0.08)" }}>
-        <div className="overflow-hidden relative" style={{ height: "280px", backgroundColor: "#E2ECEA" }}>
+    <div className="dhathuru-hero">
+      <Link href={`/${categorySlug}/${article.slug}`} style={{ textDecoration: "none", display: "block" }}>
+        <div style={{ aspectRatio: "3/2", overflow: "hidden", borderRadius: "12px", background: BG_CARD, position: "relative", height: "100%" }}>
           {article.featured_image && (
             <img src={article.featured_image} alt={article.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              className="w-full h-full object-cover"
               style={{ objectPosition: "50% 30%" }} />
           )}
           <div style={{ position: "absolute", top: 12, insetInlineEnd: 12 }}>
             <ContentKindBadge isReview={isReview} />
           </div>
         </div>
-        <div className="p-5" style={{ backgroundColor: "white" }}>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              {typeLabel && <div className="mb-2"><TealOutlineBadge label={typeLabel} /></div>}
-              {article.review_area && (
-                <p style={{ fontFamily: FONT, fontSize: "11px", color: TEAL, margin: "0 0 4px", fontWeight: 700 }}>{article.review_area}</p>
-              )}
-              <h2 className="group-hover:opacity-70 transition-opacity line-clamp-2" style={{ fontFamily: FONT, fontWeight: 700, fontSize: "20px", color: TEXT, lineHeight: 1.7, margin: 0 }}>
-                {article.review_subject || article.title}
-              </h2>
-            </div>
-            {article.review_score != null && <ScoreOverlay score={article.review_score} size={48} />}
-          </div>
-          {article.excerpt && (
-            <p className="line-clamp-2 mt-3" style={{ fontFamily: FONT, fontSize: "13px", color: "rgb(100,98,92)", lineHeight: 2 }}>
-              {article.excerpt}
-            </p>
-          )}
+      </Link>
+      <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", height: "100%" }}>
+        {typeLabel && <div style={{ marginBottom: "12px" }}><TealOutlineBadge label={typeLabel} /></div>}
+        {article.review_area && (
+          <p style={{ fontFamily: FONT, fontSize: "11px", color: TEAL, margin: "0 0 6px", fontWeight: 700 }}>{article.review_area}</p>
+        )}
+        <div className="flex items-start justify-between gap-4">
+          <Link href={`/${categorySlug}/${article.slug}`} style={{ textDecoration: "none" }}>
+            <h2 className="line-clamp-2" style={{ fontFamily: FONT, fontWeight: 700, fontSize: "clamp(1.2rem,2.6vw,1.7rem)", lineHeight: 1.75, margin: 0, color: TEXT }}>
+              {article.review_subject || article.title}
+            </h2>
+          </Link>
+          {article.review_score != null && <ScoreOverlay score={article.review_score} size={48} />}
         </div>
+        {article.excerpt && (
+          <p className="line-clamp-2" style={{ fontFamily: FONT, fontSize: "14px", color: "rgb(60,58,52)", lineHeight: 2, margin: "14px 0 0" }}>
+            {article.excerpt}
+          </p>
+        )}
       </div>
-    </Link>
+    </div>
   );
 }
 
@@ -120,7 +122,7 @@ export function DhathuruCategoryPage({
     <div className="bg-[#F4F7F6] min-h-screen" dir="rtl">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
-      <header style={{ maxWidth: "84rem", margin: "0 auto", padding: "2rem 1.5rem 1.5rem", textAlign: "center" }}>
+      <header style={{ maxWidth: "84rem", margin: "0 auto", padding: "2rem 1.5rem 1rem", textAlign: "center" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1rem" }}>
           <span style={{ color: "rgba(0,0,0,0.18)", fontSize: "11px" }}>{"✦"}</span>
           <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(2rem,5vw,3.5rem)", color: TEAL, lineHeight: 1.5, fontWeight: 400, margin: 0 }}>
@@ -157,7 +159,9 @@ export function DhathuruCategoryPage({
           <div>
             {featured && (
               <>
-                <FeaturedCard article={featured} categorySlug={category.slug} />
+                <div style={{ marginBottom: "1.5rem" }}>
+                  <FeaturedCard article={featured} categorySlug={category.slug} />
+                </div>
                 <div style={{ borderTop: "0.5px solid " + DIVIDER, marginBottom: "1.5rem" }} />
               </>
             )}
