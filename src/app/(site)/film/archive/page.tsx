@@ -2,6 +2,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { StandardArticleCard } from "../../_components/StandardArticleCard";
+import { getFirstTag, hasTag } from "@/lib/tags";
 
 interface PageProps {
   searchParams: { page?: string };
@@ -22,25 +23,6 @@ const CSS = [
   "@media(max-width:768px){.archive-grid{grid-template-columns:1fr 1fr!important;}}",
   "@media(max-width:480px){.archive-grid{grid-template-columns:1fr!important;}}",
 ].join("");
-
-function getFirstTag(tags: any[] | null): string | null {
-  if (!tags || !Array.isArray(tags) || tags.length === 0) return null;
-  const raw = tags[0];
-  if (typeof raw === "string") return raw;
-  if (typeof raw === "object" && raw !== null) return raw.name ?? null;
-  return null;
-}
-
-// Substring match, not exact equality — catches compound tags like
-// "ފިލްމު ރިވިއު" (film review), not just a bare "ރިވިއު" tag.
-function hasTag(tags: any[] | null, name: string): boolean {
-  if (!tags || !Array.isArray(tags)) return false;
-  const needle = name.toLowerCase();
-  return tags.some(function (raw) {
-    const val = typeof raw === "string" ? raw : raw && typeof raw === "object" ? raw.name : null;
-    return typeof val === "string" && val.toLowerCase().includes(needle);
-  });
-}
 
 export async function generateMetadata() {
   return {
