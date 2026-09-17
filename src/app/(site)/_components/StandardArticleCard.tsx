@@ -70,20 +70,22 @@ export function StandardArticleCard({
           </span>
         </div>
       )}
-      {eyebrow && (
-        <p
-          className="mb-1 flex items-center gap-1"
-          style={{
-            fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
-            fontWeight: 700,
-            fontSize: "11px",
-            color: "rgb(140, 138, 132)",
-          }}
-        >
-          <PinIcon />
-          {eyebrow}
-        </p>
-      )}
+      {/* Reserved-height line: always occupies the same space, whether or
+          not this card has a location, so cards in the same row align. */}
+      <p
+        className="mb-1 flex items-center gap-1"
+        style={{
+          fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
+          fontWeight: 700,
+          fontSize: "11px",
+          color: "rgb(140, 138, 132)",
+          minHeight: "15px",
+          visibility: eyebrow ? "visible" : "hidden",
+        }}
+      >
+        <PinIcon />
+        {eyebrow || "-"}
+      </p>
       <h3
         className="leading-none line-clamp-2"
         style={{
