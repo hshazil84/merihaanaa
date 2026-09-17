@@ -1,7 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { StandardArticleCard } from "../../_components/StandardArticleCard";
+import { StandardArticleCard } from "./StandardArticleCard";
 
 interface PageProps {
   searchParams: { page?: string; type?: string };
