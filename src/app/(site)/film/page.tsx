@@ -1,20 +1,10 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import FilmCategoryPage from "../_components/FilmCategoryPage";
+import { hasTag } from "@/lib/tags";
 
 const ARTICLE_SELECT =
   "id, title, slug, excerpt, featured_image, cover_portrait_url, reading_time_minutes, published_at, tags, view_count, author:authors!author_id(full_name), category:categories!category_id(name, slug)";
-
-// Substring match, not exact equality — catches compound tags like
-// "ފިލްމު ރިވިއު" (film review), not just a bare "ރިވިއު" tag.
-function hasTag(tags: any[] | null, name: string): boolean {
-  if (!tags || !Array.isArray(tags)) return false;
-  const needle = name.toLowerCase();
-  return tags.some(function (raw) {
-    const val = typeof raw === "string" ? raw : raw && typeof raw === "object" ? raw.name : null;
-    return typeof val === "string" && val.toLowerCase().includes(needle);
-  });
-}
 
 export async function generateMetadata() {
   const supabase = await createServerSupabaseClient();
