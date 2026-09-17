@@ -150,7 +150,7 @@ export function ReviewsCategoryPage({
             const isActive = activeType === tab.value;
             const href = tab.value ? `/${category.slug}?type=${tab.value}` : `/${category.slug}`;
             return (
-              
+              <a
                 key={tab.label}
                 href={href}
                 style={{
