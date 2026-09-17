@@ -6,7 +6,10 @@ export type AdSlotSize = {
   height: string | null;
   /** used when height is null */
   aspectRatio?: string;
-  /** when true the slot fills its grid/flex track instead of using `height` */
+  /** when true the slot fills its grid/flex track instead of using `height`.
+   *  Not used by the rail slots below — they're fixed-size and sticky instead,
+   *  since a rail that stretches to match taller content ends up larger than
+   *  its actual creative size. */
   fill?: boolean;
   /** label for the rate card / inventory sheet */
   label: string;
@@ -31,15 +34,14 @@ export const AD_SLOTS: AdSlotDef[] = [
     id: "film-hero-rail",
     page: "film",
     placement: "Beside the featured story and news row; on mobile, between the news row and reviews",
-    desktop: { width: "300px", height: "600px", fill: true, label: "300×600 half page" },
+    desktop: { width: "300px", height: "600px", label: "300×600 half page" },
     mobile: { width: "100%", height: null, aspectRatio: "4/3", label: "300×250 medium rectangle" },
   },
-  
   {
     id: "dhathuru-hero-rail",
     page: "dhathuru",
     placement: "Beside the featured destination and grid; on mobile, below the filter tabs",
-    desktop: { width: "300px", height: "600px", fill: true, label: "300×600 half page" },
+    desktop: { width: "300px", height: "600px", label: "300×600 half page" },
     mobile: { width: "100%", height: null, aspectRatio: "4/3", label: "300×250 medium rectangle" },
   },
 ];
