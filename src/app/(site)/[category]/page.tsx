@@ -2,7 +2,6 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { DefaultCategoryPage } from "./components/DefaultCategoryPage";
 import { StoriesCategoryPage } from "./components/StoriesCategoryPage";
-import { MeehunCategoryPage } from "./components/MeehunCategoryPage";
 import MusicCategoryPage from "./components/MusicCategoryPage";
 
 interface PageProps {
@@ -10,7 +9,6 @@ interface PageProps {
   searchParams: { page?: string; section?: string; type?: string };
 }
 
-const PAGE_SIZE = 8;
 const DEFAULT_PAGE_SIZE = 12;
 const SHORT_STORIES_PAGE_SIZE = 8;
 const LONG_STORIES_PAGE_SIZE = 8;
@@ -81,76 +79,6 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
     .single();
 
   if (!category) notFound();
-
-  // ── MEEHUN ──────────────────────────────────────────
-  if (category.slug === "meehun") {
-    const { data: featuredArticle } = await supabase
-      .from("articles")
-      .select("id, title, slug, excerpt, featured_image, reading_time_minutes, published_at, view_count, tags, author:authors!author_id(full_name, avatar)")
-      .eq("status", "published")
-      .eq("category_id", category.id)
-      .eq("homepage_featured", true)
-      .order("published_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const featuredId = featuredArticle?.id ?? null;
-
-    let mostReadQuery = supabase
-      .from("articles")
-      .select("id, title, slug, view_count, author:authors!author_id(full_name)")
-      .eq("status", "published")
-      .eq("category_id", category.id)
-      .order("view_count", { ascending: false })
-      .limit(5);
-    if (featuredId) mostReadQuery = mostReadQuery.neq("id", featuredId);
-    const { data: mostReadRaw } = await mostReadQuery;
-
-    let recentQuery = supabase
-      .from("articles")
-      .select("id, title, slug, featured_image, published_at, tags, author:authors!author_id(full_name)")
-      .eq("status", "published")
-      .eq("category_id", category.id)
-      .order("published_at", { ascending: false })
-      .limit(3);
-    if (featuredId) recentQuery = recentQuery.neq("id", featuredId);
-    const { data: recentRaw } = await recentQuery;
-
-    const excludeIds = [
-      featuredId,
-      ...(recentRaw ?? []).map((a: any) => a.id),
-    ].filter(Boolean) as string[];
-
-    const from = (page - 1) * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
-
-    let gridQuery = supabase
-      .from("articles")
-      .select("id, title, slug, excerpt, featured_image, reading_time_minutes, published_at, tags, author:authors!author_id(full_name)", { count: "exact" })
-      .eq("status", "published")
-      .eq("category_id", category.id)
-      .order("published_at", { ascending: false })
-      .range(from, to);
-
-    if (excludeIds.length > 0) {
-      gridQuery = gridQuery.not("id", "in", "(" + excludeIds.join(",") + ")");
-    }
-
-    const { data: gridRaw, count } = await gridQuery;
-
-    return (
-      <MeehunCategoryPage
-        category={category}
-        featuredArticle={featuredArticle ?? null}
-        mostRead={mostReadRaw ?? []}
-        recentArticles={recentRaw ?? []}
-        articles={gridRaw ?? []}
-        total={count ?? 0}
-        totalPages={Math.ceil((count ?? 0) / PAGE_SIZE)}
-        page={page}
-      />
-    );
-  }
 
   // ── MUSIC ─────────────────────────────────────────────
   if (category.slug === "music") {
