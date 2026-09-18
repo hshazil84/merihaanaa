@@ -51,7 +51,7 @@ export default async function OriginalsPage() {
           <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-6 md:p-12" dir="rtl">
             {/* Metadata line */}
-            <div className="flex items-center gap-2 mb-3 text-sm text-white/60">
+            <div className="flex items-center gap-2 mb-4 text-sm text-white/60">
               <span className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-white/70 border border-white/10" style={{ fontFamily: "MVTypewriter, serif" }}>
                 {TYPE_LABELS[featured.type] ?? featured.type}
               </span>
@@ -63,26 +63,24 @@ export default async function OriginalsPage() {
               )}
             </div>
 
-            <h1 className="text-3xl md:text-5xl font-bold text-white mb-3 max-w-2xl leading-snug" dir="auto" style={{ fontFamily: "MVTypewriter, serif" }}>
+            <h1 className="text-3xl md:text-5xl font-bold text-white mb-4 max-w-2xl leading-snug" dir="auto" style={{ fontFamily: "MVTypewriter, serif" }}>
               {featured.title}
             </h1>
             {featured.description && (
-              <p className="text-sm md:text-base text-neutral-300 max-w-xl line-clamp-2 mb-5" dir="auto" style={{ fontFamily: "MVTypewriter, serif" }}>
+              <p className="text-sm md:text-base text-neutral-300 max-w-xl line-clamp-2 mb-6" dir="auto" style={{ fontFamily: "MVTypewriter, serif" }}>
                 {featured.description}
               </p>
             )}
-            <div className="flex items-center justify-end gap-3" dir="ltr">
-              <Link href={`/originals/${featured.slug}/watch`}
-                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-white text-black text-sm font-bold hover:bg-neutral-200 transition-colors">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                Watch
-              </Link>
-              <Link href={`/originals/${featured.slug}`}
-                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-white/10 text-white text-sm font-semibold hover:bg-white/20 transition-colors border border-white/20">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <div className="flex justify-end" dir="ltr">
+              <Link
+                href={`/originals/${featured.slug}/watch`}
+                className="inline-flex items-center gap-2.5 px-7 py-3 rounded-full bg-red-600 hover:bg-red-500 text-white font-bold text-base shadow-lg shadow-red-600/30 transition-colors"
+              >
+                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="9" stroke="white" strokeWidth="1.5" />
+                  <path d="M10 8.5v7l6-3.5-6-3.5z" fill="white" />
                 </svg>
-                Info
+                Watch
               </Link>
             </div>
           </div>
