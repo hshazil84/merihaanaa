@@ -41,7 +41,7 @@ export default function OriginalsLayout({ children }: { children: React.ReactNod
                 onChange={e => setSearchQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="ހޯދާ..."
-                dir="rtl"
+                dir="auto"
                 className="bg-transparent outline-none text-sm text-white placeholder-white/30 w-40"
                 style={{ fontFamily: "MVTypewriter, serif" }}
               />
