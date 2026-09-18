@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
-import { AD_SLOTS } from "@/lib/adSlots";
+import { AD_SLOTS, MAX_LIVE_PER_SLOT } from "@/lib/adSlots";
 
 type Advertiser = {
   id: string;
@@ -69,6 +69,9 @@ const EMPTY_ADVERTISER = {
   notes: "",
 };
 
+const overlaps = (aStart: string, aEnd: string, bStart: string, bEnd: string) =>
+  aStart <= bEnd && aEnd >= bStart;
+
 export default function AdminAdsPage() {
   const supabase = createClient();
   const [tab, setTab] = useState<TabKey>("inventory");
@@ -103,8 +106,9 @@ export default function AdminAdsPage() {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  const liveFor = (slotKey: string) =>
-    bookings.find(
+  /** All bookings currently live (today, status='live') for a slot — up to MAX_LIVE_PER_SLOT can coexist and rotate. */
+  const liveRowsFor = (slotKey: string) =>
+    bookings.filter(
       (b) => b.slot_key === slotKey && b.status === "live" && b.starts_on <= today && b.ends_on >= today
     );
 
@@ -118,7 +122,7 @@ export default function AdminAdsPage() {
   }, []);
 
   const liveCount = useMemo(
-    () => AD_SLOTS.filter((s) => liveFor(s.id)).length,
+    () => AD_SLOTS.filter((s) => liveRowsFor(s.id).length > 0).length,
     [bookings] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
@@ -203,6 +207,19 @@ export default function AdminAdsPage() {
     if (bForm.ends_on < bForm.starts_on) {
       toast.error("ނިމޭ ތާރީޚް ފެށޭ ތާރީޚަށްވުރެ ކުރިން ނުވާނެ");
       return;
+    }
+    if (bForm.status === "live") {
+      const concurrentLive = bookings.filter(
+        (b) =>
+          b.id !== bEditing &&
+          b.slot_key === bForm.slot_key &&
+          b.status === "live" &&
+          overlaps(b.starts_on, b.ends_on, bForm.starts_on, bForm.ends_on)
+      ).length;
+      if (concurrentLive >= MAX_LIVE_PER_SLOT) {
+        toast.error(`މި ސްލޮޓަށް މިހާރު ${MAX_LIVE_PER_SLOT} އިޝްތިހާރު ހިނގަނީ — ފުރަތަމަ އެއް ނިއްވާލާ`);
+        return;
+      }
     }
     setBSaving(true);
     const payload = {
@@ -303,19 +320,26 @@ export default function AdminAdsPage() {
                 </div>
                 <div className="space-y-3">
                   {slots.map((slot) => {
-                    const live = liveFor(slot.id);
+                    const liveRows = liveRowsFor(slot.id);
                     return (
                       <div key={slot.id} className="pt-3 first:pt-0 first:border-t-0 border-t border-border">
                         <div className="flex items-center justify-between gap-2 mb-1">
                           <span className="font-mono text-[11px]">{slot.id}</span>
-                          {live ? (
-                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-green-100 text-green-800 whitespace-nowrap">
-                              {live.advertiser?.name ?? "—"}
-                            </span>
-                          ) : (
-                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-muted text-muted-foreground whitespace-nowrap">ހުސް</span>
-                          )}
+                          <span className="text-[10px] text-muted-foreground font-body whitespace-nowrap">
+                            {liveRows.length}/{MAX_LIVE_PER_SLOT}
+                          </span>
                         </div>
+                        {liveRows.length > 0 ? (
+                          <div className="flex flex-wrap gap-1 mb-1.5">
+                            {liveRows.map((b) => (
+                              <span key={b.id} className="text-[10px] px-2 py-0.5 rounded-md bg-green-100 text-green-800">
+                                {b.advertiser?.name ?? "—"}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="inline-block text-[10px] px-2 py-0.5 rounded-md bg-muted text-muted-foreground mb-1.5">ހުސް</span>
+                        )}
                         <p className="text-[11px] text-muted-foreground font-body mb-1.5 leading-relaxed">{slot.placement}</p>
                         <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-body" dir="ltr">
                           <span>D · {slot.desktop?.label ?? "—"}</span>
