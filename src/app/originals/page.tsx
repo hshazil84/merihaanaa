@@ -1,6 +1,7 @@
 // src/app/originals/page.tsx
 import OriginalCard from "./OriginalCard";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { formatDuration } from "@/lib/format";
 import Link from "next/link";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -13,13 +14,6 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const TYPE_ORDER = ["documentary", "episode", "profile", "interview", "segment", "short"];
-
-function formatDuration(s: number | null) {
-  if (!s) return null;
-  const m = Math.floor(s / 60);
-  const sec = s % 60;
-  return `${m}:${sec.toString().padStart(2, "0")}`;
-}
 
 async function getOriginalsData() {
   const supabase = await createServerSupabaseClient();
@@ -56,10 +50,20 @@ export default async function OriginalsPage() {
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-6 md:p-12" dir="rtl">
-            <span className="inline-block text-xs px-2.5 py-1 rounded-full bg-white/10 text-white/70 mb-3 border border-white/10" style={{ fontFamily: "MVTypewriter, serif" }}>
-              {TYPE_LABELS[featured.type] ?? featured.type}
-            </span>
-            <h1 className="text-2xl md:text-4xl font-bold text-white mb-3 max-w-2xl leading-snug" dir="auto" style={{ fontFamily: "MVTypewriter, serif" }}>
+            {/* Metadata line */}
+            <div className="flex items-center gap-2 mb-3 text-sm text-white/60">
+              <span className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-white/70 border border-white/10" style={{ fontFamily: "MVTypewriter, serif" }}>
+                {TYPE_LABELS[featured.type] ?? featured.type}
+              </span>
+              {featured.duration_seconds && (
+                <>
+                  <span className="text-white/30">•</span>
+                  <span dir="ltr" className="tabular-nums">{formatDuration(featured.duration_seconds)}</span>
+                </>
+              )}
+            </div>
+
+            <h1 className="text-3xl md:text-5xl font-bold text-white mb-3 max-w-2xl leading-snug" dir="auto" style={{ fontFamily: "MVTypewriter, serif" }}>
               {featured.title}
             </h1>
             {featured.description && (
@@ -67,20 +71,18 @@ export default async function OriginalsPage() {
                 {featured.description}
               </p>
             )}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3" dir="ltr">
               <Link href={`/originals/${featured.slug}/watch`}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white text-black text-sm font-semibold hover:bg-neutral-200 transition-colors"
-                style={{ fontFamily: "MVTypewriter, serif" }}>
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-white text-black text-sm font-bold hover:bg-neutral-200 transition-colors">
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                 Watch
               </Link>
               <Link href={`/originals/${featured.slug}`}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white/10 text-white text-sm font-semibold hover:bg-white/20 transition-colors border border-white/20"
-                style={{ fontFamily: "MVTypewriter, serif" }}>
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-white/10 text-white text-sm font-semibold hover:bg-white/20 transition-colors border border-white/20">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                މައުލޫމާތު
+                Info
               </Link>
             </div>
           </div>
