@@ -115,9 +115,9 @@ export default async function HomePage() {
       {todaysPicks.length > 0 && <TodaysPicks articles={todaysPicks} />}
       {people.length > 0 && <FeatureSplit article={people[0]} />}
       {reviews.length > 0 && <ReviewsSection articles={reviews} />}
+      <HomepageBanner />
       {reels.length > 0 && <ReelsStrip reels={reels} />}
       {originals.length > 0 && <OriginalsStrip originals={originals} />}
-      <HomepageBanner />
       {/* <PodcastSection /> */}
       {latest.length > 0 && (
         <section className="max-w-6xl mx-auto px-6 py-12" dir="rtl">
