@@ -69,9 +69,9 @@ export const AD_SLOTS: AdSlotDef[] = [
   {
     id: "vaahaka-hero-rail",
     page: "vaahaka",
-    placement: "Placement pending — StoriesCategoryPage has four render states (overview, long, short, review) to wire this into",
-    desktop: { width: "300px", height: "600px", label: "300×600 half page" },
-    mobile: { width: "100%", height: null, aspectRatio: "4/3", label: "300×250 medium rectangle" },
+    placement: "Full-width banner beneath the header, above all sections — Vaahaka's centered single-column layout has no side rail, so this uses a standard banner shape instead",
+    desktop: { width: "100%", height: null, aspectRatio: "728/90", label: "728×90 leaderboard" },
+    mobile: { width: "100%", height: null, aspectRatio: "320/100", label: "320×100 large mobile banner" },
   },
 ];
 
