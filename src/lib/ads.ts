@@ -1,115 +1,54 @@
-export type AdSlotSize = {
-  width: string;
-  height: string | null;
-  aspectRatio?: string;
-  fill?: boolean;
-  label: string;
-};
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { unstable_noStore as noStore } from "next/cache";
+import { MAX_LIVE_PER_SLOT } from "@/lib/adSlots";
 
-export type AdSlotDef = {
+export type AdBooking = {
   id: string;
-  page: string;
-  placement: string;
-  desktop: AdSlotSize | null;
-  mobile: AdSlotSize | null;
+  slot_key: string;
+  advertiser_id: string;
+  advertiser: { name: string } | null;
+  status: string;
+  creative_url: string | null;
+  creative_url_mobile: string | null;
+  click_url: string | null;
+  starts_on: string;
+  ends_on: string;
 };
 
-export const AD_MOBILE_MAX = 1024;
+/**
+ * A randomly-picked live booking for a slot today, or null. "Live" means
+ * status is 'live' and today falls inside the flight dates — a booking that
+ * is merely 'booked' has not started running yet.
+ *
+ * Up to MAX_LIVE_PER_SLOT advertisers can be live on the same slot at once
+ * (enforced when a booking is saved as 'live' in the admin panel). When more
+ * than one is live, a different one is picked at random on each call, so
+ * refreshing the page rotates the ad.
+ *
+ * noStore() opts this one fetch out of Next's Data/Full Route Cache, so the
+ * rotation is real on every request — including on pages that are otherwise
+ * statically rendered or ISR'd. Only this fetch is forced fresh; the rest of
+ * such a page can still be cached normally.
+ */
+export async function getLiveBooking(slotKey: string): Promise<AdBooking | null> {
+  noStore();
+  const supabase = await createServerSupabaseClient();
+  const today = new Date().toISOString().slice(0, 10);
 
-/** How many advertisers can rotate live on the same slot at once. */
-export const MAX_LIVE_PER_SLOT = 3;
+  const { data } = await supabase
+    .from("ad_bookings")
+    .select(
+      "id, slot_key, advertiser_id, status, creative_url, creative_url_mobile, click_url, starts_on, ends_on, advertiser:advertisers!advertiser_id(name)"
+    )
+    .eq("slot_key", slotKey)
+    .eq("status", "live")
+    .lte("starts_on", today)
+    .gte("ends_on", today)
+    .order("created_at", { ascending: false })
+    .limit(MAX_LIVE_PER_SLOT);
 
-export const AD_SLOTS: AdSlotDef[] = [
-  {
-    id: "film-hero-rail",
-    page: "film",
-    placement: "Beside the featured story and news row; on mobile, between the news row and reviews",
-    desktop: { width: "300px", height: "600px", label: "300×600 half page" },
-    mobile: { width: "100%", height: null, aspectRatio: "4/3", label: "300×250 medium rectangle" },
-  },
-  {
-    id: "dhathuru-hero-rail",
-    page: "dhathuru",
-    placement: "Beside the featured destination and grid; on mobile, below the filter tabs",
-    desktop: { width: "300px", height: "600px", label: "300×600 half page" },
-    mobile: { width: "100%", height: null, aspectRatio: "4/3", label: "300×250 medium rectangle" },
-  },
-  {
-    id: "raha-hero-rail",
-    page: "raha",
-    placement: "Beside the featured review and grid; on mobile, below the type tabs",
-    desktop: { width: "300px", height: "600px", label: "300×600 half page" },
-    mobile: { width: "100%", height: null, aspectRatio: "4/3", label: "300×250 medium rectangle" },
-  },
-  {
-    id: "meehun-hero-rail",
-    page: "meehun",
-    placement: "Replaces the most-read column, beside recent circles and the featured story; on mobile, below the recent circles scroll",
-    desktop: { width: "300px", height: "600px", label: "300×600 half page" },
-    mobile: { width: "100%", height: null, aspectRatio: "4/3", label: "300×250 medium rectangle" },
-  },
-  {
-    id: "music-hero-rail",
-    page: "music",
-    placement: "Replaces the trending-songs/events sidebar, beside the featured story and news row; on mobile, between the news row and archive link",
-    desktop: { width: "300px", height: "600px", label: "300×600 half page" },
-    mobile: { width: "100%", height: null, aspectRatio: "4/3", label: "300×250 medium rectangle" },
-  },
-  {
-    id: "thakethi-hero-rail",
-    page: "thakethi",
-    placement: "Beside the featured story and news row; on mobile, between the news row and archive link",
-    desktop: { width: "300px", height: "600px", label: "300×600 half page" },
-    mobile: { width: "100%", height: null, aspectRatio: "4/3", label: "300×250 medium rectangle" },
-  },
-  {
-    id: "art-hero-rail",
-    page: "art",
-    placement: "Beside the featured story and news row; on mobile, between the news row and archive link",
-    desktop: { width: "300px", height: "600px", label: "300×600 half page" },
-    mobile: { width: "100%", height: null, aspectRatio: "4/3", label: "300×250 medium rectangle" },
-  },
-  {
-    id: "vaahaka-hero-rail",
-    page: "vaahaka",
-    placement: "Full-width banner beneath the header, above all sections — Vaahaka's centered single-column layout has no side rail, so this uses a standard banner shape instead",
-    desktop: { width: "100%", height: null, aspectRatio: "728/90", label: "728×90 leaderboard" },
-    mobile: { width: "100%", height: null, aspectRatio: "320/100", label: "320×100 large mobile banner" },
-  },
-  {
-    id: "article-top-banner",
-    page: "article",
-    placement: "Article reading page — after the byline, before the body starts",
-    desktop: { width: "100%", height: null, aspectRatio: "728/90", label: "728×90 leaderboard" },
-    mobile: { width: "100%", height: null, aspectRatio: "320/100", label: "320×100 large mobile banner" },
-  },
-  {
-    id: "article-bottom-banner",
-    page: "article",
-    placement: "Article reading page — after the body and chapter pagination, before tags",
-    desktop: { width: "100%", height: null, aspectRatio: "728/90", label: "728×90 leaderboard" },
-    mobile: { width: "100%", height: null, aspectRatio: "320/100", label: "320×100 large mobile banner" },
-  },
-  {
-    id: "article-series-rail",
-    page: "article",
-    placement: "Series chapter pages only — sidebar beside the chapter navigation, inside its existing sticky block",
-    desktop: { width: "300px", height: "600px", label: "300×600 half page" },
-    mobile: null,
-  },
-  {
-    id: "homepage-banner",
-    page: "home",
-    placement: "Two instances used down the scroll: right above TodaysPicks, and above ReelsStrip (after ReviewsSection)",
-    desktop: { width: "100%", height: null, aspectRatio: "760/180", label: "760×180 banner" },
-    mobile: { width: "100%", height: null, aspectRatio: "760/180", label: "760×180 banner (scaled)" },
-  },
-];
+  const rows = (data as unknown as AdBooking[]) ?? [];
+  if (rows.length === 0) return null;
 
-export function getAdSlot(id: string): AdSlotDef | undefined {
-  return AD_SLOTS.find((s) => s.id === id);
-}
-
-export function getAdSlotsForPage(page: string): AdSlotDef[] {
-  return AD_SLOTS.filter((s) => s.page === page);
+  return rows[Math.floor(Math.random() * rows.length)];
 }
