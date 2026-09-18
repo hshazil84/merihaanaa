@@ -38,7 +38,7 @@ export default async function MusicPage() {
     .order("published_at", { ascending: false })
     .limit(4);
 
-  const articles = articlesRaw ?? [];
+  const articles = (articlesRaw ?? []) as unknown as any[];
 
   return (
     <MusicCategoryPage
