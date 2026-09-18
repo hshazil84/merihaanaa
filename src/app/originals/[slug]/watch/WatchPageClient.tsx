@@ -63,7 +63,7 @@ function EpisodesPanel({
         style={{ transform: open ? "translateX(0)" : "translateX(100%)" }}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-          <h2 className="text-sm font-bold text-white" style={{ fontFamily: "MVTypewriter, serif" }}>
+          <h2 className="text-sm font-bold text-white" dir="auto" style={{ fontFamily: "MVTypewriter, serif" }}>
             {series?.title ?? "އެޕިސޯޑްތައް"}
           </h2>
           <button onClick={onClose} className="text-white/50 hover:text-white transition-colors">
@@ -118,7 +118,7 @@ function EpisodesPanel({
                     {/* Info */}
                     <div className="flex-1 min-w-0" dir="rtl">
                       <p className={`text-xs font-semibold line-clamp-2 leading-snug ${isCurrent ? "text-white" : "text-white/80"}`}
-                        style={{ fontFamily: "MVTypewriter, serif" }}>
+                        dir="auto" style={{ fontFamily: "MVTypewriter, serif" }}>
                         {ep.title}
                       </p>
                       {ep.duration_seconds && (
@@ -172,11 +172,11 @@ export default function WatchPageClient({
         {/* Title center */}
         <div className="absolute left-1/2 -translate-x-1/2 text-center pointer-events-none">
           {episodeLabel && (
-            <p className="text-[10px] text-white/40 mb-0.5" style={{ fontFamily: "MVTypewriter, serif" }}>
+            <p className="text-[10px] text-white/40 mb-0.5" dir="auto" style={{ fontFamily: "MVTypewriter, serif" }}>
               {episodeLabel}
             </p>
           )}
-          <p className="text-sm font-semibold text-white line-clamp-1 max-w-xs" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
+          <p className="text-sm font-semibold text-white line-clamp-1 max-w-xs" dir="auto" style={{ fontFamily: "MVTypewriter, serif" }}>
             {original.title}
           </p>
         </div>
