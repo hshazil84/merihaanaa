@@ -1,5 +1,6 @@
 // src/app/(site)/[category]/[slug]/page.tsx
 
+import { Suspense } from "react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -7,6 +8,7 @@ import ArticleBody from "@/components/public/ArticleBody";
 import CommentSection from "@/components/public/CommentSection";
 import SocialShare from "@/components/public/SocialShare";
 import ViewTracker from "@/components/public/ViewTracker";
+import { AdSlot } from "../../_components/AdSlot";
 
 interface PageProps {
   params: { category: string; slug: string };
@@ -34,6 +36,19 @@ function avatarSrc(avatar: string | null): string | null {
   if (!avatar) return null;
   if (avatar.startsWith("http")) return avatar;
   return SUPABASE_URL + "/storage/v1/object/public/avatars/" + avatar;
+}
+
+function ArticleBanner({ id }: { id: string }) {
+  return (
+    <div className="max-w-3xl mx-auto px-6 mb-8">
+      <Suspense fallback={null}>
+        <AdSlot id={id} breakpoint="desktop" />
+      </Suspense>
+      <Suspense fallback={null}>
+        <AdSlot id={id} breakpoint="mobile" />
+      </Suspense>
+    </div>
+  );
 }
 
 async function getArticle(slug: string) {
@@ -84,9 +99,6 @@ export async function generateMetadata({ params }: PageProps) {
   const article = await getArticle(params.slug);
   if (!article) return { title: "ލިޔުން ނުލިބުނު" };
 
-  // og_image_url is the 1200x630 card built at upload time. The display
-  // cover is a large master and will be rejected by WhatsApp, so it is
-  // only a fallback for articles published before the card existed.
   const socialImage =
     article.og_image_url ||
     (article.cover_type === "image"
@@ -139,7 +151,6 @@ export default async function ArticlePage({ params }: PageProps) {
 
   const av = avatarSrc(author?.avatar ?? null);
 
-  /* Circular pill pagination — isolated from RTL cascade */
   const chapterPagination = hasSeries && chapters.length > 1 ? (
     <div className="max-w-3xl mx-auto px-6 pb-8">
       <div className="py-6 border-t border-black/10">
@@ -256,6 +267,9 @@ export default async function ArticlePage({ params }: PageProps) {
         </div>
       </div>
 
+      {/* Top banner */}
+      <ArticleBanner id="article-top-banner" />
+
       {/* Body */}
       <div className="max-w-3xl mx-auto px-6 pb-12">
         <ArticleBody body={article.body} />
@@ -263,6 +277,9 @@ export default async function ArticlePage({ params }: PageProps) {
 
       {/* Chapter pill pagination */}
       {chapterPagination}
+
+      {/* Bottom banner */}
+      <ArticleBanner id="article-bottom-banner" />
 
       {/* Tags */}
       {Array.isArray(article.tags) && article.tags.length > 0 && (
@@ -347,7 +364,7 @@ export default async function ArticlePage({ params }: PageProps) {
           <div className="flex-1 min-w-0">{articleContent}</div>
 
           {/* Chapters sidebar — physical right */}
-          <aside className="hidden md:block w-56 flex-none border-l border-black/[0.06]">
+          <aside className="hidden md:block w-[340px] flex-none border-l border-black/[0.06]">
             <div className="sticky top-24 p-5 space-y-4">
 
               <div className="pb-3 border-b border-black/10" dir="rtl">
@@ -380,9 +397,9 @@ export default async function ArticlePage({ params }: PageProps) {
                 })}
               </nav>
 
-              <div className="w-full rounded-xl bg-neutral-100 border border-dashed border-neutral-200 flex items-center justify-center" style={{ height: "180px" }}>
-                <p className="text-xs text-neutral-400">Ad</p>
-              </div>
+              <Suspense fallback={null}>
+                <AdSlot id="article-series-rail" breakpoint="desktop" sticky={false} />
+              </Suspense>
             </div>
           </aside>
 
