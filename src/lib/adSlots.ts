@@ -73,6 +73,27 @@ export const AD_SLOTS: AdSlotDef[] = [
     desktop: { width: "100%", height: null, aspectRatio: "728/90", label: "728×90 leaderboard" },
     mobile: { width: "100%", height: null, aspectRatio: "320/100", label: "320×100 large mobile banner" },
   },
+  {
+    id: "article-top-banner",
+    page: "article",
+    placement: "Article reading page — after the byline, before the body starts",
+    desktop: { width: "100%", height: null, aspectRatio: "728/90", label: "728×90 leaderboard" },
+    mobile: { width: "100%", height: null, aspectRatio: "320/100", label: "320×100 large mobile banner" },
+  },
+  {
+    id: "article-bottom-banner",
+    page: "article",
+    placement: "Article reading page — after the body and chapter pagination, before tags",
+    desktop: { width: "100%", height: null, aspectRatio: "728/90", label: "728×90 leaderboard" },
+    mobile: { width: "100%", height: null, aspectRatio: "320/100", label: "320×100 large mobile banner" },
+  },
+  {
+    id: "article-series-rail",
+    page: "article",
+    placement: "Series chapter pages only — sidebar beside the chapter navigation, inside its existing sticky block",
+    desktop: { width: "300px", height: "600px", label: "300×600 half page" },
+    mobile: null,
+  },
 ];
 
 export function getAdSlot(id: string): AdSlotDef | undefined {
