@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { formatDuration } from "@/lib/format";
 
 const TYPE_LABELS: Record<string, string> = {
   documentary: "ޑޮކިއުމެންޓްރީ",
@@ -9,13 +10,6 @@ const TYPE_LABELS: Record<string, string> = {
   interview:   "އިންޓަވިއު",
   short:       "ޝޯޓް",
 };
-
-function formatDuration(s: number | null) {
-  if (!s) return null;
-  const m = Math.floor(s / 60);
-  const sec = s % 60;
-  return `${m}:${sec.toString().padStart(2, "0")}`;
-}
 
 export default function OriginalCard({ item }: { item: any }) {
   return (
@@ -38,7 +32,7 @@ export default function OriginalCard({ item }: { item: any }) {
             </div>
           </div>
           {item.duration_seconds && (
-            <div className="absolute bottom-2 left-2 text-[10px] text-white bg-black/60 px-1.5 py-0.5 rounded tabular-nums">
+            <div className="absolute bottom-2 left-2 text-[10px] text-white bg-black/60 px-1.5 py-0.5 rounded tabular-nums" dir="ltr">
               {formatDuration(item.duration_seconds)}
             </div>
           )}
