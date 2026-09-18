@@ -98,8 +98,8 @@ export const AD_SLOTS: AdSlotDef[] = [
     id: "homepage-banner",
     page: "home",
     placement: "Two instances used down the scroll: right above TodaysPicks, and after OriginalsStrip before the Latest grid",
-    desktop: { width: "100%", height: null, aspectRatio: "970/250", label: "970×250 billboard" },
-    mobile: { width: "100%", height: null, aspectRatio: "970/250", label: "970×250 billboard (scaled)" },
+    desktop: { width: "100%", height: null, aspectRatio: "760/180", label: "760×180 banner" },
+    mobile: { width: "100%", height: null, aspectRatio: "760/180", label: "760×180 banner (scaled)" },
   },
 ];
 
