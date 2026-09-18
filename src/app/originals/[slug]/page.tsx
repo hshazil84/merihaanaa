@@ -56,7 +56,7 @@ export default async function OriginalsDetailPage({ params }: { params: { slug: 
         {/* Content — bottom right, with enough room for mobile header */}
         <div className="absolute bottom-24 md:bottom-32 right-4 md:right-12 left-4 md:left-auto md:max-w-xl" dir="rtl">
           {/* Metadata line */}
-          <div className="flex items-center gap-2 mb-3 text-sm text-white/60 flex-wrap">
+          <div className="flex items-center gap-2 mb-4 text-sm text-white/60 flex-wrap">
             <span className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-white/70 border border-white/10" style={{ fontFamily: "MVTypewriter, serif" }}>
               {TYPE_LABELS[original.type] ?? original.type}
             </span>
@@ -75,13 +75,13 @@ export default async function OriginalsDetailPage({ params }: { params: { slug: 
           </div>
 
           {/* Title */}
-          <h1 className="text-2xl md:text-5xl font-bold text-white leading-snug mb-3" dir="auto" style={{ fontFamily: "MVTypewriter, serif" }}>
+          <h1 className="text-2xl md:text-5xl font-bold text-white leading-snug mb-4" dir="auto" style={{ fontFamily: "MVTypewriter, serif" }}>
             {original.title}
           </h1>
 
           {/* Description */}
           {original.description && (
-            <p className="text-sm text-white/70 leading-relaxed mb-5 line-clamp-2 md:line-clamp-3" dir="auto" style={{ fontFamily: "MVTypewriter, serif" }}>
+            <p className="text-sm text-white/70 leading-relaxed mb-6 line-clamp-2 md:line-clamp-3" dir="auto" style={{ fontFamily: "MVTypewriter, serif" }}>
               {original.description}
             </p>
           )}
@@ -91,9 +91,12 @@ export default async function OriginalsDetailPage({ params }: { params: { slug: 
             <div className="flex justify-end" dir="ltr">
               <Link
                 href={`/originals/${original.slug}/watch`}
-                className="inline-flex items-center gap-2 px-7 py-3 rounded-lg bg-white text-black font-bold text-base hover:bg-neutral-200 transition-colors"
+                className="inline-flex items-center gap-2.5 px-7 py-3 rounded-full bg-red-600 hover:bg-red-500 text-white font-bold text-base shadow-lg shadow-red-600/30 transition-colors"
               >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="9" stroke="white" strokeWidth="1.5" />
+                  <path d="M10 8.5v7l6-3.5-6-3.5z" fill="white" />
+                </svg>
                 Watch
               </Link>
             </div>
