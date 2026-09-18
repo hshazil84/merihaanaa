@@ -52,6 +52,27 @@ export const AD_SLOTS: AdSlotDef[] = [
     desktop: { width: "300px", height: "600px", label: "300×600 half page" },
     mobile: { width: "100%", height: null, aspectRatio: "4/3", label: "300×250 medium rectangle" },
   },
+  {
+    id: "thakethi-hero-rail",
+    page: "thakethi",
+    placement: "Beside the featured story and news row; on mobile, between the news row and archive link",
+    desktop: { width: "300px", height: "600px", label: "300×600 half page" },
+    mobile: { width: "100%", height: null, aspectRatio: "4/3", label: "300×250 medium rectangle" },
+  },
+  {
+    id: "art-hero-rail",
+    page: "art",
+    placement: "Beside the featured story and news row; on mobile, between the news row and archive link",
+    desktop: { width: "300px", height: "600px", label: "300×600 half page" },
+    mobile: { width: "100%", height: null, aspectRatio: "4/3", label: "300×250 medium rectangle" },
+  },
+  {
+    id: "vaahaka-hero-rail",
+    page: "vaahaka",
+    placement: "Placement pending — StoriesCategoryPage has four render states (overview, long, short, review) to wire this into",
+    desktop: { width: "300px", height: "600px", label: "300×600 half page" },
+    mobile: { width: "100%", height: null, aspectRatio: "4/3", label: "300×250 medium rectangle" },
+  },
 ];
 
 export function getAdSlot(id: string): AdSlotDef | undefined {
