@@ -88,7 +88,7 @@ export default async function OriginalsDetailPage({ params }: { params: { slug: 
 
           {/* Primary action */}
           {original.cloudflare_stream_id && (
-            <div dir="ltr">
+            <div className="flex justify-end" dir="ltr">
               <Link
                 href={`/originals/${original.slug}/watch`}
                 className="inline-flex items-center gap-2 px-7 py-3 rounded-lg bg-white text-black font-bold text-base hover:bg-neutral-200 transition-colors"
