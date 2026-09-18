@@ -71,7 +71,7 @@ export default async function OriginalsPage() {
                 {featured.description}
               </p>
             )}
-            <div className="flex items-center gap-3" dir="ltr">
+            <div className="flex items-center justify-end gap-3" dir="ltr">
               <Link href={`/originals/${featured.slug}/watch`}
                 className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-white text-black text-sm font-bold hover:bg-neutral-200 transition-colors">
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
