@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
 import { AD_SLOTS } from "@/lib/adSlots";
@@ -35,6 +35,20 @@ const STATUS_LABELS: Record<string, string> = {
   ended: "ނިމިފައި",
 };
 
+const STATUS_STYLES: Record<string, string> = {
+  booked: "bg-amber-100 text-amber-800",
+  live: "bg-green-100 text-green-800",
+  ended: "bg-muted text-muted-foreground",
+};
+
+const TABS = [
+  { key: "inventory", label: "ސްލޮޓް އިންވެންޓްރީ" },
+  { key: "advertisers", label: "އިޝްތިހާރުދޭ ފަރާތްތައް" },
+  { key: "bookings", label: "ބުކިންގ" },
+] as const;
+
+type TabKey = typeof TABS[number]["key"];
+
 const EMPTY_BOOKING = {
   slot_key: AD_SLOTS[0]?.id ?? "",
   advertiser_id: "",
@@ -57,6 +71,7 @@ const EMPTY_ADVERTISER = {
 
 export default function AdminAdsPage() {
   const supabase = createClient();
+  const [tab, setTab] = useState<TabKey>("inventory");
   const [advertisers, setAdvertisers] = useState<Advertiser[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,6 +110,17 @@ export default function AdminAdsPage() {
 
   const bookingCount = (advertiserId: string) =>
     bookings.filter((b) => b.advertiser_id === advertiserId).length;
+
+  const slotsByPage = useMemo(() => {
+    const acc: Record<string, typeof AD_SLOTS> = {};
+    for (const s of AD_SLOTS) (acc[s.page] ??= []).push(s);
+    return acc;
+  }, []);
+
+  const liveCount = useMemo(
+    () => AD_SLOTS.filter((s) => liveFor(s.id)).length,
+    [bookings] // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   // ── advertisers ──────────────────────────────────────
 
@@ -227,250 +253,286 @@ export default function AdminAdsPage() {
 
   const input = "w-full h-9 px-3 rounded-lg border border-border bg-background font-body text-sm";
   const lbl = "font-body text-xs text-muted-foreground mb-1 block";
+  const card = "rounded-2xl border border-border bg-background";
   const activeAdvertisers = advertisers.filter((a) => a.is_active);
 
   return (
     <div className="p-6 max-w-6xl mx-auto" dir="rtl">
 
-      {/* Inventory */}
-      <section className="mb-8">
-        <h2 className="font-body text-sm font-semibold mb-3">ސްލޮޓް އިންވެންޓްރީ</h2>
-        <div className="rounded-xl border border-border overflow-hidden bg-background">
-          <table className="w-full">
-            <thead className="bg-muted/50">
-              <tr className="font-body text-xs text-muted-foreground">
-                <th className="text-right p-3 font-normal">ސްލޮޓް</th>
-                <th className="text-right p-3 font-normal">ޞަފްޙާ</th>
-                <th className="text-right p-3 font-normal">ޑެސްކްޓޮޕް</th>
-                <th className="text-right p-3 font-normal">މޮބައިލް</th>
-                <th className="text-right p-3 font-normal">މިހާރު</th>
-              </tr>
-            </thead>
-            <tbody>
-              {AD_SLOTS.map((slot) => {
-                const live = liveFor(slot.id);
-                return (
-                  <tr key={slot.id} className="border-t border-border font-body text-sm">
-                    <td className="p-3">
-                      <span className="font-mono text-xs">{slot.id}</span>
-                      <p className="text-xs text-muted-foreground mt-0.5">{slot.placement}</p>
-                    </td>
-                    <td className="p-3">{slot.page}</td>
-                    <td className="p-3 text-xs">{slot.desktop?.label ?? "—"}</td>
-                    <td className="p-3 text-xs">{slot.mobile?.label ?? "—"}</td>
-                    <td className="p-3">
-                      {live ? (
-                        <span className="text-xs px-2 py-1 rounded-md bg-green-100 text-green-800">
-                          {live.advertiser?.name ?? "—"}
-                        </span>
-                      ) : (
-                        <span className="text-xs px-2 py-1 rounded-md bg-muted text-muted-foreground">ހުސް</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      {/* Page header + at-a-glance stats */}
+      <div className="mb-6 flex items-center justify-between flex-wrap gap-3">
+        <h1 className="font-body text-lg font-bold">އިޝްތިހާރު ބެލެހެއްޓުން</h1>
+        <div className="flex items-center gap-2">
+          <span className="text-xs px-3 py-1.5 rounded-full bg-muted text-muted-foreground font-body">
+            {AD_SLOTS.length} ސްލޮޓް
+          </span>
+          <span className="text-xs px-3 py-1.5 rounded-full bg-green-100 text-green-800 font-body">
+            {liveCount} ހިނގަނީ
+          </span>
+          <span className="text-xs px-3 py-1.5 rounded-full bg-muted text-muted-foreground font-body">
+            {activeAdvertisers.length} ފަރާތް
+          </span>
         </div>
-      </section>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex items-center gap-2 mb-6 border-b border-border pb-3">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={
+              "text-xs font-semibold font-body px-4 py-1.5 rounded-full transition-colors " +
+              (tab === t.key ? "bg-foreground text-background" : "bg-muted text-muted-foreground hover:text-foreground")
+            }
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Inventory */}
+      {tab === "inventory" && (
+        <section>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Object.entries(slotsByPage).map(([page, slots]) => (
+              <div key={page} className={card + " p-4"}>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-mono text-xs font-semibold px-2 py-1 rounded-md bg-muted">{page}</span>
+                  <span className="text-[10px] text-muted-foreground font-body">{slots.length} ސްލޮޓް</span>
+                </div>
+                <div className="space-y-3">
+                  {slots.map((slot) => {
+                    const live = liveFor(slot.id);
+                    return (
+                      <div key={slot.id} className="pt-3 first:pt-0 first:border-t-0 border-t border-border">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="font-mono text-[11px]">{slot.id}</span>
+                          {live ? (
+                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-green-100 text-green-800 whitespace-nowrap">
+                              {live.advertiser?.name ?? "—"}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-muted text-muted-foreground whitespace-nowrap">ހުސް</span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground font-body mb-1.5 leading-relaxed">{slot.placement}</p>
+                        <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-body" dir="ltr">
+                          <span>D · {slot.desktop?.label ?? "—"}</span>
+                          <span>M · {slot.mobile?.label ?? "—"}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Advertiser directory */}
-      <section className="mb-8">
-        <h2 className="font-body text-sm font-semibold mb-3">
-          {aEditing ? "ފަރާތް އެޑިޓް" : "އިޝްތިހާރުދޭ ފަރާތްތައް"}
-        </h2>
-
-        <div className="rounded-xl border border-border bg-background p-4 grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
-          <div>
-            <label className={lbl}>ނަން</label>
-            <input className={input} value={aForm.name} onChange={(e) => setAForm({ ...aForm, name: e.target.value })} />
-          </div>
-          <div>
-            <label className={lbl}>ގުޅޭ ފަރާތް</label>
-            <input className={input} value={aForm.contact_name} onChange={(e) => setAForm({ ...aForm, contact_name: e.target.value })} />
-          </div>
-          <div>
-            <label className={lbl}>އީމެއިލް</label>
-            <input className={input} dir="ltr" value={aForm.contact_email} onChange={(e) => setAForm({ ...aForm, contact_email: e.target.value })} />
-          </div>
-          <div>
-            <label className={lbl}>ފޯން</label>
-            <input className={input} dir="ltr" value={aForm.contact_phone} onChange={(e) => setAForm({ ...aForm, contact_phone: e.target.value })} />
-          </div>
-          <div className="md:col-span-2">
-            <label className={lbl}>ނޯޓް</label>
-            <input className={input} value={aForm.notes} onChange={(e) => setAForm({ ...aForm, notes: e.target.value })} />
-          </div>
-          <div className="col-span-2 md:col-span-3 flex gap-2">
-            <button onClick={saveAdvertiser} disabled={aSaving}
-              className="h-9 px-4 rounded-lg bg-foreground text-background font-body text-xs font-semibold disabled:opacity-50">
-              {aSaving ? "ސޭވްވަނީ..." : aEditing ? "އަޕްޑޭޓް" : "އިތުރުކުރޭ"}
-            </button>
-            {aEditing && (
-              <button onClick={() => { setAEditing(null); setAForm(EMPTY_ADVERTISER); }}
-                className="h-9 px-4 rounded-lg border border-border font-body text-xs">
-                ކެންސަލް
+      {tab === "advertisers" && (
+        <section>
+          <div className={card + " bg-muted/30 p-4 grid grid-cols-2 md:grid-cols-3 gap-3 mb-4"}>
+            <h2 className="col-span-2 md:col-span-3 font-body text-xs font-semibold text-muted-foreground -mb-1">
+              {aEditing ? "ފަރާތް އެޑިޓް" : "އައު ފަރާތެއް އިތުރުކުރޭ"}
+            </h2>
+            <div>
+              <label className={lbl}>ނަން</label>
+              <input className={input} value={aForm.name} onChange={(e) => setAForm({ ...aForm, name: e.target.value })} />
+            </div>
+            <div>
+              <label className={lbl}>ގުޅޭ ފަރާތް</label>
+              <input className={input} value={aForm.contact_name} onChange={(e) => setAForm({ ...aForm, contact_name: e.target.value })} />
+            </div>
+            <div>
+              <label className={lbl}>އީމެއިލް</label>
+              <input className={input} dir="ltr" value={aForm.contact_email} onChange={(e) => setAForm({ ...aForm, contact_email: e.target.value })} />
+            </div>
+            <div>
+              <label className={lbl}>ފޯން</label>
+              <input className={input} dir="ltr" value={aForm.contact_phone} onChange={(e) => setAForm({ ...aForm, contact_phone: e.target.value })} />
+            </div>
+            <div className="md:col-span-2">
+              <label className={lbl}>ނޯޓް</label>
+              <input className={input} value={aForm.notes} onChange={(e) => setAForm({ ...aForm, notes: e.target.value })} />
+            </div>
+            <div className="col-span-2 md:col-span-3 flex gap-2">
+              <button onClick={saveAdvertiser} disabled={aSaving}
+                className="h-9 px-4 rounded-lg bg-foreground text-background font-body text-xs font-semibold disabled:opacity-50">
+                {aSaving ? "ސޭވްވަނީ..." : aEditing ? "އަޕްޑޭޓް" : "އިތުރުކުރޭ"}
               </button>
+              {aEditing && (
+                <button onClick={() => { setAEditing(null); setAForm(EMPTY_ADVERTISER); }}
+                  className="h-9 px-4 rounded-lg border border-border font-body text-xs">
+                  ކެންސަލް
+                </button>
+              )}
+            </div>
+          </div>
+
+          {advertisers.length > 0 && (
+            <div className={card + " overflow-hidden"}>
+              <table className="w-full">
+                <thead className="bg-muted/50">
+                  <tr className="font-body text-xs text-muted-foreground">
+                    <th className="text-right p-3 font-normal">ނަން</th>
+                    <th className="text-right p-3 font-normal">ގުޅޭ ފަރާތް</th>
+                    <th className="text-right p-3 font-normal">ބުކިންގ</th>
+                    <th className="text-right p-3 font-normal">ހާލަތު</th>
+                    <th className="text-right p-3 font-normal"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {advertisers.map((a) => (
+                    <tr key={a.id} className={"border-t border-border font-body text-sm" + (a.is_active ? "" : " opacity-50")}>
+                      <td className="p-3">{a.name}</td>
+                      <td className="p-3 text-xs">
+                        {a.contact_name || "—"}
+                        {a.contact_email && <span className="block text-muted-foreground" dir="ltr">{a.contact_email}</span>}
+                      </td>
+                      <td className="p-3 text-xs">{bookingCount(a.id)}</td>
+                      <td className="p-3 text-xs">{a.is_active ? "ހިނގާ" : "ނިއްވާފައި"}</td>
+                      <td className="p-3">
+                        <div className="flex gap-2 justify-end">
+                          <button onClick={() => editAdvertiser(a)} className="text-xs text-muted-foreground hover:text-foreground">އެޑިޓް</button>
+                          <button onClick={() => toggleAdvertiser(a)} className="text-xs text-muted-foreground hover:text-foreground">
+                            {a.is_active ? "ނިއްވާ" : "އަލުން ހިންގާ"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Bookings */}
+      {tab === "bookings" && (
+        <section className="space-y-4">
+          <div className={card + " bg-muted/30 p-4 grid grid-cols-2 md:grid-cols-3 gap-3"}>
+            <h2 className="col-span-2 md:col-span-3 font-body text-xs font-semibold text-muted-foreground -mb-1">
+              {bEditing ? "ބުކިންގ އެޑިޓް" : "އާ ބުކިންގ"}
+            </h2>
+            <div>
+              <label className={lbl}>ސްލޮޓް</label>
+              <select className={input} value={bForm.slot_key} onChange={(e) => setBForm({ ...bForm, slot_key: e.target.value })}>
+                {AD_SLOTS.map((s) => <option key={s.id} value={s.id}>{s.id}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={lbl}>އިޝްތިހާރުދޭ ފަރާތް</label>
+              <select className={input} value={bForm.advertiser_id} onChange={(e) => setBForm({ ...bForm, advertiser_id: e.target.value })}>
+                <option value="">— ހޮވާ —</option>
+                {activeAdvertisers.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={lbl}>ސްޓޭޓަސް</label>
+              <select className={input} value={bForm.status} onChange={(e) => setBForm({ ...bForm, status: e.target.value })}>
+                {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={lbl}>ފެށޭ ތާރީޚް</label>
+              <input type="date" className={input} value={bForm.starts_on} onChange={(e) => setBForm({ ...bForm, starts_on: e.target.value })} />
+            </div>
+            <div>
+              <label className={lbl}>ނިމޭ ތާރީޚް</label>
+              <input type="date" className={input} value={bForm.ends_on} onChange={(e) => setBForm({ ...bForm, ends_on: e.target.value })} />
+            </div>
+            <div>
+              <label className={lbl}>ކްލިކް ލިންކް</label>
+              <input className={input} dir="ltr" value={bForm.click_url} onChange={(e) => setBForm({ ...bForm, click_url: e.target.value })} />
+            </div>
+            <div>
+              <label className={lbl}>ކްރިއޭޓިވް (ޑެސްކްޓޮޕް)</label>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                className={input}
+                disabled={uploading === "desktop"}
+                onChange={(e) => e.target.files?.[0] && uploadCreative(e.target.files[0], "desktop")}
+              />
+              {bForm.creative_url && <img src={bForm.creative_url} className="mt-2 max-h-24 rounded-lg border border-border" alt="" />}
+            </div>
+            <div>
+              <label className={lbl}>ކްރިއޭޓިވް (މޮބައިލް)</label>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                className={input}
+                disabled={uploading === "mobile"}
+                onChange={(e) => e.target.files?.[0] && uploadCreative(e.target.files[0], "mobile")}
+              />
+              {bForm.creative_url_mobile && <img src={bForm.creative_url_mobile} className="mt-2 max-h-24 rounded-lg border border-border" alt="" />}
+            </div>
+            <div>
+              <label className={lbl}>ނޯޓް</label>
+              <input className={input} value={bForm.notes} onChange={(e) => setBForm({ ...bForm, notes: e.target.value })} />
+            </div>
+            <div className="col-span-2 md:col-span-3 flex gap-2">
+              <button onClick={saveBooking} disabled={bSaving}
+                className="h-9 px-4 rounded-lg bg-foreground text-background font-body text-xs font-semibold disabled:opacity-50">
+                {bSaving ? "ސޭވްވަނީ..." : bEditing ? "އަޕްޑޭޓް" : "އިތުރުކުރޭ"}
+              </button>
+              {bEditing && (
+                <button onClick={() => { setBEditing(null); setBForm(EMPTY_BOOKING); }}
+                  className="h-9 px-4 rounded-lg border border-border font-body text-xs">
+                  ކެންސަލް
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <h2 className="font-body text-xs font-semibold text-muted-foreground mb-3">ހުރިހާ ބުކިންގ</h2>
+            {loading ? (
+              <p className="font-body text-sm text-muted-foreground">ލޯޑްވަނީ...</p>
+            ) : bookings.length === 0 ? (
+              <p className="font-body text-sm text-muted-foreground">ބުކިންގއެއް ނެތް</p>
+            ) : (
+              <div className={card + " overflow-hidden"}>
+                <table className="w-full">
+                  <thead className="bg-muted/50">
+                    <tr className="font-body text-xs text-muted-foreground">
+                      <th className="text-right p-3 font-normal">އިޝްތިހާރުދޭ ފަރާތް</th>
+                      <th className="text-right p-3 font-normal">ސްލޮޓް</th>
+                      <th className="text-right p-3 font-normal">ތާރީޚް</th>
+                      <th className="text-right p-3 font-normal">ސްޓޭޓަސް</th>
+                      <th className="text-right p-3 font-normal"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bookings.map((b) => (
+                      <tr key={b.id} className="border-t border-border font-body text-sm">
+                        <td className="p-3">{b.advertiser?.name ?? "—"}</td>
+                        <td className="p-3 font-mono text-xs">{b.slot_key}</td>
+                        <td className="p-3 text-xs" dir="ltr">{b.starts_on} → {b.ends_on}</td>
+                        <td className="p-3">
+                          <span className={"text-xs px-2 py-1 rounded-md " + (STATUS_STYLES[b.status] ?? "bg-muted text-muted-foreground")}>
+                            {STATUS_LABELS[b.status] ?? b.status}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex gap-2 justify-end">
+                            <button onClick={() => editBooking(b)} className="text-xs text-muted-foreground hover:text-foreground">އެޑިޓް</button>
+                            <button onClick={() => removeBooking(b.id)} className="text-xs text-destructive">ޑިލީޓް</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
-        </div>
-
-        {advertisers.length > 0 && (
-          <div className="rounded-xl border border-border overflow-hidden bg-background">
-            <table className="w-full">
-              <thead className="bg-muted/50">
-                <tr className="font-body text-xs text-muted-foreground">
-                  <th className="text-right p-3 font-normal">ނަން</th>
-                  <th className="text-right p-3 font-normal">ގުޅޭ ފަރާތް</th>
-                  <th className="text-right p-3 font-normal">ބުކިންގ</th>
-                  <th className="text-right p-3 font-normal">ހާލަތު</th>
-                  <th className="text-right p-3 font-normal"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {advertisers.map((a) => (
-                  <tr key={a.id} className={"border-t border-border font-body text-sm" + (a.is_active ? "" : " opacity-50")}>
-                    <td className="p-3">{a.name}</td>
-                    <td className="p-3 text-xs">
-                      {a.contact_name || "—"}
-                      {a.contact_email && <span className="block text-muted-foreground" dir="ltr">{a.contact_email}</span>}
-                    </td>
-                    <td className="p-3 text-xs">{bookingCount(a.id)}</td>
-                    <td className="p-3 text-xs">{a.is_active ? "ހިނގާ" : "ނިއްވާފައި"}</td>
-                    <td className="p-3">
-                      <div className="flex gap-2 justify-end">
-                        <button onClick={() => editAdvertiser(a)} className="text-xs text-muted-foreground hover:text-foreground">އެޑިޓް</button>
-                        <button onClick={() => toggleAdvertiser(a)} className="text-xs text-muted-foreground hover:text-foreground">
-                          {a.is_active ? "ނިއްވާ" : "އަލުން ހިންގާ"}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      {/* Booking form */}
-      <section className="mb-8">
-        <h2 className="font-body text-sm font-semibold mb-3">
-          {bEditing ? "ބުކިންގ އެޑިޓް" : "އާ ބުކިންގ"}
-        </h2>
-        <div className="rounded-xl border border-border bg-background p-4 grid grid-cols-2 md:grid-cols-3 gap-3">
-          <div>
-            <label className={lbl}>ސްލޮޓް</label>
-            <select className={input} value={bForm.slot_key} onChange={(e) => setBForm({ ...bForm, slot_key: e.target.value })}>
-              {AD_SLOTS.map((s) => <option key={s.id} value={s.id}>{s.id}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className={lbl}>އިޝްތިހާރުދޭ ފަރާތް</label>
-            <select className={input} value={bForm.advertiser_id} onChange={(e) => setBForm({ ...bForm, advertiser_id: e.target.value })}>
-              <option value="">— ހޮވާ —</option>
-              {activeAdvertisers.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className={lbl}>ސްޓޭޓަސް</label>
-            <select className={input} value={bForm.status} onChange={(e) => setBForm({ ...bForm, status: e.target.value })}>
-              {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className={lbl}>ފެށޭ ތާރީޚް</label>
-            <input type="date" className={input} value={bForm.starts_on} onChange={(e) => setBForm({ ...bForm, starts_on: e.target.value })} />
-          </div>
-          <div>
-            <label className={lbl}>ނިމޭ ތާރީޚް</label>
-            <input type="date" className={input} value={bForm.ends_on} onChange={(e) => setBForm({ ...bForm, ends_on: e.target.value })} />
-          </div>
-          <div>
-            <label className={lbl}>ކްލިކް ލިންކް</label>
-            <input className={input} dir="ltr" value={bForm.click_url} onChange={(e) => setBForm({ ...bForm, click_url: e.target.value })} />
-          </div>
-          <div>
-            <label className={lbl}>ކްރިއޭޓިވް (ޑެސްކްޓޮޕް)</label>
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif"
-              className={input}
-              disabled={uploading === "desktop"}
-              onChange={(e) => e.target.files?.[0] && uploadCreative(e.target.files[0], "desktop")}
-            />
-            {bForm.creative_url && <img src={bForm.creative_url} className="mt-2 max-h-24 rounded-lg border border-border" alt="" />}
-          </div>
-          <div>
-            <label className={lbl}>ކްރިއޭޓިވް (މޮބައިލް)</label>
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif"
-              className={input}
-              disabled={uploading === "mobile"}
-              onChange={(e) => e.target.files?.[0] && uploadCreative(e.target.files[0], "mobile")}
-            />
-            {bForm.creative_url_mobile && <img src={bForm.creative_url_mobile} className="mt-2 max-h-24 rounded-lg border border-border" alt="" />}
-          </div>
-          <div>
-            <label className={lbl}>ނޯޓް</label>
-            <input className={input} value={bForm.notes} onChange={(e) => setBForm({ ...bForm, notes: e.target.value })} />
-          </div>
-          <div className="col-span-2 md:col-span-3 flex gap-2">
-            <button onClick={saveBooking} disabled={bSaving}
-              className="h-9 px-4 rounded-lg bg-foreground text-background font-body text-xs font-semibold disabled:opacity-50">
-              {bSaving ? "ސޭވްވަނީ..." : bEditing ? "އަޕްޑޭޓް" : "އިތުރުކުރޭ"}
-            </button>
-            {bEditing && (
-              <button onClick={() => { setBEditing(null); setBForm(EMPTY_BOOKING); }}
-                className="h-9 px-4 rounded-lg border border-border font-body text-xs">
-                ކެންސަލް
-              </button>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* All bookings */}
-      <section>
-        <h2 className="font-body text-sm font-semibold mb-3">ހުރިހާ ބުކިންގ</h2>
-        {loading ? (
-          <p className="font-body text-sm text-muted-foreground">ލޯޑްވަނީ...</p>
-        ) : bookings.length === 0 ? (
-          <p className="font-body text-sm text-muted-foreground">ބުކިންގއެއް ނެތް</p>
-        ) : (
-          <div className="rounded-xl border border-border overflow-hidden bg-background">
-            <table className="w-full">
-              <thead className="bg-muted/50">
-                <tr className="font-body text-xs text-muted-foreground">
-                  <th className="text-right p-3 font-normal">އިޝްތިހާރުދޭ ފަރާތް</th>
-                  <th className="text-right p-3 font-normal">ސްލޮޓް</th>
-                  <th className="text-right p-3 font-normal">ތާރީޚް</th>
-                  <th className="text-right p-3 font-normal">ސްޓޭޓަސް</th>
-                  <th className="text-right p-3 font-normal"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {bookings.map((b) => (
-                  <tr key={b.id} className="border-t border-border font-body text-sm">
-                    <td className="p-3">{b.advertiser?.name ?? "—"}</td>
-                    <td className="p-3 font-mono text-xs">{b.slot_key}</td>
-                    <td className="p-3 text-xs" dir="ltr">{b.starts_on} → {b.ends_on}</td>
-                    <td className="p-3 text-xs">{STATUS_LABELS[b.status] ?? b.status}</td>
-                    <td className="p-3">
-                      <div className="flex gap-2 justify-end">
-                        <button onClick={() => editBooking(b)} className="text-xs text-muted-foreground hover:text-foreground">އެޑިޓް</button>
-                        <button onClick={() => removeBooking(b.id)} className="text-xs text-destructive">ޑިލީޓް</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+        </section>
+      )}
     </div>
   );
 }
