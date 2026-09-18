@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import { BookCover } from "./BookCover";
 import { BookReviewCard } from "./BookReviewCard";
 import { Pagination } from "./Pagination";
+import { AdSlot } from "../../_components/AdSlot";
 
 const GOLD = "rgb(180,160,110)";
 const FONT = '"MVTypewriter","Noto Sans Thaana",sans-serif';
@@ -28,7 +30,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 function SeeAllLink({ href }: { href: string }) {
   return (
     <div style={{ display: "flex", justifyContent: "center", marginTop: "1.25rem" }}>
-      <a
+      
         href={href}
         style={{
           fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: TEXT,
@@ -81,6 +83,19 @@ function SeriesBookCover({ series, categorySlug }: { series: any; categorySlug: 
           </span>
         </div>
       )}
+    </div>
+  );
+}
+
+function VaahakaBanner() {
+  return (
+    <div className="max-w-4xl mx-auto px-6 mb-8">
+      <Suspense fallback={null}>
+        <AdSlot id="vaahaka-hero-rail" breakpoint="desktop" />
+      </Suspense>
+      <Suspense fallback={null}>
+        <AdSlot id="vaahaka-hero-rail" breakpoint="mobile" />
+      </Suspense>
     </div>
   );
 }
@@ -146,6 +161,7 @@ export function StoriesCategoryPage({
         {background}
         <div style={{ position: "relative", zIndex: 1 }}>
           {header}
+          <VaahakaBanner />
           <div className="max-w-4xl mx-auto px-6 pb-4">
             <a href={"/" + category.slug} style={{ fontFamily: FONT, fontSize: "12px", color: "rgb(140,115,65)" }}>
               {"← ހުރިހާ ވާހަކަ"}
@@ -186,6 +202,7 @@ export function StoriesCategoryPage({
       {background}
       <div style={{ position: "relative", zIndex: 1 }}>
         {header}
+        <VaahakaBanner />
 
         <div className="max-w-4xl mx-auto px-6 pb-16">
 
