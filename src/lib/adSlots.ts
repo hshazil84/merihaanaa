@@ -94,6 +94,13 @@ export const AD_SLOTS: AdSlotDef[] = [
     desktop: { width: "300px", height: "600px", label: "300×600 half page" },
     mobile: null,
   },
+  {
+    id: "homepage-banner",
+    page: "home",
+    placement: "Two instances used down the scroll: right above TodaysPicks, and after OriginalsStrip before the Latest grid",
+    desktop: { width: "100%", height: null, aspectRatio: "970/250", label: "970×250 billboard" },
+    mobile: { width: "100%", height: null, aspectRatio: "970/250", label: "970×250 billboard (scaled)" },
+  },
 ];
 
 export function getAdSlot(id: string): AdSlotDef | undefined {
