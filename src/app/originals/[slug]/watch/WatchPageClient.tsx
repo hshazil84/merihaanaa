@@ -3,8 +3,9 @@
 // Note: needs to be client component for episodes panel state
 // Data fetching handled via props from a server wrapper
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
+import { formatDuration } from "@/lib/format";
 
 const CF_CUSTOMER_CODE = "hyktj7g4xsx8p15r";
 
@@ -30,13 +31,6 @@ interface Episode {
   duration_seconds: number | null;
   episode_number: number | null;
   season_number: number | null;
-}
-
-function formatDuration(s: number | null) {
-  if (!s) return null;
-  const m = Math.floor(s / 60);
-  const sec = s % 60;
-  return `${m}:${sec.toString().padStart(2, "0")}`;
 }
 
 function EpisodesPanel({
@@ -122,7 +116,7 @@ function EpisodesPanel({
                         {ep.title}
                       </p>
                       {ep.duration_seconds && (
-                        <p className="text-[10px] text-white/40 mt-0.5 tabular-nums">
+                        <p className="text-[10px] text-white/40 mt-0.5 tabular-nums" dir="ltr">
                           {formatDuration(ep.duration_seconds)}
                         </p>
                       )}
