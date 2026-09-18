@@ -5,9 +5,14 @@ interface AdSlotProps {
   id: string;
   breakpoint: "desktop" | "mobile";
   label?: string;
+  /** Set false when this slot already sits inside a sticky parent (e.g. the
+   *  article series sidebar, which sticks its whole nav+ad block together
+   *  as one unit) — nesting two independent sticky elements makes the ad
+   *  drift apart from what it's meant to travel with. Defaults to true. */
+  sticky?: boolean;
 }
 
-export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު" }: AdSlotProps) {
+export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު", sticky = true }: AdSlotProps) {
   const def = getAdSlot(id);
   if (!def) return null;
 
@@ -32,7 +37,7 @@ export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު" }:
     creative ? "" : "border:1.5px dashed rgba(0,0,0,0.13);background:rgba(0,0,0,0.015);",
     "align-items:center;justify-content:center;",
     "margin-inline:auto;",
-    breakpoint === "desktop" && !size.fill ? "position:sticky;top:96px;align-self:start;" : "",
+    breakpoint === "desktop" && !size.fill && sticky ? "position:sticky;top:96px;align-self:start;" : "",
     "}",
     "." + cls + " img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}",
   ].join("");
@@ -63,7 +68,7 @@ export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު" }:
       <style dangerouslySetInnerHTML={{ __html: base + visibility }} />
       <div className={cls} data-ad-slot={id}>
         {creative && booking?.click_url ? (
-          <a
+          
             href={booking.click_url}
             target="_blank"
             rel="noopener noreferrer sponsored"
