@@ -1,6 +1,7 @@
 // src/app/originals/[slug]/page.tsx
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
+import { formatDuration } from "@/lib/format";
 import Link from "next/link";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -11,13 +12,6 @@ const TYPE_LABELS: Record<string, string> = {
   interview:   "އިންޓަވިއު",
   short:       "ޝޯޓް",
 };
-
-function formatDuration(s: number | null) {
-  if (!s) return null;
-  const m = Math.floor(s / 60);
-  const sec = s % 60;
-  return `${m} min ${sec} sec`;
-}
 
 async function getOriginal(slug: string) {
   const supabase = await createServerSupabaseClient();
@@ -61,23 +55,27 @@ export default async function OriginalsDetailPage({ params }: { params: { slug: 
 
         {/* Content — bottom right, with enough room for mobile header */}
         <div className="absolute bottom-24 md:bottom-32 right-4 md:right-12 left-4 md:left-auto md:max-w-xl" dir="rtl">
-          {/* Badges */}
-          <div className="flex items-center gap-2 mb-3 flex-wrap">
-            <span className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-white/60 border border-white/10" style={{ fontFamily: "MVTypewriter, serif" }}>
+          {/* Metadata line */}
+          <div className="flex items-center gap-2 mb-3 text-sm text-white/60 flex-wrap">
+            <span className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-white/70 border border-white/10" style={{ fontFamily: "MVTypewriter, serif" }}>
               {TYPE_LABELS[original.type] ?? original.type}
             </span>
             {original.duration_seconds && (
-              <span className="text-xs text-white/50 tabular-nums" dir="ltr">{formatDuration(original.duration_seconds)}</span>
+              <>
+                <span className="text-white/30">•</span>
+                <span dir="ltr" className="tabular-nums">{formatDuration(original.duration_seconds)}</span>
+              </>
             )}
             {series && (
-              <span className="text-xs px-2.5 py-1 rounded-full bg-red-500/20 text-red-400 border border-red-500/20" dir="auto" style={{ fontFamily: "MVTypewriter, serif" }}>
-                {series.title}
-              </span>
+              <>
+                <span className="text-white/30">•</span>
+                <span dir="auto" style={{ fontFamily: "MVTypewriter, serif" }}>{series.title}</span>
+              </>
             )}
           </div>
 
           {/* Title */}
-          <h1 className="text-xl md:text-4xl font-bold text-white leading-snug mb-3" dir="auto" style={{ fontFamily: "MVTypewriter, serif" }}>
+          <h1 className="text-2xl md:text-5xl font-bold text-white leading-snug mb-3" dir="auto" style={{ fontFamily: "MVTypewriter, serif" }}>
             {original.title}
           </h1>
 
@@ -88,29 +86,18 @@ export default async function OriginalsDetailPage({ params }: { params: { slug: 
             </p>
           )}
 
-          {/* Buttons */}
-          <div className="flex items-center gap-3 flex-wrap">
-            {original.cloudflare_stream_id && (
+          {/* Primary action */}
+          {original.cloudflare_stream_id && (
+            <div dir="ltr">
               <Link
                 href={`/originals/${original.slug}/watch`}
-                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-white text-black font-bold text-sm hover:bg-neutral-200 transition-colors"
-                style={{ fontFamily: "MVTypewriter, serif" }}
+                className="inline-flex items-center gap-2 px-7 py-3 rounded-lg bg-white text-black font-bold text-base hover:bg-neutral-200 transition-colors"
               >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                 Watch
               </Link>
-            )}
-            <Link
-              href={`/originals/${original.slug}`}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-white/10 text-white text-sm font-semibold hover:bg-white/20 transition-colors border border-white/20"
-              style={{ fontFamily: "MVTypewriter, serif" }}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              މައުލޫމާތު
-            </Link>
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -135,8 +122,8 @@ export default async function OriginalsDetailPage({ params }: { params: { slug: 
                     <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                   </div>
                   {item.duration_seconds && (
-                    <div className="absolute bottom-1.5 right-1.5 text-[10px] bg-black/70 text-white px-1.5 py-0.5 rounded tabular-nums">
-                      {Math.floor(item.duration_seconds / 60)}:{String(item.duration_seconds % 60).padStart(2, "0")}
+                    <div className="absolute bottom-1.5 right-1.5 text-[10px] bg-black/70 text-white px-1.5 py-0.5 rounded tabular-nums" dir="ltr">
+                      {formatDuration(item.duration_seconds)}
                     </div>
                   )}
                 </div>
