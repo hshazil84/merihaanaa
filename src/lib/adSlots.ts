@@ -16,6 +16,9 @@ export type AdSlotDef = {
 
 export const AD_MOBILE_MAX = 1024;
 
+/** How many advertisers can rotate live on the same slot at once. */
+export const MAX_LIVE_PER_SLOT = 3;
+
 export const AD_SLOTS: AdSlotDef[] = [
   {
     id: "film-hero-rail",
