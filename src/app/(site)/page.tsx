@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import HeroSection from "@/components/public/HeroSection";
 import CategoryBar from "@/components/public/CategoryBar";
@@ -9,6 +10,7 @@ import OriginalsStrip from "@/components/public/OriginalsStrip";
 import NewsletterCTA from "@/components/public/NewsletterCTA";
 import Link from "next/link";
 import Image from "next/image";
+import { AdSlot } from "./_components/AdSlot";
 
 async function isAdminUser() {
   try {
@@ -78,6 +80,19 @@ function ComingSoon() {
   );
 }
 
+function HomepageBanner() {
+  return (
+    <div className="max-w-6xl mx-auto px-6 my-4">
+      <Suspense fallback={null}>
+        <AdSlot id="homepage-banner" breakpoint="desktop" />
+      </Suspense>
+      <Suspense fallback={null}>
+        <AdSlot id="homepage-banner" breakpoint="mobile" />
+      </Suspense>
+    </div>
+  );
+}
+
 export default async function HomePage() {
   const isAdmin = await isAdminUser();
   if (!isAdmin) return <ComingSoon />;
@@ -96,16 +111,18 @@ export default async function HomePage() {
         </div>
       )}
       {categories.length > 0 && <CategoryBar categories={categories} />}
+      <HomepageBanner />
       {todaysPicks.length > 0 && <TodaysPicks articles={todaysPicks} />}
       {people.length > 0 && <FeatureSplit article={people[0]} />}
       {reviews.length > 0 && <ReviewsSection articles={reviews} />}
       {reels.length > 0 && <ReelsStrip reels={reels} />}
       {originals.length > 0 && <OriginalsStrip originals={originals} />}
+      <HomepageBanner />
       {/* <PodcastSection /> */}
       {latest.length > 0 && (
         <section className="max-w-6xl mx-auto px-6 py-12" dir="rtl">
           <h2 className="text-center mb-10" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontWeight: 400, fontSize: "26px", color: "rgb(26, 26, 26)", lineHeight: 2 }}>
-            އެންމެ ފަހުގެ
+            ހިތްއޮތިއްޔާ ކިޔާލަން
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {latest.map((article: any) => (
