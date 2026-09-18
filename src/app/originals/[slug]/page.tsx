@@ -70,20 +70,20 @@ export default async function OriginalsDetailPage({ params }: { params: { slug: 
               <span className="text-xs text-white/50 tabular-nums" dir="ltr">{formatDuration(original.duration_seconds)}</span>
             )}
             {series && (
-              <span className="text-xs px-2.5 py-1 rounded-full bg-red-500/20 text-red-400 border border-red-500/20" style={{ fontFamily: "MVTypewriter, serif" }}>
+              <span className="text-xs px-2.5 py-1 rounded-full bg-red-500/20 text-red-400 border border-red-500/20" dir="auto" style={{ fontFamily: "MVTypewriter, serif" }}>
                 {series.title}
               </span>
             )}
           </div>
 
           {/* Title */}
-          <h1 className="text-xl md:text-4xl font-bold text-white leading-snug mb-3" style={{ fontFamily: "MVTypewriter, serif" }}>
+          <h1 className="text-xl md:text-4xl font-bold text-white leading-snug mb-3" dir="auto" style={{ fontFamily: "MVTypewriter, serif" }}>
             {original.title}
           </h1>
 
           {/* Description */}
           {original.description && (
-            <p className="text-sm text-white/70 leading-relaxed mb-5 line-clamp-2 md:line-clamp-3" style={{ fontFamily: "MVTypewriter, serif" }}>
+            <p className="text-sm text-white/70 leading-relaxed mb-5 line-clamp-2 md:line-clamp-3" dir="auto" style={{ fontFamily: "MVTypewriter, serif" }}>
               {original.description}
             </p>
           )}
@@ -140,10 +140,10 @@ export default async function OriginalsDetailPage({ params }: { params: { slug: 
                     </div>
                   )}
                 </div>
-                <p className="mt-2 text-xs font-semibold text-neutral-200 line-clamp-2 group-hover:text-white transition-colors" dir="rtl" style={{ fontFamily: "MVTypewriter, serif" }}>
+                <p className="mt-2 text-xs font-semibold text-neutral-200 line-clamp-2 group-hover:text-white transition-colors" dir="auto" style={{ fontFamily: "MVTypewriter, serif" }}>
                   {item.title}
                 </p>
-                <p className="text-[10px] text-neutral-500 mt-0.5" dir="rtl" style={{ fontFamily: "MVTypewriter, serif" }}>
+                <p className="text-[10px] text-neutral-500 mt-0.5" dir="auto" style={{ fontFamily: "MVTypewriter, serif" }}>
                   {TYPE_LABELS[item.type] ?? item.type}
                 </p>
               </Link>
