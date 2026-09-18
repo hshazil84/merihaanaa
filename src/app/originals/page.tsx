@@ -59,11 +59,11 @@ export default async function OriginalsPage() {
             <span className="inline-block text-xs px-2.5 py-1 rounded-full bg-white/10 text-white/70 mb-3 border border-white/10" style={{ fontFamily: "MVTypewriter, serif" }}>
               {TYPE_LABELS[featured.type] ?? featured.type}
             </span>
-            <h1 className="text-2xl md:text-4xl font-bold text-white mb-3 max-w-2xl leading-snug" style={{ fontFamily: "MVTypewriter, serif" }}>
+            <h1 className="text-2xl md:text-4xl font-bold text-white mb-3 max-w-2xl leading-snug" dir="auto" style={{ fontFamily: "MVTypewriter, serif" }}>
               {featured.title}
             </h1>
             {featured.description && (
-              <p className="text-sm md:text-base text-neutral-300 max-w-xl line-clamp-2 mb-5" style={{ fontFamily: "MVTypewriter, serif" }}>
+              <p className="text-sm md:text-base text-neutral-300 max-w-xl line-clamp-2 mb-5" dir="auto" style={{ fontFamily: "MVTypewriter, serif" }}>
                 {featured.description}
               </p>
             )}
