@@ -9,6 +9,11 @@ interface StandardArticleCardProps {
   featuredImage?: string | null;
   badgeLabel?: string | null;
   eyebrow?: string | null;
+  /** Keeps the (possibly invisible) eyebrow line's space reserved so cards in
+   *  the same row stay the same height when only some of them have an
+   *  eyebrow. Set false when a grid never uses eyebrow at all, to avoid
+   *  reserving dead space for nothing. Defaults to true. */
+  reserveEyebrowSpace?: boolean;
   imageOverlayTopStart?: ReactNode;
   imageOverlayTopEnd?: ReactNode;
   imageSizes?: string;
@@ -30,6 +35,7 @@ export function StandardArticleCard({
   featuredImage,
   badgeLabel,
   eyebrow,
+  reserveEyebrowSpace = true,
   imageOverlayTopStart,
   imageOverlayTopEnd,
   imageSizes = "(max-width: 768px) 68vw, 25vw",
@@ -71,21 +77,24 @@ export function StandardArticleCard({
         </div>
       )}
       {/* Reserved-height line: always occupies the same space, whether or
-          not this card has a location, so cards in the same row align. */}
-      <p
-        className="mb-1 flex items-center gap-1"
-        style={{
-          fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
-          fontWeight: 700,
-          fontSize: "11px",
-          color: "rgb(140, 138, 132)",
-          minHeight: "15px",
-          visibility: eyebrow ? "visible" : "hidden",
-        }}
-      >
-        <PinIcon />
-        {eyebrow || "-"}
-      </p>
+          not this card has a location, so cards in the same row align.
+          Skippable via reserveEyebrowSpace for grids that never use it. */}
+      {(eyebrow || reserveEyebrowSpace) && (
+        <p
+          className="mb-1 flex items-center gap-1"
+          style={{
+            fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
+            fontWeight: 700,
+            fontSize: "11px",
+            color: "rgb(140, 138, 132)",
+            minHeight: "15px",
+            visibility: eyebrow ? "visible" : "hidden",
+          }}
+        >
+          <PinIcon />
+          {eyebrow || "-"}
+        </p>
+      )}
       <h3
         className="leading-none line-clamp-2"
         style={{
