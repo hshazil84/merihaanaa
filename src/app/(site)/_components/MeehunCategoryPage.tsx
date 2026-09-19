@@ -3,7 +3,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { StandardArticleCard } from "./StandardArticleCard";
 import { AdSlot } from "./AdSlot";
-import { getFirstTag } from "@/lib/tags";
 
 const FONT_THAANA = '"MVTypewriter", "Noto Sans Thaana", sans-serif';
 const FONT_DISPLAY = '"SanguSuruhee", "MVTypewriter", "Noto Sans Thaana", sans-serif';
@@ -26,16 +25,6 @@ function getAuthorAvatar(author: any): string | null {
   if (!av) return null;
   if (av.startsWith("http")) return av;
   return SUPABASE_URL + "/storage/v1/object/public/avatars/" + av;
-}
-
-function TagLabel({ tags }: { tags?: any }) {
-  const tag = getFirstTag(tags ?? null);
-  if (!tag) return null;
-  return (
-    <span style={{ fontFamily: FONT_THAANA, fontSize: "10px", letterSpacing: "0.05em", color: CORAL, fontWeight: 600, display: "block", marginBottom: "4px" }}>
-      {tag}
-    </span>
-  );
 }
 
 function ColLabel({ children }: { children: string }) {
@@ -143,7 +132,6 @@ export function MeehunCategoryPage({
                 )}
                 <div style={{ position: "absolute", inset: 0, borderRadius: "inherit", background: "linear-gradient(to top, rgba(10,8,6,0.88) 0%, rgba(10,8,6,0.55) 35%, rgba(10,8,6,0.0) 65%)", pointerEvents: "none" }} />
                 <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "20px 20px 18px" }}>
-                  <TagLabel tags={featuredArticle.tags} />
                   <h2 className="featured-title" style={{ fontFamily: FONT_THAANA, fontSize: "clamp(1rem, 2.2vw, 1.35rem)", fontWeight: 700, color: "rgba(255,255,255,0.95)", lineHeight: 1.8, margin: "0 0 10px", transition: "opacity 0.2s" }}>
                     {featuredArticle.title}
                   </h2>
@@ -260,7 +248,6 @@ export function MeehunCategoryPage({
                 title={article.title}
                 excerpt={article.excerpt}
                 featuredImage={article.featured_image}
-                badgeLabel={getFirstTag(article.tags)}
                 imageSizes="(max-width: 480px) 100vw, (max-width: 1024px) 50vw, 25vw"
               />
             ))}
