@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
 import "../styles/globals.css";
 
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://merihaanaa.com";
+
 export const metadata: Metadata = {
   title: {
     default: "މެރިހާނާ - ތިޔަ ހޯއްދަވާ ތަފާތު މެގަޒިން",
     template: "%s — މެރިހާނާ",
   },
   description: "ދިވެހި ކަލްޗަރ، ފިލްމް، މިއުޒިކް، ލައިފްސްޓައިލް",
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL || "https://merihaanaa.com"
-  ),
+  metadataBase: new URL(SITE_URL),
   icons: {
     icon: [
       { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
@@ -24,9 +24,18 @@ export const metadata: Metadata = {
     siteName: "މެރިހާނާ",
     locale: "dv",
     type: "website",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "މެރިހާނާ",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
+    images: ["/og-image.png"],
   },
 };
 
