@@ -12,22 +12,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { AdSlot } from "./_components/AdSlot";
 
-async function isAdminUser() {
-  try {
-    const supabase = await createServerSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return false;
-    const { data: profile } = await supabase
-      .from("user_profiles")
-      .select("role")
-      .eq("id", session.user.id)
-      .single();
-    return profile && ["admin", "editor", "author"].includes(profile.role);
-  } catch {
-    return false;
-  }
-}
-
 async function getHomeData() {
   const supabase = await createServerSupabaseClient();
   const [
@@ -61,25 +45,6 @@ async function getHomeData() {
   };
 }
 
-function ComingSoon() {
-  return (
-    <div style={{
-      width: "100%",
-      minHeight: "100svh",
-      background: "#F0EAD6",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-    }}>
-      <img
-        src="/logo.svg"
-        alt="މެރިހާނާ"
-        style={{ width: "120px", height: "120px", objectFit: "contain" }}
-      />
-    </div>
-  );
-}
-
 function HomepageBanner() {
   return (
     <div className="max-w-6xl mx-auto px-6 my-4">
@@ -94,9 +59,6 @@ function HomepageBanner() {
 }
 
 export default async function HomePage() {
-  const isAdmin = await isAdminUser();
-  if (!isAdmin) return <ComingSoon />;
-
   const { hero, todaysPicks, people, reviews, reels, originals, latest, categories } = await getHomeData();
 
   return (
