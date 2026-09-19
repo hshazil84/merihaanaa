@@ -33,16 +33,16 @@ export default function NewsletterCTA() {
   };
 
   return (
-    <section className="border-t border-black/10 py-8 px-6" style={{ backgroundColor: "#F5F3EF" }} dir="rtl">
-      <div className="max-w-3xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+    <section className="border-t border-black/10 py-8 px-6" style={{ backgroundColor: "#F5F3EF" }}>
+      <div className="max-w-3xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4" dir="ltr">
 
-        <p className="text-center md:text-right" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "14px", lineHeight: 1.8, margin: 0 }}>
+        <p className="text-center md:text-right" dir="rtl" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "14px", lineHeight: 1.8, margin: 0 }}>
           <span style={{ fontWeight: 700, color: "rgb(26,26,26)" }}>ނިއުސްލެޓަރ</span>
           <span style={{ fontWeight: 400, color: "rgb(110,108,102)" }}> — ހަފްތާއަކު އެއްފަހަރު، ފަންނު، ދިރިއުޅުން، ރިވިއު.</span>
         </p>
 
         {status === "success" ? (
-          <p style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "13px", color: "rgb(100,98,92)", margin: 0 }}>
+          <p dir="rtl" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "13px", color: "rgb(100,98,92)", margin: 0 }}>
             {message}
           </p>
         ) : (
@@ -83,7 +83,7 @@ export default function NewsletterCTA() {
       </div>
 
       {status === "error" && (
-        <p className="text-center mt-2" style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "11px", color: "rgb(200,60,60)" }}>
+        <p className="text-center mt-2" dir="rtl" style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "11px", color: "rgb(200,60,60)" }}>
           {message}
         </p>
       )}
