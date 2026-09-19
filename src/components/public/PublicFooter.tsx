@@ -35,7 +35,7 @@ export default function PublicFooter({ categories }: { categories: Category[] })
       <div className="max-w-5xl mx-auto px-6 py-8 border-b" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
         <div className="flex flex-wrap justify-center gap-x-8 gap-y-3">
           {categories.map((cat) => (
-            <Link key={cat.id} href={`/category/${cat.slug}`}
+            <Link key={cat.id} href={`/${cat.slug}`}
               style={{
                 fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
                 fontWeight: 400,
@@ -51,19 +51,10 @@ export default function PublicFooter({ categories }: { categories: Category[] })
       </div>
 
       {/* Bottom bar */}
-      <div className="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between flex-wrap gap-4">
-
-        <p style={{
-          fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
-          fontSize: "10px",
-          color: "rgba(255,255,255,0.2)",
-          lineHeight: 2,
-        }}>
-          © {new Date().getFullYear()} މެރިހާނާ
-        </p>
+      <div className="max-w-5xl mx-auto px-6 py-5 flex flex-col md:flex-row items-center justify-between gap-4">
 
         {/* Social icons */}
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-5 order-1 md:order-2">
           <a href="https://instagram.com/merihaanaa" target="_blank" rel="noopener noreferrer" aria-label="Instagram"
             className="transition-opacity hover:opacity-60" style={{ color: "rgba(255,255,255,0.4)" }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -93,7 +84,7 @@ export default function PublicFooter({ categories }: { categories: Category[] })
         </div>
 
         {/* Legal links */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-6 order-2 md:order-1">
           {[
             { href: "/privacy", label: "ޕްރައިވެސީ" },
             { href: "/terms",   label: "ޝަރުތުތައް" },
@@ -103,14 +94,23 @@ export default function PublicFooter({ categories }: { categories: Category[] })
               style={{
                 fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
                 fontSize: "10px",
-                color: "rgba(255,255,255,0.2)",
+                color: "rgba(255,255,255,0.4)",
                 lineHeight: 2,
               }}
-              className="hover:text-white/50 transition-colors">
+              className="hover:text-white transition-colors">
               {label}
             </Link>
           ))}
         </div>
+
+        <p className="order-3" style={{
+          fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
+          fontSize: "10px",
+          color: "rgba(255,255,255,0.4)",
+          lineHeight: 2,
+        }}>
+          © {new Date().getFullYear()} މެރިހާނާ
+        </p>
       </div>
     </footer>
   );
