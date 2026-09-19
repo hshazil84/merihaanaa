@@ -21,7 +21,7 @@ export default function NewsletterCTA() {
       const data = await res.json();
       if (res.ok) {
         setStatus("success");
-        setMessage("ތިޔަ ސަބްސްކްރިޕްޝަން ލިބިއްޖެ! ތަޝައްކުރު ☺︎");
+        setMessage("ސަބްސްކްރައިބް ކުރެވިއްޖެ");
         setEmail("");
       } else {
         throw new Error(data.error ?? "ނުވި");
@@ -33,35 +33,27 @@ export default function NewsletterCTA() {
   };
 
   return (
-    <section className="border-t border-black/10 py-20 px-6" style={{ backgroundColor: "#F5F3EF" }} dir="rtl">
-      <div className="max-w-xl mx-auto text-center space-y-6">
+    <section className="border-t border-black/10 py-8 px-6" style={{ backgroundColor: "#F5F3EF" }} dir="rtl">
+      <div className="max-w-3xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
 
-        <div style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "20px", color: "rgba(26,26,26,0.15)", letterSpacing: "0.2em" }}>
-          ✦ ✦ ✦
-        </div>
-
-        <h2 style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontWeight: 700, fontSize: "22px", color: "rgb(26,26,26)", lineHeight: 2 }}>
-          ނިއުސްލެޓަރ
-        </h2>
-
-        <p style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontWeight: 400, fontSize: "14px", color: "rgb(110,108,102)", lineHeight: 2 }}>
-          ހަފްތާއަކު އެއްފަހަރު — ފަންނު، ދިރިއުޅުން، ރިވިއު.
-          <br />ތިޔަ އިންބޮކްސްއަށް ސީދާ.
+        <p className="text-center md:text-right" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "14px", lineHeight: 1.8, margin: 0 }}>
+          <span style={{ fontWeight: 700, color: "rgb(26,26,26)" }}>ނިއުސްލެޓަރ</span>
+          <span style={{ fontWeight: 400, color: "rgb(110,108,102)" }}> — ހަފްތާއަކު އެއްފަހަރު، ފަންނު، ދިރިއުޅުން، ރިވިއު.</span>
         </p>
 
         {status === "success" ? (
-          <p style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "13px", color: "rgb(100,98,92)", lineHeight: 2 }}>
+          <p style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "13px", color: "rgb(100,98,92)", margin: 0 }}>
             {message}
           </p>
         ) : (
-          <form onSubmit={handleSubmit} className="flex gap-2 max-w-sm mx-auto" dir="ltr">
+          <form onSubmit={handleSubmit} className="flex gap-2 w-full md:w-auto" dir="ltr">
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com"
               required
-              className="flex-1 outline-none py-2 text-center transition-colors"
+              className="flex-1 md:w-52 outline-none py-1.5 transition-colors"
               style={{
                 fontFamily: '"MVTypewriter", sans-serif',
                 fontSize: "13px",
@@ -73,12 +65,12 @@ export default function NewsletterCTA() {
             <button
               type="submit"
               disabled={status === "loading"}
-              className="hover:opacity-80 transition-opacity disabled:opacity-40 whitespace-nowrap"
+              className="hover:opacity-80 transition-opacity disabled:opacity-40 whitespace-nowrap flex-none"
               style={{
                 fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
                 fontSize: "12px",
                 fontWeight: 700,
-                padding: "8px 20px",
+                padding: "7px 18px",
                 borderRadius: "999px",
                 backgroundColor: "rgb(26,26,26)",
                 color: "rgb(249,248,245)",
@@ -88,13 +80,13 @@ export default function NewsletterCTA() {
             </button>
           </form>
         )}
-
-        {status === "error" && (
-          <p style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "11px", color: "rgb(200,60,60)" }}>
-            {message}
-          </p>
-        )}
       </div>
+
+      {status === "error" && (
+        <p className="text-center mt-2" style={{ fontFamily: '"MVTypewriter", sans-serif', fontSize: "11px", color: "rgb(200,60,60)" }}>
+          {message}
+        </p>
+      )}
     </section>
   );
 }
