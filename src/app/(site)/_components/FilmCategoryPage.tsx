@@ -32,12 +32,13 @@ const DIVIDER = "rgba(0,0,0,0.07)";
 
 const CSS = [
   ".film-top{display:grid;grid-template-columns:1fr 300px;gap:1.5rem;align-items:stretch;}",
+  ".film-ad-rail{min-height:650px;}",
   ".film-hero{display:grid;grid-template-columns:1.1fr 1fr;gap:1.75rem;align-items:stretch;margin-bottom:1.5rem;}",
   ".film-3col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.25rem;}",
   ".film-review-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1.25rem;}",
   ".lc2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}",
   ".lc4{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}",
-  "@media(max-width:1024px){.film-top{grid-template-columns:1fr!important;}}",
+  "@media(max-width:1024px){.film-top{grid-template-columns:1fr!important;}.film-ad-rail{min-height:0!important;}}",
   "@media(max-width:768px){.film-hero{grid-template-columns:1fr!important;gap:1.25rem!important;}.film-3col{grid-template-columns:1fr 1fr!important;}.film-review-grid{grid-template-columns:1fr 1fr!important;}}",
   "@media(max-width:480px){.film-3col{grid-template-columns:1fr!important;}.film-review-grid{grid-template-columns:1fr 1fr!important;gap:0.75rem!important;}}",
 ].join("");
