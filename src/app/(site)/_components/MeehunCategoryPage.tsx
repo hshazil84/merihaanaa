@@ -249,6 +249,7 @@ export function MeehunCategoryPage({
                 excerpt={article.excerpt}
                 featuredImage={article.featured_image}
                 imageSizes="(max-width: 480px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                reserveEyebrowSpace={false}
               />
             ))}
           </div>
