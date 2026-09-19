@@ -14,32 +14,8 @@ async function getCategories() {
   return data ?? [];
 }
 
-async function isAdminUser() {
-  try {
-    const supabase = await createServerSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return false;
-    const { data: profile } = await supabase
-      .from("user_profiles")
-      .select("role")
-      .eq("id", session.user.id)
-      .single();
-    return profile && ["admin", "editor", "author"].includes(profile.role);
-  } catch {
-    return false;
-  }
-}
-
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
-  const [categories, isAdmin] = await Promise.all([getCategories(), isAdminUser()]);
-
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-[#F5F3EF]" dir="rtl">
-        {children}
-      </div>
-    );
-  }
+  const categories = await getCategories();
 
   return (
     <div className="min-h-screen bg-[#F5F3EF]" dir="rtl">
