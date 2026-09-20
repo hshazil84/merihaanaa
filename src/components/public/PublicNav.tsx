@@ -50,6 +50,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   const [searchQuery, setSearchQuery]       = useState("");
   const [searchResults, setSearchResults]   = useState<SearchResult[]>([]);
   const [searchLoading, setSearchLoading]   = useState(false);
+  const [selectedIndex, setSelectedIndex]   = useState(-1);
   const searchRef   = useRef<HTMLInputElement>(null);
   const searchTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -130,6 +131,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
   // ── Search ────────────────────────────────────────────────────────────────
   const handleSearchInput = useCallback((val: string) => {
     setSearchQuery(val);
+    setSelectedIndex(-1);
     if (searchTimer.current) clearTimeout(searchTimer.current);
     if (val.trim().length < 2) { setSearchResults([]); return; }
     searchTimer.current = setTimeout(async () => {
@@ -147,6 +149,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
     setSearchOpen(true);
     setSearchQuery("");
     setSearchResults([]);
+    setSelectedIndex(-1);
     setTimeout(() => searchRef.current?.focus(), 100);
   };
 
@@ -154,13 +157,31 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
     setSearchOpen(false);
     setSearchQuery("");
     setSearchResults([]);
+    setSelectedIndex(-1);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") closeSearch();
-    if (e.key === "Enter" && searchQuery.trim()) {
-      router.push("/search?q=" + encodeURIComponent(searchQuery.trim()));
-      closeSearch();
+    if (e.key === "Escape") { closeSearch(); return; }
+
+    if (e.key === "ArrowDown" && searchResults.length > 0) {
+      e.preventDefault();
+      setSelectedIndex((i) => Math.min(i + 1, Math.min(searchResults.length, 5) - 1));
+      return;
+    }
+    if (e.key === "ArrowUp" && searchResults.length > 0) {
+      e.preventDefault();
+      setSelectedIndex((i) => Math.max(i - 1, 0));
+      return;
+    }
+    if (e.key === "Enter") {
+      const picked = selectedIndex >= 0 ? searchResults[selectedIndex] : null;
+      if (picked) {
+        router.push("/" + (picked.category?.slug ?? "article") + "/" + picked.slug);
+        closeSearch();
+      } else if (searchQuery.trim()) {
+        router.push("/search?q=" + encodeURIComponent(searchQuery.trim()));
+        closeSearch();
+      }
     }
   };
 
@@ -241,15 +262,26 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           </header>
         </div>
 
-        {searchOpen && (
-          <SearchDropdown
-            searchRef={searchRef} searchQuery={searchQuery} searchResults={searchResults}
-            searchLoading={searchLoading} onInput={handleSearchInput} onKeyDown={handleKeyDown}
-            onClose={closeSearch}
-            topOffset={LOGO_BAR_HEIGHT}
-          />
-        )}
-        {searchOpen && <div className="fixed inset-0 z-[55]" onClick={closeSearch} />}
+        <div
+          className="fixed inset-0 z-[54] transition-opacity duration-300"
+          style={{
+            backgroundColor: "rgba(20,18,15,0.4)",
+            backdropFilter: "blur(3px)",
+            WebkitBackdropFilter: "blur(3px)",
+            opacity: searchOpen ? 1 : 0,
+            pointerEvents: searchOpen ? "auto" : "none",
+          }}
+          onClick={closeSearch}
+        />
+        <SearchDropdown
+          open={searchOpen}
+          searchRef={searchRef} searchQuery={searchQuery} searchResults={searchResults}
+          searchLoading={searchLoading} selectedIndex={selectedIndex}
+          onInput={handleSearchInput} onKeyDown={handleKeyDown}
+          onHoverIndex={setSelectedIndex}
+          onClose={closeSearch}
+          topOffset={LOGO_BAR_HEIGHT}
+        />
         <MobileMenu
           categories={categories} open={mobileMenuOpen}
           onClose={() => setMobileMenuOpen(false)}
@@ -336,15 +368,26 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         </div>
       </div>
 
-      {searchOpen && (
-        <SearchDropdown
-          searchRef={searchRef} searchQuery={searchQuery} searchResults={searchResults}
-          searchLoading={searchLoading} onInput={handleSearchInput} onKeyDown={handleKeyDown}
-          onClose={closeSearch}
-          topOffset={heroVisible ? LOGO_BAR_HEIGHT : CAT_BAR_HEIGHT}
-        />
-      )}
-      {searchOpen && <div className="fixed inset-0 z-[55]" onClick={closeSearch} />}
+      <div
+        className="fixed inset-0 z-[54] transition-opacity duration-300"
+        style={{
+          backgroundColor: "rgba(20,18,15,0.4)",
+          backdropFilter: "blur(3px)",
+          WebkitBackdropFilter: "blur(3px)",
+          opacity: searchOpen ? 1 : 0,
+          pointerEvents: searchOpen ? "auto" : "none",
+        }}
+        onClick={closeSearch}
+      />
+      <SearchDropdown
+        open={searchOpen}
+        searchRef={searchRef} searchQuery={searchQuery} searchResults={searchResults}
+        searchLoading={searchLoading} selectedIndex={selectedIndex}
+        onInput={handleSearchInput} onKeyDown={handleKeyDown}
+        onHoverIndex={setSelectedIndex}
+        onClose={closeSearch}
+        topOffset={heroVisible ? LOGO_BAR_HEIGHT : CAT_BAR_HEIGHT}
+      />
       <MobileMenu
         categories={categories} open={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
@@ -356,76 +399,114 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
 
 // ── Search dropdown ───────────────────────────────────────────────────────────
 function SearchDropdown({
-  searchRef, searchQuery, searchResults, searchLoading,
-  onInput, onKeyDown, onClose, topOffset,
+  open, searchRef, searchQuery, searchResults, searchLoading, selectedIndex,
+  onInput, onKeyDown, onHoverIndex, onClose, topOffset,
 }: {
+  open: boolean;
   searchRef: React.RefObject<HTMLInputElement>;
   searchQuery: string;
   searchResults: SearchResult[];
   searchLoading: boolean;
+  selectedIndex: number;
   onInput: (val: string) => void;
   onKeyDown: (e: React.KeyboardEvent) => void;
+  onHoverIndex: (i: number) => void;
   onClose: () => void;
   topOffset: number;
 }) {
+  const visibleResults = searchResults.slice(0, 5);
+
   return (
-    <div className="fixed left-0 right-0 z-[60] bg-[#F5F3EF] border-b border-black/10 shadow-sm" style={{ top: topOffset + "px" }}>
-      <div className="max-w-2xl mx-auto px-6 py-4">
-        <div className="flex items-center gap-3 border border-black/15 rounded-full px-4 py-2.5 bg-white">
-          <Search className="w-4 h-4 text-black/30 flex-shrink-0" />
-          <input
-            ref={searchRef} type="text" value={searchQuery}
-            onChange={(e) => onInput(e.target.value)} onKeyDown={onKeyDown}
-            placeholder="ހޯދާ..." dir="rtl"
-            className="flex-1 bg-transparent outline-none text-[15px]"
-            style={{ fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif', color: "rgb(26,26,26)" }}
-          />
-          <button type="button" onClick={onClose}
-            className="text-[12px] text-black/40 hover:text-black/70 transition-colors flex-shrink-0"
-            style={{ fontFamily: '"MVTypewriter",sans-serif' }}>
-            ކެންސަލް
-          </button>
-        </div>
-        {searchQuery.trim().length >= 2 && (
-          <div className="mt-3 pb-2">
-            {searchLoading && (
-              <p className="text-center py-4" style={{ fontFamily: '"MVTypewriter",sans-serif', fontSize: "12px", color: "rgb(160,158,152)" }}>ހޯދަނީ...</p>
-            )}
-            {!searchLoading && searchResults.length > 0 && (
-              <>
-                <p className="mb-2" style={{ fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif', fontSize: "11px", color: "rgb(160,158,152)", lineHeight: 2 }}>ނަތީޖާ</p>
-                <div className="space-y-0">
-                  {searchResults.slice(0, 5).map((result) => (
-                    <Link key={result.id} href={"/" + (result.category?.slug ?? "article") + "/" + result.slug} onClick={onClose}
-                      className="flex items-center justify-between py-3 border-b border-black/6 hover:opacity-60 transition-opacity">
-                      <h3 style={{ fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif', fontSize: "14px", fontWeight: 700, color: "rgb(26,26,26)", lineHeight: 1.6 }}>
-                        {result.title}
-                      </h3>
-                      {result.category && (
-                        <span className="flex-shrink-0 mr-4 text-[10px] px-2.5 py-1 rounded-full border" style={{
-                          fontFamily: "'MVTypewriter',sans-serif", color: "rgb(100,100,100)",
-                          borderColor: "rgb(210,207,200)", backgroundColor: "rgb(240,239,233)", lineHeight: 2,
-                        }}>
-                          {result.category.name}
-                        </span>
-                      )}
-                    </Link>
-                  ))}
-                </div>
-                <div className="mt-4 text-center">
-                  <Link href={"/search?q=" + encodeURIComponent(searchQuery.trim())} onClick={onClose}
-                    className="inline-flex items-center justify-center px-6 py-2.5 rounded-full transition-colors hover:opacity-80"
-                    style={{ backgroundColor: "rgb(26,26,26)", color: "rgb(249,248,245)", fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif', fontSize: "12px", fontWeight: 700 }}>
-                    އިތުރު އާޓިކަލް ބެލުމަށް
-                  </Link>
-                </div>
-              </>
-            )}
-            {!searchLoading && searchResults.length === 0 && (
-              <p className="text-center py-4" style={{ fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif', fontSize: "13px", color: "rgb(160,158,152)", lineHeight: 2 }}>ނަތީޖާ ނެތް</p>
-            )}
+    <div
+      className="fixed left-0 right-0 z-[60] flex justify-center px-4 transition-all duration-300 ease-out"
+      style={{
+        top: topOffset + "px",
+        opacity: open ? 1 : 0,
+        transform: open ? "translateY(0)" : "translateY(-10px)",
+        pointerEvents: open ? "auto" : "none",
+      }}
+    >
+      <div
+        className="w-full max-w-2xl mt-3 rounded-2xl overflow-hidden"
+        style={{ backgroundColor: "#F5F3EF", boxShadow: "0 20px 50px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.06)" }}
+      >
+        <div className="p-5">
+          <div
+            className="flex items-center gap-3 rounded-full px-4 py-3 bg-white transition-shadow"
+            style={{ boxShadow: "inset 0 0 0 1.5px rgba(0,0,0,0.1)" }}
+          >
+            <Search className="w-4 h-4 text-black/30 flex-shrink-0" />
+            <input
+              ref={searchRef} type="text" value={searchQuery}
+              onChange={(e) => onInput(e.target.value)} onKeyDown={onKeyDown}
+              placeholder="ހޯދާ..." dir="rtl"
+              className="flex-1 bg-transparent outline-none text-[15px]"
+              style={{ fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif', color: "rgb(26,26,26)" }}
+            />
+            <button type="button" aria-label="ބަންދުކުރޭ" onClick={onClose}
+              className="flex-shrink-0 p-1.5 rounded-full hover:bg-black/5 transition-colors text-black/40 hover:text-black/70">
+              <X className="w-4 h-4" />
+            </button>
           </div>
-        )}
+
+          {searchQuery.trim().length >= 2 && (
+            <div className="mt-4 pb-1">
+              {searchLoading && (
+                <div className="flex items-center justify-center gap-2 py-6">
+                  <span
+                    className="w-3.5 h-3.5 rounded-full border-2 border-black/15 animate-spin"
+                    style={{ borderTopColor: "rgb(26,26,26)" }}
+                  />
+                  <p style={{ fontFamily: '"MVTypewriter",sans-serif', fontSize: "12px", color: "rgb(160,158,152)" }}>ހޯދަނީ...</p>
+                </div>
+              )}
+              {!searchLoading && visibleResults.length > 0 && (
+                <>
+                  <p className="mb-1 px-1" style={{ fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif', fontSize: "11px", color: "rgb(160,158,152)", lineHeight: 2 }}>ނަތީޖާ</p>
+                  <div className="space-y-0.5">
+                    {visibleResults.map((result, i) => {
+                      const active = i === selectedIndex;
+                      return (
+                        <Link key={result.id} href={"/" + (result.category?.slug ?? "article") + "/" + result.slug} onClick={onClose}
+                          onMouseEnter={() => onHoverIndex(i)}
+                          className="flex items-center justify-between gap-3 py-3 px-3 rounded-xl transition-colors"
+                          style={{ backgroundColor: active ? "rgba(0,0,0,0.045)" : "transparent" }}>
+                          <span
+                            className="text-[13px] flex-shrink-0 transition-transform"
+                            style={{ color: "rgb(186,42,49)", transform: active ? "translateX(-2px)" : "translateX(0)" }}
+                          >
+                            ←
+                          </span>
+                          <h3 className="flex-1" style={{ fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif', fontSize: "14px", fontWeight: 700, color: "rgb(26,26,26)", lineHeight: 1.6 }}>
+                            {result.title}
+                          </h3>
+                          {result.category && (
+                            <span className="flex-shrink-0 text-[10px] px-2.5 py-1 rounded-full border" style={{
+                              fontFamily: "'MVTypewriter',sans-serif", color: "rgb(100,100,100)",
+                              borderColor: "rgb(210,207,200)", backgroundColor: "rgb(240,239,233)", lineHeight: 2,
+                            }}>
+                              {result.category.name}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-4 text-center">
+                    <Link href={"/search?q=" + encodeURIComponent(searchQuery.trim())} onClick={onClose}
+                      className="inline-flex items-center justify-center px-6 py-2.5 rounded-full transition-colors hover:opacity-80"
+                      style={{ backgroundColor: "rgb(26,26,26)", color: "rgb(249,248,245)", fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif', fontSize: "12px", fontWeight: 700 }}>
+                      އިތުރު އާޓިކަލް ބެލުމަށް
+                    </Link>
+                  </div>
+                </>
+              )}
+              {!searchLoading && visibleResults.length === 0 && (
+                <p className="text-center py-6" style={{ fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif', fontSize: "13px", color: "rgb(160,158,152)", lineHeight: 2 }}>ނަތީޖާ ނެތް</p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
