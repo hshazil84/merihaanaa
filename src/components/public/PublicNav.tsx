@@ -203,7 +203,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
                 style={{ color: "rgb(26,26,26)" }}>
                 <Search className="w-[16px] h-[16px]" />
               </button>
-              <Link href="/login" className="p-2 rounded-full hover:bg-black/5 transition-colors" style={{ color: "rgb(26,26,26)" }}>
+              <Link href="/login" aria-label="ސައިން އިން" className="p-2 rounded-full hover:bg-black/5 transition-colors" style={{ color: "rgb(26,26,26)" }}>
                 <User className="w-[16px] h-[16px]" />
               </Link>
             </div>
@@ -224,7 +224,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
                 <Image src="/logo.svg" alt="މެރިހާނާ" width={48} height={48} priority className="object-contain" />
               </Link>
               <div className="absolute right-5">
-                <button type="button" onClick={() => setMobileMenuOpen(true)}
+                <button type="button" aria-label="މެނޫ" onClick={() => setMobileMenuOpen(true)}
                   className="p-2 rounded-full hover:bg-black/5 transition-colors"
                   style={{ color: "rgb(26,26,26)" }}>
                   <Menu className="w-5 h-5" />
@@ -277,7 +277,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
             <Image src="/logo.svg" alt="މެރިހާނާ" width={60} height={60} priority className="object-contain" />
           </Link>
           <div className="absolute right-5 md:hidden">
-            <button type="button" onClick={() => setMobileMenuOpen(true)}
+            <button type="button" aria-label="މެނޫ" onClick={() => setMobileMenuOpen(true)}
               className="p-2 rounded-full hover:bg-white/10 transition-colors"
               style={{ color: "rgb(255,255,255)" }}>
               <Menu className="w-5 h-5" />
@@ -296,7 +296,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
               style={{ color: "rgb(255,255,255)" }}>
               <Search className="w-[18px] h-[18px]" />
             </button>
-            <Link href="/login"
+            <Link href="/login" aria-label="ސައިން އިން"
               className="p-2 rounded-full hover:bg-white/10 transition-colors"
               style={{ color: "rgb(255,255,255)" }}>
               <User className="w-[18px] h-[18px]" />
@@ -327,7 +327,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
               style={{ color: "rgb(26,26,26)" }}>
               <Search className="w-[16px] h-[16px]" />
             </button>
-            <button type="button" onClick={() => setMobileMenuOpen(true)}
+            <button type="button" aria-label="މެނޫ" onClick={() => setMobileMenuOpen(true)}
               className="p-2 rounded-full hover:bg-black/5 transition-colors"
               style={{ color: "rgb(26,26,26)" }}>
               <Menu className="w-[18px] h-[18px]" />
@@ -448,7 +448,7 @@ function MobileMenu({ categories, open, onClose, topOffset }: {
         pointerEvents: open ? "auto" : "none",
       }}
     >
-      <button type="button" onClick={onClose} className="absolute top-4 left-5 p-2 hover:bg-black/5 rounded-full text-[rgb(26,26,26)]">
+      <button type="button" aria-label="ބަންދުކުރޭ" onClick={onClose} className="absolute top-4 left-5 p-2 hover:bg-black/5 rounded-full text-[rgb(26,26,26)]">
         <X className="w-5 h-5" />
       </button>
       <div className="h-full overflow-y-auto px-8 py-12 max-w-md mx-auto flex flex-col" dir="rtl">
