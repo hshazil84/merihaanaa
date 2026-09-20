@@ -30,19 +30,18 @@ const TEXT = "rgb(26,26,26)";
 const TEXT_MUTED = "rgb(140,138,132)";
 const DIVIDER = "rgba(0,0,0,0.07)";
 
-// Every flexible track is minmax(0,1fr), never a bare 1fr: a bare `1fr` is
-// `minmax(auto,1fr)` and refuses to shrink below its content's min-content
-// width — when that floor is hit the grid overflows its container, and
-// because this page is dir="rtl" the overflow spills LEFT, shoving the
-// 300px ad rail outside the container.
+// Every flexible track is minmax(0,1fr), never a bare 1fr. A bare 1fr is
+// minmax(auto,1fr) and refuses to shrink below its content's min-content
+// width; when that floor is hit the grid overflows its container, and
+// because this page is RTL the overflow spills LEFT, shoving the 300px ad
+// rail outside the container.
 //
-// Because those tracks CAN now shrink, the text they hold has to be able
-// to wrap into them. `overflow-wrap:anywhere` (not `break-word`) is what
-// does that — it's the value that also reduces the element's min-content
-// size, so the text reflows instead of spilling out. `.film-hero-text`
-// additionally clips, so nothing can escape sideways and slide under the
-// hero image (whose wrapper is position:relative and paints above static
-// text).
+// Because those tracks can now shrink, the text they hold has to be able
+// to wrap into them. overflow-wrap:anywhere (not break-word) is what does
+// that: it is the value that also reduces an element's min-content size,
+// so text reflows instead of spilling out. .film-hero-text additionally
+// clips, so nothing can escape sideways and slide under the hero image
+// (whose wrapper is position:relative and so paints above static text).
 const CSS = [
   ".film-top{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:1.5rem;align-items:stretch;}",
   ".film-top>*{min-width:0;}",
@@ -73,10 +72,11 @@ function PosterCard({ article, categorySlug }: { article: Article; categorySlug:
   return (
     <Link href={"/" + slug + "/" + article.slug} style={{ textDecoration: "none", display: "block" }}>
       <div style={{ aspectRatio: "3/4", overflow: "hidden", borderRadius: "10px", backgroundColor: BG_CARD, marginBottom: "10px", position: "relative" }}>
-        {cover
-          ? <Image src={cover} alt={article.title} fill sizes="(max-width: 480px) 45vw, (max-width: 768px) 45vw, 20vw" className="object-cover" />
-          : <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
-        }
+        {cover ? (
+          <Image src={cover} alt={article.title} fill sizes="(max-width: 480px) 45vw, (max-width: 768px) 45vw, 20vw" className="object-cover" />
+        ) : (
+          <div style={{ width: "100%", height: "100%", backgroundColor: BG_CARD }} />
+        )}
         <div style={{ position: "absolute", top: "10px", insetInlineEnd: "10px" }}>
           <span style={{ fontFamily: FONT, fontSize: "9px", fontWeight: 700, padding: "3px 10px", borderRadius: "20px", background: RED, color: "white" }}>ރިވިއު</span>
         </div>
@@ -111,31 +111,47 @@ export default function FilmCategoryPage({ featured, articles, reviews, category
               <div className="film-hero">
                 <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug} style={{ textDecoration: "none", display: "block" }}>
                   <div style={{ aspectRatio: "3/2", overflow: "hidden", borderRadius: "12px", background: BG_CARD, position: "relative", height: "100%" }}>
-                    {featured.featured_image
-                      ? <Image src={featured.featured_image} alt={featured.title} fill sizes="(max-width: 768px) 100vw, 40vw" className="object-cover" priority />
-                      : <div style={{ width: "100%", height: "100%", background: BG_CARD }} />
-                    }
+                    {featured.featured_image ? (
+                      <Image src={featured.featured_image} alt={featured.title} fill sizes="(max-width: 768px) 100vw, 40vw" className="object-cover" priority />
+                    ) : (
+                      <div style={{ width: "100%", height: "100%", background: BG_CARD }} />
+                    )}
                   </div>
                 </Link>
+
                 <div className="film-hero-text" style={{ display: "flex", flexDirection: "column", justifyContent: "center", height: "100%" }}>
                   {getFirstTag(featured.tags) && (
                     <span style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: RED, border: "1.5px solid " + RED, padding: "4px 12px", borderRadius: "20px", display: "inline-block", alignSelf: "flex-start", marginBottom: "12px", letterSpacing: "0.05em", lineHeight: 1.6 }}>
                       {getFirstTag(featured.tags)}
                     </span>
                   )}
+
                   <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug} style={{ textDecoration: "none" }}>
-                    <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "clamp(1.2rem,2.6vw,1.7rem)", lineHeight: 1.75, margin: "0 0 12px", color: TEXT }}>{featured.title}</h2>
+                    <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "clamp(1.2rem,2.6vw,1.7rem)", lineHeight: 1.75, margin: "0 0 12px", color: TEXT }}>
+                      {featured.title}
+                    </h2>
                   </Link>
+
                   {featured.excerpt && (
-                    <p style={{ fontFamily: FONT, fontSize: "14px", color: "rgb(60,58,52)", lineHeight: 2, margin: "0 0 16px" }} className="lc4">{featured.excerpt}</p>
+                    <p style={{ fontFamily: FONT, fontSize: "14px", color: "rgb(60,58,52)", lineHeight: 2, margin: "0 0 16px" }} className="lc4">
+                      {featured.excerpt}
+                    </p>
                   )}
-                  <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug}
-                    style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none", display: "inline-flex", alignSelf: "flex-start", alignItems: "center", gap: "4px", marginBottom: "16px", borderBottom: "1px solid rgba(186,42,49,0.3)", paddingBottom: "1px" }}>
+
+                  <Link
+                    href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug}
+                    style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none", display: "inline-flex", alignSelf: "flex-start", alignItems: "center", gap: "4px", marginBottom: "16px", borderBottom: "1px solid rgba(186,42,49,0.3)", paddingBottom: "1px" }}
+                  >
                     {"މުޅި އާޓިކަލް ކިޔާލަން ←"}
                   </Link>
+
                   <div>
-                    {featured.author && <p style={{ fontFamily: FONT, fontSize: "11px", color: TEXT_MUTED, margin: "0 0 3px" }}>{featured.author.full_name}</p>}
-                    {featured.published_at && <p style={{ fontFamily: "system-ui,sans-serif", fontSize: "11px", color: TEXT_MUTED, margin: "0 0 3px", opacity: 0.75 }}>{formatDate(featured.published_at)}</p>}
+                    {featured.author && (
+                      <p style={{ fontFamily: FONT, fontSize: "11px", color: TEXT_MUTED, margin: "0 0 3px" }}>{featured.author.full_name}</p>
+                    )}
+                    {featured.published_at && (
+                      <p style={{ fontFamily: "system-ui,sans-serif", fontSize: "11px", color: TEXT_MUTED, margin: "0 0 3px", opacity: 0.75 }}>{formatDate(featured.published_at)}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -143,7 +159,7 @@ export default function FilmCategoryPage({ featured, articles, reviews, category
 
             {grid3.length > 0 && (
               <div className="film-3col">
-                {grid3.map(function(a) {
+                {grid3.map(function (a) {
                   return (
                     <StandardArticleCard
                       key={a.id}
@@ -186,9 +202,23 @@ export default function FilmCategoryPage({ featured, articles, reviews, category
               </Link>
             </div>
             <div className="film-review-grid">
-              {reviewArticles.map(function(a) { return <PosterCard key={a.id} article={a} categorySlug={categorySlug} />; })}
+              {reviewArticles.map(function (a) {
+                return <PosterCard key={a.id} article={a} categorySlug={categorySlug} />;
+              })}
             </div>
           </div>
         )}
 
         <div style={{ display: "flex", justifyContent: "center", paddingTop: "1rem", borderTop: "0.5px solid " + DIVIDER }}>
+          <Link
+            href={"/" + categorySlug + "/archive"}
+            style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: RED, textDecoration: "none", padding: "8px 20px", border: "0.5px solid " + RED, borderRadius: "8px" }}
+          >
+            {"އިތުރު ލިޔުންތައް ←"}
+          </Link>
+        </div>
+
+      </div>
+    </div>
+  );
+}
