@@ -28,22 +28,36 @@ const TYPE_LABELS: Record<DestType, string> = { resort: "ރިސޯޓް", guesthou
 // because this page is RTL the overflow spills LEFT, shoving the 300px ad
 // rail outside the container. overflow-wrap:anywhere lets the text wrap
 // into the now-shrinkable tracks (it is the value that also reduces an
-// element's min-content size). .dhathuru-hero-text clips and pads so the
-// text can never sit flush against — or slide under — the hero image.
+// element's min-content size). .dhathuru-hero-text clips so the text can
+// never sit flush against — or slide under — the hero image.
+//
+// The hero image is the FIRST DOM child in .dhathuru-hero, so in this RTL
+// grid it lands in the right-hand column; .dhathuru-hero-text (second
+// child) lands in the left-hand column. The text's *inline-start* edge
+// (its right side, in RTL) is the one sitting against the grid gap next
+// to the image — not its inline-end edge — so extra clearance goes on
+// padding-inline-start. padding-inline-end pads the text's outer-left
+// edge instead, which is already open space and does nothing for the
+// seam against the image.
 const CSS = [
   ".dhathuru-top{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:1.5rem;align-items:stretch;}",
   ".dhathuru-top>*{min-width:0;}",
   ".dhathuru-ad-rail{min-height:650px;}",
   ".dhathuru-hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:1.75rem;align-items:stretch;}",
   ".dhathuru-hero>*{min-width:0;}",
-  ".dhathuru-hero-text{min-width:0;overflow:hidden;padding-inline-end:1.5rem;}",
+  ".dhathuru-hero-text{min-width:0;overflow:hidden;padding-inline-start:1.5rem;}",
   ".dhathuru-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.25rem;}",
   ".dhathuru-grid>*{min-width:0;}",
   ".dhathuru-top h2,.dhathuru-top h3,.dhathuru-top p,.dhathuru-top span,.dhathuru-top a{overflow-wrap:anywhere;}",
   "@media(max-width:1024px){.dhathuru-top{grid-template-columns:minmax(0,1fr)!important;}.dhathuru-ad-rail{min-height:0!important;}}",
-  "@media(max-width:768px){.dhathuru-hero{grid-template-columns:minmax(0,1fr)!important;gap:1.25rem!important;}.dhathuru-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;}}",
+  "@media(max-width:768px){.dhathuru-hero{grid-template-columns:minmax(0,1fr)!important;gap:1.25rem!important;}.dhathuru-hero-text{padding-inline-start:0!important;}.dhathuru-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;}}",
   "@media(max-width:480px){.dhathuru-grid{grid-template-columns:minmax(0,1fr)!important;}}",
 ].join("");
+
+function formatDate(d: string | null | undefined) {
+  if (!d) return null;
+  return new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+}
 
 function TealOutlineBadge({ label }: { label: string }) {
   return (
@@ -86,10 +100,11 @@ function getTypeLabel(article: any): string | null {
 function FeaturedCard({ article, categorySlug }: { article: any; categorySlug: string }) {
   const isReview = article.review_score != null;
   const typeLabel = getTypeLabel(article);
+  const href = `/${categorySlug}/${article.slug}`;
 
   return (
     <div className="dhathuru-hero">
-      <Link href={`/${categorySlug}/${article.slug}`} style={{ textDecoration: "none", display: "block" }}>
+      <Link href={href} style={{ textDecoration: "none", display: "block" }}>
         <div style={{ aspectRatio: "3/2", overflow: "hidden", borderRadius: "12px", background: BG_CARD, position: "relative", height: "100%" }}>
           {article.featured_image && (
             <img src={article.featured_image} alt={article.title}
@@ -108,7 +123,7 @@ function FeaturedCard({ article, categorySlug }: { article: any; categorySlug: s
           <p style={{ fontFamily: FONT, fontSize: "11px", color: TEAL, margin: "0 0 6px", fontWeight: 700 }}>{article.review_area}</p>
         )}
         <div className="flex items-start justify-between gap-4" style={{ minWidth: 0 }}>
-          <Link href={`/${categorySlug}/${article.slug}`} style={{ textDecoration: "none", minWidth: 0 }}>
+          <Link href={href} style={{ textDecoration: "none", minWidth: 0 }}>
             <h2 className="line-clamp-2" style={{ fontFamily: FONT, fontWeight: 700, fontSize: "clamp(1.2rem,2.6vw,1.7rem)", lineHeight: 1.75, margin: 0, color: TEXT }}>
               {article.review_subject || article.title}
             </h2>
@@ -116,10 +131,26 @@ function FeaturedCard({ article, categorySlug }: { article: any; categorySlug: s
           {article.review_score != null && <ScoreOverlay score={article.review_score} size={48} />}
         </div>
         {article.excerpt && (
-          <p className="line-clamp-2" style={{ fontFamily: FONT, fontSize: "14px", color: "rgb(60,58,52)", lineHeight: 2, margin: "14px 0 0" }}>
+          <p className="line-clamp-2" style={{ fontFamily: FONT, fontSize: "14px", color: "rgb(60,58,52)", lineHeight: 2, margin: "14px 0 16px" }}>
             {article.excerpt}
           </p>
         )}
+
+        <Link
+          href={href}
+          style={{ fontFamily: FONT, fontSize: "12px", fontWeight: 700, color: TEAL, textDecoration: "none", display: "inline-flex", alignSelf: "flex-start", alignItems: "center", gap: "4px", marginBottom: "16px", borderBottom: "1px solid rgba(20,110,110,0.3)", paddingBottom: "1px" }}
+        >
+          {"މުޅި އާޓިކަލް ކިޔާލަން ←"}
+        </Link>
+
+        <div>
+          {article.author?.full_name && (
+            <p style={{ fontFamily: FONT, fontSize: "11px", color: TEXT_MUTED, margin: "0 0 3px" }}>{article.author.full_name}</p>
+          )}
+          {article.published_at && (
+            <p style={{ fontFamily: "system-ui,sans-serif", fontSize: "11px", color: TEXT_MUTED, margin: "0 0 3px", opacity: 0.75 }}>{formatDate(article.published_at)}</p>
+          )}
+        </div>
       </div>
     </div>
   );
