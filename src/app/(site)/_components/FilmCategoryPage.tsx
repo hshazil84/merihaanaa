@@ -48,7 +48,7 @@ const CSS = [
   ".film-ad-rail{min-height:650px;}",
   ".film-hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:3rem;align-items:stretch;margin-bottom:1.5rem;}",
   ".film-hero>*{min-width:0;}",
-  ".film-hero-text{min-width:0;overflow:hidden;padding-inline-end:0.5rem;}",
+  ".film-hero-text{min-width:0;overflow:hidden;padding-inline-end:1rem;}",
   ".film-3col{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.25rem;}",
   ".film-3col>*{min-width:0;}",
   ".film-review-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1.25rem;}",
