@@ -57,11 +57,12 @@ export default function HeroSection({ article }: { article: HeroArticle }) {
         }}
       />
 
-      {/* Bottom-center content — web and mobile */}
-      <div
-        className={"absolute inset-x-0 bottom-0 z-10 px-6 pb-12 md:pb-16 flex flex-col items-center text-center transition-all duration-700 delay-300 " +
-          (loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4")}
-      >
+      {/* Bottom-center content — web and mobile. Renders fully visible
+          immediately (no hydration-gated fade): this text is the LCP
+          candidate on this page, and delaying its paint behind a
+          client-side opacity transition was adding real, measured
+          seconds to mobile LCP. */}
+      <div className="absolute inset-x-0 bottom-0 z-10 px-6 pb-12 md:pb-16 flex flex-col items-center text-center">
         <div
           className="inline-flex items-center font-body text-[10px] font-semibold tracking-widest uppercase px-3 py-1 mb-4 rounded-full"
           style={{ color: "rgba(255,255,255,0.85)", border: "1px solid rgba(255,255,255,0.45)" }}
