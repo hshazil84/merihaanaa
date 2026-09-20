@@ -39,16 +39,19 @@ const DIVIDER = "rgba(0,0,0,0.07)";
 // Because those tracks can now shrink, the text they hold has to be able
 // to wrap into them. overflow-wrap:anywhere (not break-word) is what does
 // that: it is the value that also reduces an element's min-content size,
-// so text reflows instead of spilling out. .film-hero-text additionally
-// clips, so nothing can escape sideways and slide under the hero image
-// (whose wrapper is position:relative and so paints above static text).
+// so text reflows instead of spilling out. .film-hero-text clips and pads
+// so the text can never sit flush against — or slide under — the hero
+// image (whose wrapper is position:relative, so it paints above static
+// text). The padding is what supplies this page's breathing room: unlike
+// the shorter categories, film's excerpt lines run the full column width,
+// so the gap alone leaves no visual air.
 const CSS = [
   ".film-top{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:1.5rem;align-items:stretch;}",
   ".film-top>*{min-width:0;}",
   ".film-ad-rail{min-height:650px;}",
-  ".film-hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:3rem;align-items:stretch;margin-bottom:1.5rem;}",
+  ".film-hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:1.75rem;align-items:stretch;margin-bottom:1.5rem;}",
   ".film-hero>*{min-width:0;}",
-  ".film-hero-text{min-width:0;overflow:hidden;padding-inline-end:2rem;}",
+  ".film-hero-text{min-width:0;overflow:hidden;padding-inline-end:1.5rem;}",
   ".film-3col{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.25rem;}",
   ".film-3col>*{min-width:0;}",
   ".film-review-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1.25rem;}",
@@ -57,7 +60,7 @@ const CSS = [
   ".lc2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}",
   ".lc4{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}",
   "@media(max-width:1024px){.film-top{grid-template-columns:minmax(0,1fr)!important;}.film-ad-rail{min-height:0!important;}}",
-  "@media(max-width:768px){.film-hero{grid-template-columns:minmax(0,1fr)!important;gap:1.25rem!important;}.film-3col{grid-template-columns:repeat(2,minmax(0,1fr))!important;}.film-review-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;}}",
+  "@media(max-width:768px){.film-hero{grid-template-columns:minmax(0,1fr)!important;gap:1.25rem!important;}.film-hero-text{padding-inline-end:0!important;}.film-3col{grid-template-columns:repeat(2,minmax(0,1fr))!important;}.film-review-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;}}",
   "@media(max-width:480px){.film-3col{grid-template-columns:minmax(0,1fr)!important;}.film-review-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:0.75rem!important;}}",
 ].join("");
 
