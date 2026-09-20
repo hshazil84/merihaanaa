@@ -30,17 +30,29 @@ const TEXT = "rgb(26,26,26)";
 const TEXT_MUTED = "rgb(140,138,132)";
 const DIVIDER = "rgba(0,0,0,0.07)";
 
+// NOTE: every flexible track below is minmax(0,1fr), never a bare 1fr.
+// A bare `1fr` is `minmax(auto,1fr)`, which refuses to shrink below its
+// content's min-content width — when that floor is hit the whole grid
+// overflows its container, and because this page is dir="rtl" the
+// overflow spills LEFT, shoving the 300px ad rail outside the container
+// (and partly off-screen). minmax(0,1fr) lets the track shrink so the
+// grid always stays inside its container.
 const CSS = [
-  ".film-top{display:grid;grid-template-columns:1fr 300px;gap:1.5rem;align-items:stretch;}",
+  ".film-top{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:1.5rem;align-items:stretch;}",
+  ".film-top>*{min-width:0;}",
   ".film-ad-rail{min-height:650px;}",
-  ".film-hero{display:grid;grid-template-columns:1.1fr 1fr;gap:1.75rem;align-items:stretch;margin-bottom:1.5rem;}",
-  ".film-3col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.25rem;}",
-  ".film-review-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1.25rem;}",
+  ".film-hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:1.75rem;align-items:stretch;margin-bottom:1.5rem;}",
+  ".film-hero>*{min-width:0;}",
+  ".film-3col{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.25rem;}",
+  ".film-3col>*{min-width:0;}",
+  ".film-review-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1.25rem;}",
+  ".film-review-grid>*{min-width:0;}",
+  ".film-top h2,.film-top h3,.film-top p{overflow-wrap:break-word;}",
   ".lc2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}",
   ".lc4{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}",
-  "@media(max-width:1024px){.film-top{grid-template-columns:1fr!important;}.film-ad-rail{min-height:0!important;}}",
-  "@media(max-width:768px){.film-hero{grid-template-columns:1fr!important;gap:1.25rem!important;}.film-3col{grid-template-columns:1fr 1fr!important;}.film-review-grid{grid-template-columns:1fr 1fr!important;}}",
-  "@media(max-width:480px){.film-3col{grid-template-columns:1fr!important;}.film-review-grid{grid-template-columns:1fr 1fr!important;gap:0.75rem!important;}}",
+  "@media(max-width:1024px){.film-top{grid-template-columns:minmax(0,1fr)!important;}.film-ad-rail{min-height:0!important;}}",
+  "@media(max-width:768px){.film-hero{grid-template-columns:minmax(0,1fr)!important;gap:1.25rem!important;}.film-3col{grid-template-columns:repeat(2,minmax(0,1fr))!important;}.film-review-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;}}",
+  "@media(max-width:480px){.film-3col{grid-template-columns:minmax(0,1fr)!important;}.film-review-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:0.75rem!important;}}",
 ].join("");
 
 function formatDate(d: string | null) {
