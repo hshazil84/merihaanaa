@@ -12,6 +12,12 @@ interface AdSlotProps {
   sticky?: boolean;
 }
 
+// 1x1 transparent GIF — the <img> fallback inside <picture> needs *some*
+// src, but this one costs effectively nothing to fetch. The real creative
+// only ever loads via the matching <source>.
+const BLANK_PIXEL =
+  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBTAA7";
+
 export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު", sticky = true }: AdSlotProps) {
   const def = getAdSlot(id);
   if (!def) return null;
@@ -26,6 +32,17 @@ export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު", s
 
   const cls = "adslot-" + id + "-" + breakpoint;
   const wrapCls = cls + "-wrap";
+
+  // The media query that decides whether THIS breakpoint's instance is the
+  // one actually shown on screen. Used both for the wrapper's CSS
+  // visibility (unchanged) and, via <picture><source media>, to stop the
+  // browser from ever downloading this instance's creative when it isn't
+  // the visible one — display:none + loading="lazy" alone wasn't reliable
+  // enough to prevent the fetch, so both the desktop and mobile creative
+  // were downloading on every page load regardless of viewport.
+  const visibleQuery = breakpoint === "desktop"
+    ? "(min-width:" + (AD_MOBILE_MAX + 1) + "px)"
+    : "(max-width:" + AD_MOBILE_MAX + "px)";
 
   const base = [
     "." + wrapCls + "{",
@@ -51,7 +68,10 @@ export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު", s
       : "." + wrapCls + "{display:none;}@media(max-width:" + AD_MOBILE_MAX + "px){." + wrapCls + "{display:flex;}}";
 
   const creativeImg = creative ? (
-    <img src={creative} alt={booking?.advertiser?.name ?? ""} loading="lazy" />
+    <picture>
+      <source media={visibleQuery} srcSet={creative} />
+      <img src={BLANK_PIXEL} alt={booking?.advertiser?.name ?? ""} loading="lazy" />
+    </picture>
   ) : null;
 
   const caption = (
@@ -77,7 +97,7 @@ export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު", s
         <div className={cls} data-ad-slot={id}>
           {creative ? (
             booking?.click_url ? (
-              <a
+              
                 href={booking.click_url}
                 target="_blank"
                 rel="noopener noreferrer sponsored"
