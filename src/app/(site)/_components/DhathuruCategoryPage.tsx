@@ -30,13 +30,13 @@ const CSS = [
   ".dhathuru-ad-rail{min-height:650px;}",
   ".dhathuru-hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:1.75rem;align-items:stretch;margin-bottom:1.5rem;}",
   ".dhathuru-hero>*{min-width:0;}",
-  ".dhathuru-hero-text{min-width:0;overflow:hidden;padding-inline-start:1.5rem;}",
+  ".dhathuru-hero-text{min-width:0;overflow:hidden;}",
   ".dhathuru-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.25rem;}",
   ".dhathuru-grid>*{min-width:0;}",
   ".dhathuru-top h2,.dhathuru-top h3,.dhathuru-top p,.dhathuru-top span,.dhathuru-top a{overflow-wrap:anywhere;}",
   ".lc4{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}",
   "@media(max-width:1024px){.dhathuru-top{grid-template-columns:minmax(0,1fr)!important;}.dhathuru-ad-rail{min-height:0!important;}}",
-  "@media(max-width:768px){.dhathuru-hero{grid-template-columns:minmax(0,1fr)!important;gap:1.25rem!important;}.dhathuru-hero-text{padding-inline-start:0!important;}.dhathuru-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;}}",
+  "@media(max-width:768px){.dhathuru-hero{grid-template-columns:minmax(0,1fr)!important;gap:1.25rem!important;}.dhathuru-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;}}",
   "@media(max-width:480px){.dhathuru-grid{grid-template-columns:minmax(0,1fr)!important;}}",
 ].join("");
 
@@ -137,15 +137,7 @@ export function DhathuruCategoryPage({
                   </div>
                 </Link>
 
-                {/* justifyContent is flex-start, not center — see FilmCategoryPage
-                    for why: centering a variable-height block makes the gap
-                    above the title depend on excerpt/title word count, which
-                    differs per article. Top-aligning pins the title to a fixed
-                    offset from the image's top edge on every article. */}
                 <div className="dhathuru-hero-text" style={{ display: "flex", flexDirection: "column", justifyContent: "flex-start", height: "100%" }}>
-                  {/* Always rendered so hero content height doesn't shift when
-                      an article has no destination type — visibility:hidden
-                      keeps the same box reserved either way. */}
                   <span style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: TEAL, border: "1.5px solid " + TEAL, padding: "4px 12px", borderRadius: "20px", display: "inline-block", alignSelf: "flex-start", marginBottom: "12px", letterSpacing: "0.05em", lineHeight: 1.6, visibility: typeLabel ? "visible" : "hidden" }}>
                     {typeLabel || " "}
                   </span>
