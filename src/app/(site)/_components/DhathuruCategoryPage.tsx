@@ -137,11 +137,15 @@ export function DhathuruCategoryPage({
                   </div>
                 </Link>
 
-                <div className="dhathuru-hero-text" style={{ display: "flex", flexDirection: "column", justifyContent: "center", height: "100%" }}>
+                {/* justifyContent is flex-start, not center — see FilmCategoryPage
+                    for why: centering a variable-height block makes the gap
+                    above the title depend on excerpt/title word count, which
+                    differs per article. Top-aligning pins the title to a fixed
+                    offset from the image's top edge on every article. */}
+                <div className="dhathuru-hero-text" style={{ display: "flex", flexDirection: "column", justifyContent: "flex-start", height: "100%" }}>
                   {/* Always rendered so hero content height doesn't shift when
                       an article has no destination type — visibility:hidden
-                      keeps the same box reserved either way, mirroring the
-                      identical fix on FilmCategoryPage's tag badge. */}
+                      keeps the same box reserved either way. */}
                   <span style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: TEAL, border: "1.5px solid " + TEAL, padding: "4px 12px", borderRadius: "20px", display: "inline-block", alignSelf: "flex-start", marginBottom: "12px", letterSpacing: "0.05em", lineHeight: 1.6, visibility: typeLabel ? "visible" : "hidden" }}>
                     {typeLabel || " "}
                   </span>
