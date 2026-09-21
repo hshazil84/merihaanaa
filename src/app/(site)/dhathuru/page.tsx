@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { DhathuruCategoryPage } from "@/app/(site)/_components/DhathuruCategoryPage";
+import { DhathuruCategoryPage } from "../_components/DhathuruCategoryPage";
 
 const VALID_TYPES = ["resort", "guesthouse", "liveaboard"] as const;
 type DestType = (typeof VALID_TYPES)[number];
@@ -8,9 +8,10 @@ type DestType = (typeof VALID_TYPES)[number];
 export default async function Page({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }> | { [key: string]: string | string[] | undefined };
 }) {
-  const supabase = createServerSupabaseClient();
+  // Await the client creation helper
+  const supabase = await createServerSupabaseClient();
 
   const { data: category } = await supabase
     .from("categories")
@@ -20,7 +21,10 @@ export default async function Page({
 
   if (!category) return notFound();
 
-  const rawType = typeof searchParams.type === "string" ? searchParams.type : undefined;
+  // Await searchParams if running on Next.js 15+
+  const resolvedSearchParams = await searchParams;
+  const rawType =
+    typeof resolvedSearchParams.type === "string" ? resolvedSearchParams.type : undefined;
   const activeType: DestType | null = VALID_TYPES.includes(rawType as DestType)
     ? (rawType as DestType)
     : null;
