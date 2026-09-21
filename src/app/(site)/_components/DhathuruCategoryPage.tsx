@@ -24,14 +24,6 @@ const TABS: { value: DestType | null; label: string }[] = [
 
 const TYPE_LABELS: Record<DestType, string> = { resort: "ރިސޯޓް", guesthouse: "ގެސްޓްހައުސް", liveaboard: "ލިވްއަބޯޑް" };
 
-// Hero markup/CSS here is a deliberate 1:1 match of FilmCategoryPage.tsx's
-// hero: same grid values, same padding-inline-start placement, same
-// element shape in the text column (one badge line, title, excerpt,
-// read-more link, author/date — nothing more). Review score, review area
-// and the guide/review badge are dhathuru-specific and still show up on
-// the grid cards below via StandardArticleCard, just not in the hero,
-// so the hero's content height (and therefore its vertical centering
-// against the image) behaves identically to film's.
 const CSS = [
   ".dhathuru-top{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:1.5rem;align-items:stretch;}",
   ".dhathuru-top>*{min-width:0;}",
@@ -146,11 +138,13 @@ export function DhathuruCategoryPage({
                 </Link>
 
                 <div className="dhathuru-hero-text" style={{ display: "flex", flexDirection: "column", justifyContent: "center", height: "100%" }}>
-                  {typeLabel && (
-                    <span style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: TEAL, border: "1.5px solid " + TEAL, padding: "4px 12px", borderRadius: "20px", display: "inline-block", alignSelf: "flex-start", marginBottom: "12px", letterSpacing: "0.05em", lineHeight: 1.6 }}>
-                      {typeLabel}
-                    </span>
-                  )}
+                  {/* Always rendered so hero content height doesn't shift when
+                      an article has no destination type — visibility:hidden
+                      keeps the same box reserved either way, mirroring the
+                      identical fix on FilmCategoryPage's tag badge. */}
+                  <span style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: TEAL, border: "1.5px solid " + TEAL, padding: "4px 12px", borderRadius: "20px", display: "inline-block", alignSelf: "flex-start", marginBottom: "12px", letterSpacing: "0.05em", lineHeight: 1.6, visibility: typeLabel ? "visible" : "hidden" }}>
+                    {typeLabel || " "}
+                  </span>
 
                   <Link href={`/${category.slug}/${featured.slug}`} style={{ textDecoration: "none" }}>
                     <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "clamp(1.2rem,2.6vw,1.7rem)", lineHeight: 1.75, margin: "0 0 12px", color: TEXT }}>
