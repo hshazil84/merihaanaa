@@ -176,6 +176,9 @@ export function DhathuruCategoryPage({
             {articles.length > 0 ? (
               <div className="dhathuru-grid">
                 {articles.map(function (a) {
+                  const badge = getTypeLabel(a);
+                  const area = a.review_area || null;
+
                   return (
                     <StandardArticleCard
                       key={a.id}
@@ -183,8 +186,8 @@ export function DhathuruCategoryPage({
                       title={a.review_subject || a.title}
                       excerpt={a.excerpt}
                       featuredImage={a.featured_image}
-                      badgeLabel={getTypeLabel(a)}
-                      eyebrow={a.review_area || null}
+                      badgeLabel={badge || undefined}
+                      eyebrow={area || undefined}
                       imageOverlayTopStart={<ContentKindBadge isReview={a.review_score != null} />}
                       imageOverlayTopEnd={a.review_score != null ? <ScoreOverlay score={a.review_score} /> : undefined}
                       imageSizes="(max-width: 480px) 100vw, (max-width: 1024px) 50vw, 22vw"
