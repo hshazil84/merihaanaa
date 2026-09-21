@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { DhathuruCategoryPage } from "../DhathuruCategoryPage";
+import { DhathuruCategoryPage } from "@/app/(site)/_components/DhathuruCategoryPage";
 
 const VALID_TYPES = ["resort", "guesthouse", "liveaboard"] as const;
 type DestType = (typeof VALID_TYPES)[number];
