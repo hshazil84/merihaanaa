@@ -107,7 +107,16 @@ export default function FilmCategoryPage({ featured, articles, reviews, category
                   </div>
                 </Link>
 
-                <div className="film-hero-text" style={{ display: "flex", flexDirection: "column", justifyContent: "center", height: "100%" }}>
+                {/* justifyContent is flex-start, not center. Centering a
+                    variable-height block (title wraps 1-2 lines, excerpt
+                    clamps at up to 4 but is often shorter) means the gap
+                    above the title changes with every article's word count
+                    — CSS-identical markup still produces a different visual
+                    gap per article. Top-aligning removes that dependency:
+                    the badge/title always starts at the same fixed offset
+                    from the image's top edge, on every article, on both
+                    pages, regardless of how long the excerpt is. */}
+                <div className="film-hero-text" style={{ display: "flex", flexDirection: "column", justifyContent: "flex-start", height: "100%" }}>
                   {/* Always rendered so hero content height doesn't shift when
                       an article has no tag — visibility:hidden keeps the same
                       box (padding/border/line-height) reserved either way,
