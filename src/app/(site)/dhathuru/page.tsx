@@ -1,40 +1,28 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import { DhathuruCategoryPage } from "../_components/DhathuruCategoryPage";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { DhathuruCategoryPage } from "../DhathuruCategoryPage";
 
-const FRONT_PAGE_SIZE = 9;
+const VALID_TYPES = ["resort", "guesthouse", "liveaboard"] as const;
+type DestType = (typeof VALID_TYPES)[number];
 
-interface PageProps {
-  searchParams: { type?: string };
-}
-
-export async function generateMetadata() {
-  const supabase = await createServerSupabaseClient();
-  const { data: category } = await supabase
-    .from("categories")
-    .select("name, slug")
-    .eq("slug", "dhathuru")
-    .single();
-  if (!category) return { title: "ކެޓަގަރީ ނުލިބުނު" };
-  return {
-    title: category.name,
-    description: category.name + " - މެރިހާނާ",
-  };
-}
-
-export default async function DhathuruPage({ searchParams }: PageProps) {
-  const supabase = await createServerSupabaseClient();
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
+  const supabase = createServerSupabaseClient();
 
   const { data: category } = await supabase
     .from("categories")
-    .select("id, name, slug")
+    .select("*")
     .eq("slug", "dhathuru")
     .single();
 
-  if (!category) notFound();
+  if (!category) return notFound();
 
-  const activeType = ["resort", "guesthouse", "liveaboard"].includes(searchParams.type ?? "")
-    ? (searchParams.type as "resort" | "guesthouse" | "liveaboard")
+  const rawType = typeof searchParams.type === "string" ? searchParams.type : undefined;
+  const activeType: DestType | null = VALID_TYPES.includes(rawType as DestType)
+    ? (rawType as DestType)
     : null;
 
   let query = supabase
@@ -43,17 +31,19 @@ export default async function DhathuruPage({ searchParams }: PageProps) {
       "id, title, slug, excerpt, featured_image, review_score, review_subject, review_area, review_type, reading_time_minutes, published_at, author:authors!author_id(full_name)"
     )
     .eq("status", "published")
-    .eq("category_id", category.id)
+    .eq("category_id", category.id);
+
+  if (activeType) {
+    query = query.eq("review_type", activeType);
+  }
+
+  const { data: articles } = await query
     .order("published_at", { ascending: false })
-    .limit(FRONT_PAGE_SIZE);
+    .limit(9);
 
-  if (activeType) query = query.eq("review_type", activeType);
-
-  const { data: itemsRaw } = await query;
-  const items = itemsRaw ?? [];
-
-  const featured = items[0] ?? null;
-  const gridItems = items.slice(1);
+  const all = articles ?? [];
+  const featured = all[0] ?? null;
+  const gridItems = all.slice(1);
 
   return (
     <DhathuruCategoryPage
