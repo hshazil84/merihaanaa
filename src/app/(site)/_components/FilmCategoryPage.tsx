@@ -30,27 +30,6 @@ const TEXT = "rgb(26,26,26)";
 const TEXT_MUTED = "rgb(140,138,132)";
 const DIVIDER = "rgba(0,0,0,0.07)";
 
-// Every flexible track is minmax(0,1fr), never a bare 1fr. A bare 1fr is
-// minmax(auto,1fr) and refuses to shrink below its content's min-content
-// width; when that floor is hit the grid overflows its container, and
-// because this page is RTL the overflow spills LEFT, shoving the 300px ad
-// rail outside the container.
-//
-// Because those tracks can now shrink, the text they hold has to be able
-// to wrap into them. overflow-wrap:anywhere (not break-word) is what does
-// that: it is the value that also reduces an element's min-content size,
-// so text reflows instead of spilling out. .film-hero-text additionally
-// clips, so nothing can escape sideways and slide under the hero image
-// (whose wrapper is position:relative and so paints above static text).
-//
-// The hero image is the FIRST DOM child, so in this RTL grid it lands in
-// the right-hand column; .film-hero-text (second child) lands in the
-// left-hand column. That means the text's *inline-start* edge (its right
-// side, in RTL) is the one sitting against the grid gap next to the
-// image — not its inline-end edge. Extra clearance beyond the grid gap
-// has to go on padding-inline-start; padding-inline-end would pad the
-// text's outer-left edge instead, which is already open space and does
-// nothing for the seam against the image.
 const CSS = [
   ".film-top{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:1.5rem;align-items:stretch;}",
   ".film-top>*{min-width:0;}",
@@ -129,11 +108,13 @@ export default function FilmCategoryPage({ featured, articles, reviews, category
                 </Link>
 
                 <div className="film-hero-text" style={{ display: "flex", flexDirection: "column", justifyContent: "center", height: "100%" }}>
-                  {getFirstTag(featured.tags) && (
-                    <span style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: RED, border: "1.5px solid " + RED, padding: "4px 12px", borderRadius: "20px", display: "inline-block", alignSelf: "flex-start", marginBottom: "12px", letterSpacing: "0.05em", lineHeight: 1.6 }}>
-                      {getFirstTag(featured.tags)}
-                    </span>
-                  )}
+                  {/* Always rendered so hero content height doesn't shift when
+                      an article has no tag — visibility:hidden keeps the same
+                      box (padding/border/line-height) reserved either way,
+                      instead of display:none which would collapse it. */}
+                  <span style={{ fontFamily: FONT, fontSize: "10px", fontWeight: 700, color: RED, border: "1.5px solid " + RED, padding: "4px 12px", borderRadius: "20px", display: "inline-block", alignSelf: "flex-start", marginBottom: "12px", letterSpacing: "0.05em", lineHeight: 1.6, visibility: getFirstTag(featured.tags) ? "visible" : "hidden" }}>
+                    {getFirstTag(featured.tags) || " "}
+                  </span>
 
                   <Link href={"/" + (featured.category?.slug ?? categorySlug) + "/" + featured.slug} style={{ textDecoration: "none" }}>
                     <h2 style={{ fontFamily: FONT, fontWeight: 700, fontSize: "clamp(1.2rem,2.6vw,1.7rem)", lineHeight: 1.75, margin: "0 0 12px", color: TEXT }}>
