@@ -14,6 +14,11 @@ interface StandardArticleCardProps {
    *  eyebrow. Set false when a grid never uses eyebrow at all, to avoid
    *  reserving dead space for nothing. Defaults to true. */
   reserveEyebrowSpace?: boolean;
+  /** Same idea as reserveEyebrowSpace, for the badge pill: keeps its box
+   *  (and the margin below it) reserved so cards in the same row don't have
+   *  their titles start at different heights depending on whether that
+   *  article has a badgeLabel. Set false for grids that never pass one. */
+  reserveBadgeSpace?: boolean;
   imageOverlayTopStart?: ReactNode;
   imageOverlayTopEnd?: ReactNode;
   imageSizes?: string;
@@ -36,6 +41,7 @@ export function StandardArticleCard({
   badgeLabel,
   eyebrow,
   reserveEyebrowSpace = true,
+  reserveBadgeSpace = true,
   imageOverlayTopStart,
   imageOverlayTopEnd,
   imageSizes = "(max-width: 768px) 68vw, 25vw",
@@ -59,7 +65,11 @@ export function StandardArticleCard({
           <div style={{ position: "absolute", top: 8, insetInlineEnd: 8 }}>{imageOverlayTopEnd}</div>
         )}
       </div>
-      {badgeLabel && (
+      {/* Reserved-height pill: always occupies the same box (and the mb-2
+          margin below it), whether or not this card has a badgeLabel, so
+          the title below starts at the same offset on every card in a row.
+          Skippable via reserveBadgeSpace for grids that never use it. */}
+      {(badgeLabel || reserveBadgeSpace) && (
         <div className="mb-2">
           <span
             className="inline-flex items-center justify-center text-[10px] px-2.5 py-1 rounded-full border"
@@ -70,9 +80,10 @@ export function StandardArticleCard({
               backgroundColor: "rgb(240, 239, 233)",
               lineHeight: 1,
               transform: "translateY(-2px)",
+              visibility: badgeLabel ? "visible" : "hidden",
             }}
           >
-            {badgeLabel}
+            {badgeLabel || "\u00A0"}
           </span>
         </div>
       )}
