@@ -1,6 +1,6 @@
 "use client";
 
-import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
+import { useEditor, EditorContent, BubbleMenu, ReactNodeViewRenderer, NodeViewWrapper } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Image from "@tiptap/extension-image";
@@ -22,6 +22,282 @@ import {
   List, ListOrdered,
   Trash2, GalleryHorizontal,
 } from "lucide-react";
+
+// ── Pull Quote NodeView (click to edit) ─────────────────────
+function PullQuoteView({ node, updateAttributes, deleteNode }: any) {
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(node.attrs.text);
+  const [author, setAuthor] = useState(node.attrs.author);
+
+  if (editing) {
+    return (
+      <NodeViewWrapper contentEditable={false}>
+        <div style={{ margin: "2rem auto", padding: "0 2rem", maxWidth: 600 }}>
+          <div className="border border-border rounded-xl p-4 bg-muted/30" dir="rtl">
+            <textarea
+              value={text} onChange={(e) => setText(e.target.value)} rows={3} dir="rtl" autoFocus
+              className="w-full font-body text-sm p-2.5 rounded-lg border border-border bg-background outline-none focus:border-foreground resize-none mb-2"
+              placeholder="ޖުމްލަ..."
+            />
+            <input
+              value={author} onChange={(e) => setAuthor(e.target.value)} dir="rtl"
+              className="w-full font-body text-sm p-2.5 rounded-lg border border-border bg-background outline-none focus:border-foreground mb-2"
+              placeholder="ލިޔުންތެރިޔާ / މަސްދަރު (އިހްތިޔާރީ)"
+            />
+            <div className="flex gap-2 items-center">
+              <button type="button" onClick={() => { updateAttributes({ text, author }); setEditing(false); }}
+                className="px-3 py-1.5 rounded-lg bg-foreground text-background font-body text-xs font-semibold">ސޭވް</button>
+              <button type="button" onClick={() => { setText(node.attrs.text); setAuthor(node.attrs.author); setEditing(false); }}
+                className="px-3 py-1.5 rounded-lg border border-border font-body text-xs">ކެންސަލް</button>
+              <button type="button" onClick={() => deleteNode()}
+                className="mr-auto px-3 py-1.5 rounded-lg font-body text-xs text-destructive hover:bg-destructive/10 flex items-center gap-1">
+                <Trash2 size={12} /> ފޮހެލާ
+              </button>
+            </div>
+          </div>
+        </div>
+      </NodeViewWrapper>
+    );
+  }
+
+  return (
+    <NodeViewWrapper contentEditable={false}>
+      <div
+        onClick={() => setEditing(true)}
+        className="group relative cursor-pointer rounded-lg hover:bg-muted/40 transition-colors"
+        style={{ margin: "2rem auto", padding: "0.5rem 2rem", textAlign: "center", maxWidth: 600 }}
+      >
+        <span className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity font-body text-[10px] px-1.5 py-0.5 rounded bg-foreground text-background">
+          އެޑިޓް
+        </span>
+        <p style={{ fontFamily: "'MVTypewriter','Noto Sans Thaana',sans-serif", fontSize: "1.35rem", fontWeight: 700, color: "rgb(26,26,26)", lineHeight: 1.8, margin: "0 0 0.5rem" }}>
+          "{node.attrs.text}"
+        </p>
+        {node.attrs.author ? (
+          <p style={{ fontFamily: "'MVTypewriter',sans-serif", fontSize: 11, fontWeight: 700, color: "rgb(160,158,152)", lineHeight: 2, margin: 0 }}>
+            — {node.attrs.author}
+          </p>
+        ) : null}
+      </div>
+    </NodeViewWrapper>
+  );
+}
+
+const PullQuoteNode = Node.create({
+  name: "pullQuote",
+  group: "block",
+  atom: true,
+  addAttributes() {
+    return {
+      text:   { default: "" },
+      author: { default: "" },
+    };
+  },
+  parseHTML() { return [{ tag: "div[data-pull-quote]" }]; },
+  renderHTML({ HTMLAttributes }) {
+    const { text, author } = HTMLAttributes;
+    return [
+      "div", mergeAttributes({ "data-pull-quote": "" }, {
+        style: "margin:2rem auto;padding:0 2rem;text-align:center;max-width:600px;",
+      }),
+      ["p", { style: "font-family:'MVTypewriter','Noto Sans Thaana',sans-serif;font-size:1.35rem;font-weight:700;color:rgb(26,26,26);line-height:1.8;margin:0 0 0.5rem;" }, '"' + text + '"'],
+      ...(author ? [["p", { style: "font-family:'MVTypewriter',sans-serif;font-size:11px;font-weight:700;color:rgb(160,158,152);line-height:2;margin:0;" }, "— " + author]] : []),
+    ];
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(PullQuoteView);
+  },
+  addCommands() {
+    return {
+      insertPullQuote: (attrs: { text: string; author?: string }) => ({ commands }: any) =>
+        commands.insertContent([{ type: "pullQuote", attrs }, { type: "paragraph" }]),
+    } as any;
+  },
+});
+
+// ── Styled Blockquote NodeView (click to edit) ──────────────
+function StyledBlockquoteView({ node, updateAttributes, deleteNode }: any) {
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(node.attrs.text);
+  const [author, setAuthor] = useState(node.attrs.author);
+
+  if (editing) {
+    return (
+      <NodeViewWrapper contentEditable={false}>
+        <div style={{ margin: "1.5rem 0" }}>
+          <div className="border border-border rounded-xl p-4 bg-muted/30" dir="rtl">
+            <textarea
+              value={text} onChange={(e) => setText(e.target.value)} rows={3} dir="rtl" autoFocus
+              className="w-full font-body text-sm p-2.5 rounded-lg border border-border bg-background outline-none focus:border-foreground resize-none mb-2"
+              placeholder="ޖުމްލަ..."
+            />
+            <input
+              value={author} onChange={(e) => setAuthor(e.target.value)} dir="rtl"
+              className="w-full font-body text-sm p-2.5 rounded-lg border border-border bg-background outline-none focus:border-foreground mb-2"
+              placeholder="ލިޔުންތެރިޔާ / މަސްދަރު (އިހްތިޔާރީ)"
+            />
+            <div className="flex gap-2 items-center">
+              <button type="button" onClick={() => { updateAttributes({ text, author }); setEditing(false); }}
+                className="px-3 py-1.5 rounded-lg bg-foreground text-background font-body text-xs font-semibold">ސޭވް</button>
+              <button type="button" onClick={() => { setText(node.attrs.text); setAuthor(node.attrs.author); setEditing(false); }}
+                className="px-3 py-1.5 rounded-lg border border-border font-body text-xs">ކެންސަލް</button>
+              <button type="button" onClick={() => deleteNode()}
+                className="mr-auto px-3 py-1.5 rounded-lg font-body text-xs text-destructive hover:bg-destructive/10 flex items-center gap-1">
+                <Trash2 size={12} /> ފޮހެލާ
+              </button>
+            </div>
+          </div>
+        </div>
+      </NodeViewWrapper>
+    );
+  }
+
+  return (
+    <NodeViewWrapper contentEditable={false}>
+      <div
+        onClick={() => setEditing(true)}
+        className="group relative cursor-pointer rounded-lg hover:bg-muted/40 transition-colors"
+        style={{ margin: "1.5rem 0", padding: "4px 20px 4px 0", borderRight: "2px solid rgba(0,0,0,0.5)", direction: "rtl" }}
+      >
+        <span className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity font-body text-[10px] px-1.5 py-0.5 rounded bg-foreground text-background">
+          އެޑިޓް
+        </span>
+        <p style={{ fontFamily: "'MVTypewriter','Noto Sans Thaana',sans-serif", fontSize: 16, color: "rgb(60,58,52)", lineHeight: 2, margin: "0 0 4px" }}>
+          {node.attrs.text}
+        </p>
+        {node.attrs.author ? (
+          <p style={{ fontFamily: "'MVTypewriter',sans-serif", fontSize: 11, fontWeight: 700, color: "rgb(160,158,152)", lineHeight: 2, margin: 0 }}>
+            — {node.attrs.author}
+          </p>
+        ) : null}
+      </div>
+    </NodeViewWrapper>
+  );
+}
+
+const StyledBlockquoteNode = Node.create({
+  name: "styledBlockquote",
+  group: "block",
+  atom: true,
+  addAttributes() {
+    return {
+      text:   { default: "" },
+      author: { default: "" },
+    };
+  },
+  parseHTML() { return [{ tag: "div[data-styled-blockquote]" }]; },
+  renderHTML({ HTMLAttributes }) {
+    const { text, author } = HTMLAttributes;
+    return [
+      "div", mergeAttributes({ "data-styled-blockquote": "" }, {
+        style: "margin:1.5rem 0;padding:4px 0 4px 0;border-right:2px solid rgba(0,0,0,0.5);padding-right:20px;direction:rtl;",
+      }),
+      ["p", { style: "font-family:'MVTypewriter','Noto Sans Thaana',sans-serif;font-size:16px;color:rgb(60,58,52);line-height:2;margin:0 0 4px;" }, text],
+      ...(author ? [["p", { style: "font-family:'MVTypewriter',sans-serif;font-size:11px;font-weight:700;color:rgb(160,158,152);line-height:2;margin:0;" }, "— " + author]] : []),
+    ];
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(StyledBlockquoteView);
+  },
+  addCommands() {
+    return {
+      insertStyledBlockquote: (attrs: { text: string; author?: string }) => ({ commands }: any) =>
+        commands.insertContent([{ type: "styledBlockquote", attrs }, { type: "paragraph" }]),
+    } as any;
+  },
+});
+
+// ── Interview Q&A NodeView (click to edit) ──────────────────
+function InterviewView({ node, updateAttributes, deleteNode }: any) {
+  const [editing, setEditing] = useState(false);
+  const [question, setQuestion] = useState(node.attrs.question);
+  const [answer, setAnswer] = useState(node.attrs.answer);
+
+  if (editing) {
+    return (
+      <NodeViewWrapper contentEditable={false}>
+        <div style={{ margin: "1.5rem 0" }}>
+          <div className="border border-border rounded-xl p-4 bg-muted/30 space-y-2" dir="rtl">
+            <textarea
+              value={question} onChange={(e) => setQuestion(e.target.value)} rows={2} dir="rtl" autoFocus
+              className="w-full font-body text-sm p-2.5 rounded-lg border border-border bg-background outline-none focus:border-foreground resize-none"
+              placeholder="ސުވާލު..."
+            />
+            <textarea
+              value={answer} onChange={(e) => setAnswer(e.target.value)} rows={3} dir="rtl"
+              className="w-full font-body text-sm p-2.5 rounded-lg border border-border bg-background outline-none focus:border-foreground resize-none"
+              placeholder="ޖަވާބު..."
+            />
+            <div className="flex gap-2 items-center">
+              <button type="button" onClick={() => { updateAttributes({ question, answer }); setEditing(false); }}
+                className="px-3 py-1.5 rounded-lg bg-foreground text-background font-body text-xs font-semibold">ސޭވް</button>
+              <button type="button" onClick={() => { setQuestion(node.attrs.question); setAnswer(node.attrs.answer); setEditing(false); }}
+                className="px-3 py-1.5 rounded-lg border border-border font-body text-xs">ކެންސަލް</button>
+              <button type="button" onClick={() => deleteNode()}
+                className="mr-auto px-3 py-1.5 rounded-lg font-body text-xs text-destructive hover:bg-destructive/10 flex items-center gap-1">
+                <Trash2 size={12} /> ފޮހެލާ
+              </button>
+            </div>
+          </div>
+        </div>
+      </NodeViewWrapper>
+    );
+  }
+
+  return (
+    <NodeViewWrapper contentEditable={false}>
+      <div onClick={() => setEditing(true)} className="group relative cursor-pointer rounded-lg" style={{ margin: "1.5rem 0" }}>
+        <span className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity font-body text-[10px] px-1.5 py-0.5 rounded bg-foreground text-background z-10">
+          އެޑިޓް
+        </span>
+        <div className="group-hover:brightness-95 transition-all" style={{ background: "rgb(240,239,233)", border: "1px solid rgb(224,221,214)", borderRadius: 8, padding: "14px 18px", marginBottom: 8, direction: "rtl" }}>
+          <p style={{ fontFamily: "'MVTypewriter',sans-serif", fontSize: 10, fontWeight: 700, color: "rgb(100,98,92)", letterSpacing: "0.05em", margin: "0 0 4px", opacity: 0.7 }}>ސ</p>
+          <p style={{ fontFamily: "'MVTypewriter','Noto Sans Thaana',sans-serif", fontSize: 14, color: "rgb(26,26,26)", lineHeight: 1.9, margin: 0 }}>{node.attrs.question}</p>
+        </div>
+        <div className="group-hover:brightness-95 transition-all" style={{ background: "rgb(249,248,245)", border: "1px solid rgb(224,221,214)", borderRadius: 8, padding: "14px 18px", direction: "rtl" }}>
+          <p style={{ fontFamily: "'MVTypewriter',sans-serif", fontSize: 10, fontWeight: 700, color: "rgb(100,98,92)", letterSpacing: "0.05em", margin: "0 0 4px", opacity: 0.7 }}>ޖ</p>
+          <p style={{ fontFamily: "'MVTypewriter','Noto Sans Thaana',sans-serif", fontSize: 14, color: "rgb(26,26,26)", lineHeight: 1.9, margin: 0 }}>{node.attrs.answer}</p>
+        </div>
+      </div>
+    </NodeViewWrapper>
+  );
+}
+
+const InterviewNode = Node.create({
+  name: "interview",
+  group: "block",
+  atom: true,
+  addAttributes() {
+    return {
+      question: { default: "" },
+      answer:   { default: "" },
+    };
+  },
+  parseHTML() { return [{ tag: "div[data-interview]" }]; },
+  renderHTML({ HTMLAttributes }) {
+    const { question, answer } = HTMLAttributes;
+    return [
+      "div", mergeAttributes({ "data-interview": "" }, { style: "margin:1.5rem 0;" }),
+      ["div", { style: "background:rgb(240,239,233);border:1px solid rgb(224,221,214);border-radius:8px;padding:14px 18px;margin-bottom:8px;direction:rtl;" },
+        ["p", { style: "font-family:'MVTypewriter',sans-serif;font-size:10px;font-weight:700;color:rgb(100,98,92);letter-spacing:0.05em;margin:0 0 4px;opacity:0.7;" }, "ސ"],
+        ["p", { style: "font-family:'MVTypewriter','Noto Sans Thaana',sans-serif;font-size:14px;color:rgb(26,26,26);line-height:1.9;margin:0;" }, question],
+      ],
+      ["div", { style: "background:rgb(249,248,245);border:1px solid rgb(224,221,214);border-radius:8px;padding:14px 18px;direction:rtl;" },
+        ["p", { style: "font-family:'MVTypewriter',sans-serif;font-size:10px;font-weight:700;color:rgb(100,98,92);letter-spacing:0.05em;margin:0 0 4px;opacity:0.7;" }, "ޖ"],
+        ["p", { style: "font-family:'MVTypewriter','Noto Sans Thaana',sans-serif;font-size:14px;color:rgb(26,26,26);line-height:1.9;margin:0;" }, answer],
+      ],
+    ];
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(InterviewView);
+  },
+  addCommands() {
+    return {
+      insertInterview: (attrs: { question: string; answer: string }) => ({ commands }: any) =>
+        commands.insertContent([{ type: "interview", attrs }, { type: "paragraph" }]),
+    } as any;
+  },
+});
 
 // ── Vimeo node ─────────────────────────────────────────────
 const VimeoNode = Node.create({
@@ -89,100 +365,6 @@ const SocialNode = Node.create({
     return {
       insertSocial: (attrs: { provider: string; url: string; author?: string; text?: string; thumb?: string }) =>
         ({ commands }: any) => commands.insertContent([{ type: "socialEmbed", attrs }, { type: "paragraph" }]),
-    } as any;
-  },
-});
-
-// ── Pull Quote node ────────────────────────────────────────
-const PullQuoteNode = Node.create({
-  name: "pullQuote",
-  group: "block",
-  atom: true,
-  addAttributes() {
-    return {
-      text:   { default: "" },
-      author: { default: "" },
-    };
-  },
-  parseHTML() { return [{ tag: "div[data-pull-quote]" }]; },
-  renderHTML({ HTMLAttributes }) {
-    const { text, author } = HTMLAttributes;
-    return [
-      "div", mergeAttributes({ "data-pull-quote": "" }, {
-        style: "margin:2rem auto;padding:0 2rem;text-align:center;max-width:600px;",
-      }),
-      ["p", { style: "font-family:'MVTypewriter','Noto Sans Thaana',sans-serif;font-size:1.35rem;font-weight:700;color:rgb(26,26,26);line-height:1.8;margin:0 0 0.5rem;" }, '"' + text + '"'],
-      ...(author ? [["p", { style: "font-family:'MVTypewriter',sans-serif;font-size:11px;font-weight:700;color:rgb(160,158,152);line-height:2;margin:0;" }, "— " + author]] : []),
-    ];
-  },
-  addCommands() {
-    return {
-      insertPullQuote: (attrs: { text: string; author?: string }) => ({ commands }: any) =>
-        commands.insertContent([{ type: "pullQuote", attrs }, { type: "paragraph" }]),
-    } as any;
-  },
-});
-
-// ── Interview Q&A node ─────────────────────────────────────
-const InterviewNode = Node.create({
-  name: "interview",
-  group: "block",
-  atom: true,
-  addAttributes() {
-    return {
-      question: { default: "" },
-      answer:   { default: "" },
-    };
-  },
-  parseHTML() { return [{ tag: "div[data-interview]" }]; },
-  renderHTML({ HTMLAttributes }) {
-    const { question, answer } = HTMLAttributes;
-    return [
-      "div", mergeAttributes({ "data-interview": "" }, { style: "margin:1.5rem 0;" }),
-      ["div", { style: "background:rgb(240,239,233);border:1px solid rgb(224,221,214);border-radius:8px;padding:14px 18px;margin-bottom:8px;direction:rtl;" },
-        ["p", { style: "font-family:'MVTypewriter',sans-serif;font-size:10px;font-weight:700;color:rgb(100,98,92);letter-spacing:0.05em;margin:0 0 4px;opacity:0.7;" }, "ސ"],
-        ["p", { style: "font-family:'MVTypewriter','Noto Sans Thaana',sans-serif;font-size:14px;color:rgb(26,26,26);line-height:1.9;margin:0;" }, question],
-      ],
-      ["div", { style: "background:rgb(249,248,245);border:1px solid rgb(224,221,214);border-radius:8px;padding:14px 18px;direction:rtl;" },
-        ["p", { style: "font-family:'MVTypewriter',sans-serif;font-size:10px;font-weight:700;color:rgb(100,98,92);letter-spacing:0.05em;margin:0 0 4px;opacity:0.7;" }, "ޖ"],
-        ["p", { style: "font-family:'MVTypewriter','Noto Sans Thaana',sans-serif;font-size:14px;color:rgb(26,26,26);line-height:1.9;margin:0;" }, answer],
-      ],
-    ];
-  },
-  addCommands() {
-    return {
-      insertInterview: (attrs: { question: string; answer: string }) => ({ commands }: any) =>
-        commands.insertContent([{ type: "interview", attrs }, { type: "paragraph" }]),
-    } as any;
-  },
-});
-
-// ── Styled Blockquote node ─────────────────────────────────
-const StyledBlockquoteNode = Node.create({
-  name: "styledBlockquote",
-  group: "block",
-  atom: true,
-  addAttributes() {
-    return {
-      text:   { default: "" },
-      author: { default: "" },
-    };
-  },
-  parseHTML() { return [{ tag: "div[data-styled-blockquote]" }]; },
-  renderHTML({ HTMLAttributes }) {
-    const { text, author } = HTMLAttributes;
-    return [
-      "div", mergeAttributes({ "data-styled-blockquote": "" }, {
-        style: "margin:1.5rem 0;padding:4px 0 4px 0;border-right:2px solid rgba(0,0,0,0.5);padding-right:20px;direction:rtl;",
-      }),
-      ["p", { style: "font-family:'MVTypewriter','Noto Sans Thaana',sans-serif;font-size:16px;color:rgb(60,58,52);line-height:2;margin:0 0 4px;" }, text],
-      ...(author ? [["p", { style: "font-family:'MVTypewriter',sans-serif;font-size:11px;font-weight:700;color:rgb(160,158,152);line-height:2;margin:0;" }, "— " + author]] : []),
-    ];
-  },
-  addCommands() {
-    return {
-      insertStyledBlockquote: (attrs: { text: string; author?: string }) => ({ commands }: any) =>
-        commands.insertContent([{ type: "styledBlockquote", attrs }, { type: "paragraph" }]),
     } as any;
   },
 });
@@ -260,12 +442,14 @@ const QUOTE_STYLES: { type: QuoteType; label: string; preview: React.ReactNode }
 function QuoteModal({
   onInsert,
   onClose,
+  prefill,
 }: {
   onInsert: (type: QuoteType, data: any) => void;
   onClose: () => void;
+  prefill?: { type: QuoteType; text: string } | null;
 }) {
-  const [selected, setSelected] = useState<QuoteType | null>(null);
-  const [text, setText]         = useState("");
+  const [selected, setSelected] = useState<QuoteType | null>(prefill?.type ?? null);
+  const [text, setText]         = useState(prefill?.text ?? "");
   const [author, setAuthor]     = useState("");
   const [question, setQuestion] = useState("");
   const [answer, setAnswer]     = useState("");
@@ -381,6 +565,8 @@ export default function ArticleEditor({ content, onChange, placeholder = "ލިޔ
   const [mediaModalOpen, setMediaModalOpen]     = useState(false);
   const [quoteModalOpen, setQuoteModalOpen]     = useState(false);
   const [carouselModalOpen, setCarouselModalOpen] = useState(false);
+  const [quotePrefill, setQuotePrefill] = useState<{ type: QuoteType; text: string } | null>(null);
+  const [pendingSelection, setPendingSelection] = useState<{ from: number; to: number } | null>(null);
 
   const handleUpdate = useCallback(({ editor }: any) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -444,11 +630,43 @@ export default function ArticleEditor({ content, onChange, placeholder = "ލިޔ
     }
   }, [editor]);
 
+  // Opens the quote modal. If text is currently highlighted, skip the style
+  // picker, default to pull quote, and pre-fill it with the selection — the
+  // selection itself is captured now (positions are stable while the modal
+  // is open, since the overlay blocks further editing) and consumed on
+  // submit to replace the highlighted text with the new quote block.
+  const openQuoteModal = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!editor) return;
+    const { from, to, empty } = editor.state.selection;
+    if (!empty) {
+      const selectedText = editor.state.doc.textBetween(from, to, " ");
+      setPendingSelection({ from, to });
+      setQuotePrefill({ type: "pullQuote", text: selectedText });
+    } else {
+      setPendingSelection(null);
+      setQuotePrefill(null);
+    }
+    setQuoteModalOpen(true);
+  }, [editor]);
+
   const handleQuoteInsert = (type: QuoteType, data: any) => {
     if (!editor) return;
-    if (type === "pullQuote") (editor.chain().focus() as any).insertPullQuote(data).focus().run();
-    if (type === "interview") (editor.chain().focus() as any).insertInterview(data).focus().run();
-    if (type === "styledBlockquote") (editor.chain().focus() as any).insertStyledBlockquote(data).focus().run();
+    const chain = editor.chain().focus();
+    if (pendingSelection) {
+      chain.setTextSelection(pendingSelection).deleteSelection();
+    }
+    if (type === "pullQuote") (chain as any).insertPullQuote(data).run();
+    if (type === "interview") (chain as any).insertInterview(data).run();
+    if (type === "styledBlockquote") (chain as any).insertStyledBlockquote(data).run();
+    setPendingSelection(null);
+    setQuotePrefill(null);
+  };
+
+  const closeQuoteModal = () => {
+    setQuoteModalOpen(false);
+    setPendingSelection(null);
+    setQuotePrefill(null);
   };
 
   const handleCarouselInsert = (images: string[], ratio: string) => {
@@ -502,7 +720,7 @@ export default function ArticleEditor({ content, onChange, placeholder = "ލިޔ
           </ToolbarGroup>
           <Divider />
           <ToolbarGroup>
-            <ToolbarBtn onClick={(e) => { e.preventDefault(); setQuoteModalOpen(true); }} title="ކޯޓް"><Quote size={14} /></ToolbarBtn>
+            <ToolbarBtn onClick={openQuoteModal} title="ކޯޓް (ޖުމްލައެއް ހައިލައިޓްކޮށްފައި ފިއްތާލުމުން ޕުލް ކޯޓަކަށް ބަދަލުވާނެ)"><Quote size={14} /></ToolbarBtn>
             <ToolbarBtn onClick={(e) => { e.preventDefault(); editor.chain().focus().setHorizontalRule().run(); }} title="ތިރި"><Minus size={14} /></ToolbarBtn>
           </ToolbarGroup>
           <Divider />
@@ -540,7 +758,8 @@ export default function ArticleEditor({ content, onChange, placeholder = "ލިޔ
       {quoteModalOpen && (
         <QuoteModal
           onInsert={handleQuoteInsert}
-          onClose={() => setQuoteModalOpen(false)}
+          onClose={closeQuoteModal}
+          prefill={quotePrefill}
         />
       )}
 
