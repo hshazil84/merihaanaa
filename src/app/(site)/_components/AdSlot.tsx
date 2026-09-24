@@ -64,8 +64,8 @@ export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު", s
     "}",
     "." + cls + " img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}",
     "." + phCls + "{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-decoration:none;cursor:pointer;padding:12px;box-sizing:border-box;text-align:center;}",
-    "." + phCls + "-headline{font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:13px;line-height:1.5;color:rgb(26,26,26);text-transform:uppercase;letter-spacing:0.01em;animation:" + phCls + "-blur 3.5s ease-in-out infinite;}",
-    "." + phCls + "-domain{font-family:Arial,Helvetica,sans-serif;font-weight:400;font-size:10px;color:rgba(26,26,26,0.45);letter-spacing:0.04em;animation:" + phCls + "-blur 3.5s ease-in-out infinite;animation-delay:0.6s;}",
+    "." + phCls + "-headline{font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:13px;line-height:1.5;color:rgb(26,26,26);text-transform:uppercase;letter-spacing:0.01em;animation:" + phCls + "-blur 6s ease-in-out infinite;}",
+    "." + phCls + "-domain{font-family:Arial,Helvetica,sans-serif;font-weight:400;font-size:10px;color:rgba(26,26,26,0.45);letter-spacing:0.04em;animation:" + phCls + "-blur 6s ease-in-out infinite;animation-delay:1s;}",
     "@keyframes " + phCls + "-blur{0%{opacity:0;filter:blur(6px);}20%{opacity:1;filter:blur(0);}70%{opacity:1;filter:blur(0);}100%{opacity:0;filter:blur(6px);}}",
   ].join("");
 
