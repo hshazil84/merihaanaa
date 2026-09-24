@@ -29,7 +29,7 @@ export default function TodaysPicks({ articles }: Props) {
           lineHeight: 2,
         }}
       >
-        މިއަދުގެ ފާހަގަކޮށްލެވޭ
+        ހިތް ނެތިއްޔާ ކިޔާލަން
       </h2>
       <div
         className="md:grid md:grid-cols-4 md:gap-8 flex gap-4 overflow-x-auto pb-2 md:pb-0 md:overflow-visible no-scrollbar"
