@@ -42,7 +42,7 @@ const VimeoNode = Node.create({
       ["div", { style: "position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:12px;background:#000;" },
         ["iframe", { src: "https://player.vimeo.com/video/" + videoId + "?autoplay=0&title=0&byline=0&portrait=0", style: "position:absolute;top:0;left:0;width:100%;height:100%;border:0;", allowfullscreen: "true", loading: "lazy" }],
       ],
-      ...(caption ? [["p", { style: "text-align:center;font-size:11px;color:#888;margin-top:4px;" }, caption]] : []),
+      ...(caption ? [["p", { style: "text-align:center;font-size:11px;font-weight:700;color:#888;margin-top:4px;" }, caption]] : []),
     ];
   },
   addCommands() {
@@ -112,7 +112,7 @@ const PullQuoteNode = Node.create({
         style: "margin:2rem auto;padding:0 2rem;text-align:center;max-width:600px;",
       }),
       ["p", { style: "font-family:'MVTypewriter','Noto Sans Thaana',sans-serif;font-size:1.35rem;font-weight:700;color:rgb(26,26,26);line-height:1.8;margin:0 0 0.5rem;" }, '"' + text + '"'],
-      ...(author ? [["p", { style: "font-family:'MVTypewriter',sans-serif;font-size:11px;color:rgb(160,158,152);line-height:2;margin:0;" }, "— " + author]] : []),
+      ...(author ? [["p", { style: "font-family:'MVTypewriter',sans-serif;font-size:11px;font-weight:700;color:rgb(160,158,152);line-height:2;margin:0;" }, "— " + author]] : []),
     ];
   },
   addCommands() {
@@ -176,7 +176,7 @@ const StyledBlockquoteNode = Node.create({
         style: "margin:1.5rem 0;padding:4px 0 4px 0;border-right:2px solid rgba(0,0,0,0.5);padding-right:20px;direction:rtl;",
       }),
       ["p", { style: "font-family:'MVTypewriter','Noto Sans Thaana',sans-serif;font-size:16px;color:rgb(60,58,52);line-height:2;margin:0 0 4px;" }, text],
-      ...(author ? [["p", { style: "font-family:'MVTypewriter',sans-serif;font-size:11px;color:rgb(160,158,152);line-height:2;margin:0;" }, "— " + author]] : []),
+      ...(author ? [["p", { style: "font-family:'MVTypewriter',sans-serif;font-size:11px;font-weight:700;color:rgb(160,158,152);line-height:2;margin:0;" }, "— " + author]] : []),
     ];
   },
   addCommands() {
