@@ -63,9 +63,9 @@ export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު", s
     creative ? "" : "border:1.5px dashed rgba(0,0,0,0.13);background:rgba(0,0,0,0.015);",
     "}",
     "." + cls + " img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}",
-    "." + phCls + "{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-decoration:none;cursor:pointer;padding:8px;box-sizing:border-box;}",
-    "." + phCls + " img{position:static;width:34%;max-width:64px;height:auto;object-fit:contain;opacity:0.32;}",
-    "." + phCls + " span{font-family:\"MVTypewriter\",\"Noto Sans Thaana\",sans-serif;font-size:11px;font-weight:400;color:rgba(0,0,0,0.32);line-height:1.7;text-align:center;direction:rtl;animation:" + phCls + "-blur 3.5s ease-in-out infinite;}",
+    "." + phCls + "{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-decoration:none;cursor:pointer;padding:12px;box-sizing:border-box;text-align:center;}",
+    "." + phCls + "-headline{font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:13px;line-height:1.5;color:rgb(26,26,26);text-transform:uppercase;letter-spacing:0.01em;animation:" + phCls + "-blur 3.5s ease-in-out infinite;}",
+    "." + phCls + "-domain{font-family:Arial,Helvetica,sans-serif;font-weight:400;font-size:10px;color:rgba(26,26,26,0.45);letter-spacing:0.04em;animation:" + phCls + "-blur 3.5s ease-in-out infinite;animation-delay:0.6s;}",
     "@keyframes " + phCls + "-blur{0%{opacity:0;filter:blur(6px);}20%{opacity:1;filter:blur(0);}70%{opacity:1;filter:blur(0);}100%{opacity:0;filter:blur(6px);}}",
   ].join("");
 
@@ -86,11 +86,14 @@ export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު", s
       href={WHATSAPP_URL}
       target="_blank"
       rel="noopener noreferrer"
+      dir="ltr"
       className={phCls}
-      aria-label="އިޝްތިހާރު ކުރައްވަން ގުޅުއްވާ"
+      aria-label="Advertise on Merihaanaa"
     >
-      <img src="/logo.svg" alt="" />
-      <span>މިތަނުގައި އިޝްތިހާރު ކުރައްވާ</span>
+      <span className={phCls + "-headline"}>
+        PUT YOUR BRAND WHERE<br />PEOPLE COME BACK FOR MORE
+      </span>
+      <span className={phCls + "-domain"}>merihaanaa.com</span>
     </a>
   ) : null;
 
