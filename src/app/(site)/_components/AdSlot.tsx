@@ -82,7 +82,7 @@ export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު", s
   ) : null;
 
   const placeholder = !creative ? (
-    
+    <a
       href={WHATSAPP_URL}
       target="_blank"
       rel="noopener noreferrer"
@@ -117,7 +117,7 @@ export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު", s
         <div className={cls} data-ad-slot={id}>
           {creative ? (
             booking?.click_url ? (
-              
+              <a
                 href={booking.click_url}
                 target="_blank"
                 rel="noopener noreferrer sponsored"
