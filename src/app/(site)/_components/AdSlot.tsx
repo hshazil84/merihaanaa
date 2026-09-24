@@ -18,6 +18,8 @@ interface AdSlotProps {
 const BLANK_PIXEL =
   "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBTAA7";
 
+const WHATSAPP_URL = "https://wa.me/9607718184";
+
 export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު", sticky = true }: AdSlotProps) {
   const def = getAdSlot(id);
   if (!def) return null;
@@ -32,6 +34,7 @@ export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު", s
 
   const cls = "adslot-" + id + "-" + breakpoint;
   const wrapCls = cls + "-wrap";
+  const phCls = cls + "-ph";
 
   // The media query that decides whether THIS breakpoint's instance is the
   // one actually shown on screen. Used both for the wrapper's CSS
@@ -60,6 +63,10 @@ export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު", s
     creative ? "" : "border:1.5px dashed rgba(0,0,0,0.13);background:rgba(0,0,0,0.015);",
     "}",
     "." + cls + " img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}",
+    "." + phCls + "{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-decoration:none;cursor:pointer;padding:8px;box-sizing:border-box;}",
+    "." + phCls + " img{position:static;width:34%;max-width:64px;height:auto;object-fit:contain;opacity:0.32;}",
+    "." + phCls + " span{font-family:\"MVTypewriter\",\"Noto Sans Thaana\",sans-serif;font-size:11px;font-weight:400;color:rgba(0,0,0,0.32);line-height:1.7;text-align:center;direction:rtl;animation:" + phCls + "-blur 3.5s ease-in-out infinite;}",
+    "@keyframes " + phCls + "-blur{0%{opacity:0;filter:blur(6px);}20%{opacity:1;filter:blur(0);}70%{opacity:1;filter:blur(0);}100%{opacity:0;filter:blur(6px);}}",
   ].join("");
 
   const visibility =
@@ -72,6 +79,19 @@ export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު", s
       <source media={visibleQuery} srcSet={creative} />
       <img src={BLANK_PIXEL} alt={booking?.advertiser?.name ?? ""} loading="lazy" />
     </picture>
+  ) : null;
+
+  const placeholder = !creative ? (
+    
+      href={WHATSAPP_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={phCls}
+      aria-label="އިޝްތިހާރު ކުރައްވަން ގުޅުއްވާ"
+    >
+      <img src="/logo.svg" alt="" />
+      <span>މިތަނުގައި އިޝްތިހާރު ކުރައްވާ</span>
+    </a>
   ) : null;
 
   const caption = (
@@ -97,7 +117,7 @@ export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު", s
         <div className={cls} data-ad-slot={id}>
           {creative ? (
             booking?.click_url ? (
-              <a
+              
                 href={booking.click_url}
                 target="_blank"
                 rel="noopener noreferrer sponsored"
@@ -109,7 +129,9 @@ export async function AdSlot({ id, breakpoint, label = "އިޝްތިހާރު", s
             ) : (
               creativeImg
             )
-          ) : null}
+          ) : (
+            placeholder
+          )}
         </div>
         {caption}
       </div>
