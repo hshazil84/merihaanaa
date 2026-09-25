@@ -1,4 +1,4 @@
-import "../globals.css";
+import "./bio.css";
 
 export default function BioLayout({ children }: { children: React.ReactNode }) {
   return (
