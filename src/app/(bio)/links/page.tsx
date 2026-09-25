@@ -2,7 +2,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { unstable_noStore as noStore } from "next/cache";
 
 export const metadata = {
-  title: "މެރިހާނާ — ލިންކްސް",
+  title: "ލިންކް-އިން-ބަޔޯ",
   robots: { index: false, follow: false },
 };
 
