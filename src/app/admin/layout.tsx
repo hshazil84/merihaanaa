@@ -33,6 +33,7 @@ import {
   Home,
   BarChart2,
   Megaphone,
+  Link2,
 } from "lucide-react";
 import type { UserProfile } from "@/types";
 
@@ -46,6 +47,7 @@ const NAV_GROUPS = [
     { href: "/admin/charts",       label: "ޗާޓްސް",           icon: BarChart2,       comingSoon: false },
     { href: "/admin/production",   label: "ޕްރޮޑަކްޝަން",    icon: Clapperboard,    comingSoon: false },
     { href: "/admin/ads",          label: "އިޝްތިހާރު",      icon: Megaphone,       comingSoon: false  },
+    { href: "/admin/link-in-bio",  label: "ލިންކް އިން ބަޔޯ", icon: Link2,           comingSoon: false  },
   ],
   [
     { href: "/admin/videos",       label: "ވީޑިއޯތައް",      icon: Video,           comingSoon: false },
@@ -70,6 +72,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
   "/admin/charts":        "ޗާޓްސް",
   "/admin/production":    "ޕްރޮޑަކްޝަން",
   "/admin/ads":           "އިޝްތިހާރު",
+  "/admin/link-in-bio":   "ލިންކް އިން ބަޔޯ",
   "/admin/videos":        "ވީޑިއޯ",
   "/admin/originals":     "ވީއޯޑީ",
   "/admin/originals/new": "އާ ވިޑިއޯ",
