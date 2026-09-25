@@ -128,7 +128,7 @@ export default function AdminLinkInBioPage() {
       </div>
 
       <div className={card + " bg-muted/30 p-4 mb-6"}>
-        <label className={lbl}>ލިޔުމުގެ ލިންކް ފޭސްޓްކުރޭ</label>
+        <label className={lbl}>ލިޔުމުގެ ލިންކް ޕޭސްޓްކުރޭ</label>
         <div className="flex gap-2">
           <input
             className={input}
@@ -202,7 +202,7 @@ export default function AdminLinkInBioPage() {
                     </td>
                     <td className="p-3">
                       <button onClick={() => removeArticle(item.id)} className="text-xs text-destructive">
-                        ލިންކްއެއް ވައްޓާޔާ
+                        މިލިންކް ނަގާ
                       </button>
                     </td>
                   </tr>
