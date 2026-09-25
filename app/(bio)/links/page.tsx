@@ -179,7 +179,7 @@ export default async function LinksPage() {
           { href: WHATSAPP_URL, label: "ވަޓްސްއެޕުން ގުޅާލާ" },
           { href: FACEBOOK_URL, label: "ފޭސްބުކުން ފޮލޯކުރޭ" },
         ].map((link) => (
-          
+          <a
             key={link.href}
             href={link.href}
             target="_blank"
