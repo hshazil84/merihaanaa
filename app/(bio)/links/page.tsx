@@ -107,7 +107,7 @@ export default async function LinksPage() {
           const categorySlug = article.category?.slug;
           if (!categorySlug) return null;
           return (
-            
+            <a
               key={article.id}
               href={"/" + categorySlug + "/" + article.slug}
               style={{
