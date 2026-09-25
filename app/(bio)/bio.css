@@ -1,0 +1,40 @@
+@font-face {
+  font-family: "SanguSuruhee";
+  src: url("/fonts/Sangu Suruhee 2.0.woff") format("woff");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "MVTypewriter";
+  src: url("/fonts/MVTypewriter.woff") format("woff");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "MVTypewriter";
+  src: url("/fonts/MVTypewriter-Bold.woff") format("woff");
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Noto Sans Thaana";
+  src: url("/fonts/noto-sans-thaana-v26-latin-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Noto Sans Thaana";
+  src: url("/fonts/noto-sans-thaana-v26-latin-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+body {
+  margin: 0;
+}
