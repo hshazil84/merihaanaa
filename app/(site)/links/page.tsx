@@ -57,23 +57,16 @@ export default async function LinksPage() {
           width: 64,
           height: 64,
           borderRadius: "50%",
-          background: "#000",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          overflow: "hidden",
           marginBottom: 12,
+          background: "#000",
         }}
       >
-        <span
-          style={{
-            color: "#fff",
-            fontFamily: "'MVTypewriter','Noto Sans Thaana',sans-serif",
-            fontSize: 11,
-            fontWeight: 700,
-          }}
-        >
-          މެރިހާނާ
-        </span>
+        <img
+          src="/logo.png"
+          alt="Merihaanaa"
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
       </div>
       <h1
         style={{
