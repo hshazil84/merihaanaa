@@ -16,17 +16,18 @@ type LinkArticle = {
   category: { slug: string } | null;
 };
 
-async function getLatestArticles(): Promise<LinkArticle[]> {
+async function getBioArticles(): Promise<LinkArticle[]> {
   noStore();
   const supabase = await createServerSupabaseClient();
 
   const { data } = await supabase
     .from("articles")
     .select(
-      "id, title, slug, cover_url, cover_portrait_url, featured_image, published_at, category:categories!category_id(slug)"
+      "id, title, slug, cover_url, cover_portrait_url, featured_image, bio_order, category:categories!category_id(slug)"
     )
     .eq("status", "published")
-    .order("published_at", { ascending: false })
+    .eq("bio_featured", true)
+    .order("bio_order", { ascending: true, nullsFirst: false })
     .limit(9);
 
   return (data as unknown as LinkArticle[]) ?? [];
@@ -37,7 +38,7 @@ const FACEBOOK_URL = "https://www.facebook.com/Merihaanaadotcom/";
 const WEBSITE_URL = "https://www.merihaanaa.com";
 
 export default async function LinksPage() {
-  const articles = await getLatestArticles();
+  const articles = await getBioArticles();
 
   return (
     <div
@@ -51,14 +52,13 @@ export default async function LinksPage() {
         padding: "32px 16px 48px",
       }}
     >
-      {/* Header */}
       <div
         style={{
           width: 64,
           height: 64,
           borderRadius: "50%",
           overflow: "hidden",
-          marginBottom: 12,
+          marginBottom: 20,
           background: "#000",
         }}
       >
@@ -68,30 +68,7 @@ export default async function LinksPage() {
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
       </div>
-      <h1
-        style={{
-          fontFamily: "'SanguSuruhee','Noto Sans Thaana',sans-serif",
-          fontSize: 24,
-          fontWeight: 400,
-          color: "rgb(26,26,26)",
-          margin: "0 0 4px",
-        }}
-      >
-        މެރިހާނާ
-      </h1>
-      <p
-        style={{
-          fontFamily: "'MVTypewriter','Noto Sans Thaana',sans-serif",
-          fontSize: 13,
-          color: "rgba(0,0,0,0.5)",
-          margin: "0 0 24px",
-          textAlign: "center",
-        }}
-      >
-        އެންމެ ފަހުގެ ލިޔުންތައް ބަލާލުމަށް ތިރީގައިވާ ފޮޓޯއަކަށް ފިތާލާ
-      </p>
 
-      {/* 3x3 grid */}
       <div
         style={{
           display: "grid",
@@ -163,7 +140,6 @@ export default async function LinksPage() {
         })}
       </div>
 
-      {/* Utility links */}
       <div
         style={{
           display: "flex",
