@@ -6,11 +6,22 @@ import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
-const COUNTRY_FLAGS: Record<string, string> = {
-  MV: "🇲🇻", SA: "🇸🇦", AE: "🇦🇪", GB: "🇬🇧", US: "🇺🇸",
-  IN: "🇮🇳", AU: "🇦🇺", SG: "🇸🇬", QA: "🇶🇦", KW: "🇰🇼",
-  PK: "🇵🇰", MY: "🇲🇾", LK: "🇱🇰", DE: "🇩🇪", FR: "🇫🇷",
-};
+function getFlagEmoji(code: string | null): string {
+  if (!code || code.length !== 2) return "🌐";
+  const points = [...code.toUpperCase()].map((c) => 127397 + c.charCodeAt(0));
+  return String.fromCodePoint(...points);
+}
+
+const countryNameFormatter = new Intl.DisplayNames(["en"], { type: "region" });
+
+function getCountryName(code: string | null): string {
+  if (!code) return "ނޭނގޭ"; // "unknown" — please check
+  try {
+    return countryNameFormatter.of(code.toUpperCase()) ?? code;
+  } catch {
+    return code;
+  }
+}
 
 // NOTE: Dhivehi wording below — please check, not confident in the phrasing
 const SOURCE_LABELS: Record<string, string> = {
@@ -177,15 +188,17 @@ export default function AdminDashboard() {
             <div className="space-y-3">
               {viewStats.topCountries.map((c: any) => (
                 <div key={c.code} className="flex items-center gap-3">
-                  <span className="text-base w-6 text-center">{COUNTRY_FLAGS[c.code] ?? "🌐"}</span>
-                  <span className="text-xs text-muted-foreground w-6">{c.code}</span>
-                  <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                  <span className="text-base w-6 text-center flex-none">{getFlagEmoji(c.code)}</span>
+                  <span className="text-xs text-muted-foreground flex-1 truncate" dir="ltr">
+                    {getCountryName(c.code)}
+                  </span>
+                  <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden flex-none">
                     <div
                       className="h-full rounded-full bg-foreground"
                       style={{ width: `${Math.round((c.count / maxCountry) * 100)}%` }}
                     />
                   </div>
-                  <span className="text-xs text-muted-foreground tabular-nums w-10 text-right">{fmt(c.count)}</span>
+                  <span className="text-xs text-muted-foreground tabular-nums w-10 text-right flex-none">{fmt(c.count)}</span>
                 </div>
               ))}
             </div>
@@ -214,3 +227,128 @@ export default function AdminDashboard() {
                 <span className="text-xs text-muted-foreground tabular-nums w-8 text-right">{desktopPct}%</span>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Top articles */}
+        <div className="border border-border rounded-xl p-5 bg-background">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-4" style={{ fontFamily: "MVTypewriter, serif" }}>
+            އެންމެ ގިނައިން ބެލި ލިޔުންތައް
+          </p>
+          {viewStats?.topArticles?.length > 0 ? (
+            <div className="space-y-0">
+              {viewStats.topArticles.map((a: any, i: number) => (
+                <div key={a.id} className="flex items-center gap-3 py-2.5 border-b border-border last:border-0">
+                  <span className="text-xs font-semibold text-muted-foreground w-5">{i + 1}</span>
+                  <p className="flex-1 text-sm text-foreground line-clamp-2 leading-snug" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
+                    {a.title}
+                  </p>
+                  <span className="text-xs text-muted-foreground tabular-nums flex-none">{fmt(a.views)}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground" style={{ fontFamily: "MVTypewriter, serif" }}>ތަފްސީލެއް ނެތް</p>
+          )}
+        </div>
+      </div>
+
+      {/* Traffic sources */}
+      <div className="border border-border rounded-xl p-5 bg-background">
+        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-4" style={{ fontFamily: "MVTypewriter, serif" }}>
+          ޓްރެފިކް އައި ގޮތް
+        </p>
+        {sourceData.length > 0 ? (
+          <div className="flex flex-col md:flex-row items-center gap-6">
+            <div style={{ width: 160, height: 160 }} className="flex-none">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={sourceData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={45}
+                    outerRadius={70}
+                    paddingAngle={2}
+                    strokeWidth={0}
+                  >
+                    {sourceData.map((entry) => (
+                      <Cell key={entry.key} fill={SOURCE_COLORS[entry.key] ?? "#D1D5DB"} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<SourceTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex-1 w-full space-y-2.5">
+              {sourceData.map((s) => (
+                <div key={s.key} className="flex items-center gap-3">
+                  <span className="w-2.5 h-2.5 rounded-full flex-none" style={{ backgroundColor: SOURCE_COLORS[s.key] ?? "#D1D5DB" }} />
+                  <span className="text-xs text-foreground flex-1" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
+                    {s.name}
+                  </span>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {totalSourceViews > 0 ? Math.round((s.value / totalSourceViews) * 100) : 0}%
+                  </span>
+                  <span className="text-xs text-muted-foreground tabular-nums w-10 text-right">{fmt(s.value)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground" style={{ fontFamily: "MVTypewriter, serif" }}>ތަފްސީލެއް ނެތް</p>
+        )}
+      </div>
+
+      {/* Recent articles */}
+      <div className="border border-border rounded-xl overflow-hidden bg-background">
+        <div className="px-5 py-3 border-b border-border bg-muted/30 flex items-center justify-between">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider" style={{ fontFamily: "MVTypewriter, serif" }}>
+            ފަހުގެ ލިޔުންތައް
+          </p>
+          <Link href="/admin/articles" className="text-xs text-muted-foreground hover:text-foreground transition-colors" style={{ fontFamily: "MVTypewriter, serif" }}>
+            ހުރިހާ ލިޔުން ←
+          </Link>
+        </div>
+        <table className="w-full text-sm">
+          <thead className="border-b border-border">
+            <tr className="text-right">
+              <th className="px-5 py-2.5 text-[11px] font-medium text-muted-foreground" style={{ fontFamily: "MVTypewriter, serif" }}>ސުރުޚީ</th>
+              <th className="px-5 py-2.5 text-[11px] font-medium text-muted-foreground hidden md:table-cell" style={{ fontFamily: "MVTypewriter, serif" }}>ކެޓަގަރީ</th>
+              <th className="px-5 py-2.5 text-[11px] font-medium text-muted-foreground" style={{ fontFamily: "MVTypewriter, serif" }}>ހާލަތު</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {articles.map((a) => (
+              <tr key={a.id} className="hover:bg-muted/20 transition-colors">
+                <td className="px-5 py-3">
+                  <Link href={`/admin/articles/${a.id}`} className="hover:opacity-70 transition-opacity">
+                    <p className="text-sm text-foreground line-clamp-1" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
+                      {a.title}
+                    </p>
+                  </Link>
+                </td>
+                <td className="px-5 py-3 hidden md:table-cell">
+                  {a.category && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground" style={{ fontFamily: "MVTypewriter, serif" }}>
+                      {a.category.name}
+                    </span>
+                  )}
+                </td>
+                <td className="px-5 py-3">
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                    a.status === "published"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-amber-100 text-amber-700"
+                  }`} style={{ fontFamily: "MVTypewriter, serif" }}>
+                    {a.status === "published" ? "ލައިވް" : "ޑްރާފްޓް"}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
