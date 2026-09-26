@@ -4,7 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export async function POST(req: NextRequest) {
   try {
-    const { article_id } = await req.json();
+    const { article_id, fbclid } = await req.json();
     if (!article_id) return NextResponse.json({ error: "article_id required" }, { status: 400 });
 
     const supabase = await createServerSupabaseClient();
@@ -26,12 +26,22 @@ export async function POST(req: NextRequest) {
       country_code,
       device_type,
       referrer,
+      fbclid: fbclid ?? null,
     });
 
     return NextResponse.json({ success: true });
   } catch (err) {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
+}
+
+function classifySource(referrer: string | null, fbclid: string | null): string {
+  const ref = (referrer ?? "").toLowerCase();
+  if (ref.includes("instagram.com")) return "instagram";
+  if (ref.includes("facebook.com") || ref.includes("fb.com")) return "facebook";
+  if (fbclid) return "facebook_instagram"; // meta traffic, app can't be told apart without referrer
+  if (!referrer) return "direct";
+  return "other";
 }
 
 // GET — stats for dashboard
@@ -50,6 +60,7 @@ export async function GET(req: NextRequest) {
       { count: month },
       { data: byCountry },
       { data: byDevice },
+      { data: bySource },
       { data: topArticles },
     ] = await Promise.all([
       supabase.from("article_views").select("*", { count: "exact", head: true }),
@@ -58,6 +69,7 @@ export async function GET(req: NextRequest) {
       supabase.from("article_views").select("*", { count: "exact", head: true }).gte("viewed_at", monthStart),
       supabase.from("article_views").select("country_code").not("country_code", "is", null),
       supabase.from("article_views").select("device_type"),
+      supabase.from("article_views").select("referrer, fbclid"),
       supabase.from("article_views").select("article_id").not("article_id", "is", null),
     ]);
 
@@ -75,6 +87,13 @@ export async function GET(req: NextRequest) {
     const deviceCounts: Record<string, number> = { mobile: 0, desktop: 0, tablet: 0 };
     (byDevice ?? []).forEach((r: any) => {
       if (r.device_type) deviceCounts[r.device_type] = (deviceCounts[r.device_type] ?? 0) + 1;
+    });
+
+    // Traffic source split
+    const sourceCounts: Record<string, number> = {};
+    (bySource ?? []).forEach((r: any) => {
+      const source = classifySource(r.referrer, r.fbclid);
+      sourceCounts[source] = (sourceCounts[source] ?? 0) + 1;
     });
 
     // Top articles by views
@@ -107,6 +126,7 @@ export async function GET(req: NextRequest) {
       month: month ?? 0,
       topCountries,
       deviceCounts,
+      sourceCounts,
       topArticles: topArticlesWithTitles,
     });
   } catch (err) {
