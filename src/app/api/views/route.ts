@@ -35,15 +35,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-function classifySource(referrer: string | null, fbclid: string | null): string {
-  const ref = (referrer ?? "").toLowerCase();
-  if (ref.includes("instagram.com")) return "instagram";
-  if (ref.includes("facebook.com") || ref.includes("fb.com")) return "facebook";
-  if (fbclid) return "facebook_instagram"; // meta traffic, app can't be told apart without referrer
-  if (!referrer) return "direct";
-  return "other";
-}
-
 // GET — stats for dashboard
 export async function GET(req: NextRequest) {
   try {
@@ -58,62 +49,45 @@ export async function GET(req: NextRequest) {
       { count: today },
       { count: week },
       { count: month },
-      { data: byCountry },
-      { data: byDevice },
-      { data: bySource },
-      { data: topArticles },
+      { data: topCountriesRaw },
+      { data: deviceCountsRaw },
+      { data: sourceCountsRaw },
+      { data: topArticlesRaw },
     ] = await Promise.all([
       supabase.from("article_views").select("*", { count: "exact", head: true }),
       supabase.from("article_views").select("*", { count: "exact", head: true }).gte("viewed_at", todayStart),
       supabase.from("article_views").select("*", { count: "exact", head: true }).gte("viewed_at", weekStart),
       supabase.from("article_views").select("*", { count: "exact", head: true }).gte("viewed_at", monthStart),
-      supabase.from("article_views").select("country_code").not("country_code", "is", null),
-      supabase.from("article_views").select("device_type"),
-      supabase.from("article_views").select("referrer, fbclid"),
-      supabase.from("article_views").select("article_id").not("article_id", "is", null),
+      supabase.rpc("get_top_countries", { limit_count: 5 }),
+      supabase.rpc("get_device_counts"),
+      supabase.rpc("get_source_counts"),
+      supabase.rpc("get_top_articles", { limit_count: 5 }),
     ]);
 
-    // Aggregate country counts
-    const countryCounts: Record<string, number> = {};
-    (byCountry ?? []).forEach((r: any) => {
-      if (r.country_code) countryCounts[r.country_code] = (countryCounts[r.country_code] ?? 0) + 1;
-    });
-    const topCountries = Object.entries(countryCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([code, count]) => ({ code, count }));
+    const topCountries = (topCountriesRaw ?? []).map((r: any) => ({
+      code: r.country_code,
+      count: Number(r.count),
+    }));
 
-    // Device split
     const deviceCounts: Record<string, number> = { mobile: 0, desktop: 0, tablet: 0 };
-    (byDevice ?? []).forEach((r: any) => {
-      if (r.device_type) deviceCounts[r.device_type] = (deviceCounts[r.device_type] ?? 0) + 1;
+    (deviceCountsRaw ?? []).forEach((r: any) => {
+      if (r.device_type) deviceCounts[r.device_type] = Number(r.count);
     });
 
-    // Traffic source split
     const sourceCounts: Record<string, number> = {};
-    (bySource ?? []).forEach((r: any) => {
-      const source = classifySource(r.referrer, r.fbclid);
-      sourceCounts[source] = (sourceCounts[source] ?? 0) + 1;
+    (sourceCountsRaw ?? []).forEach((r: any) => {
+      sourceCounts[r.source] = Number(r.count);
     });
-
-    // Top articles by views
-    const articleCounts: Record<string, number> = {};
-    (topArticles ?? []).forEach((r: any) => {
-      if (r.article_id) articleCounts[r.article_id] = (articleCounts[r.article_id] ?? 0) + 1;
-    });
-    const topArticleIds = Object.entries(articleCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([id, count]) => ({ id, count }));
 
     // Fetch article titles for top articles
     let topArticlesWithTitles: any[] = [];
+    const topArticleIds = (topArticlesRaw ?? []).map((r: any) => ({ id: r.article_id, count: Number(r.views) }));
     if (topArticleIds.length > 0) {
       const { data: articles } = await supabase
         .from("articles")
         .select("id, title, category:categories!category_id(name)")
-        .in("id", topArticleIds.map(a => a.id));
-      topArticlesWithTitles = topArticleIds.map(({ id, count }) => ({
+        .in("id", topArticleIds.map((a: any) => a.id));
+      topArticlesWithTitles = topArticleIds.map(({ id, count }: any) => ({
         ...((articles ?? []).find((a: any) => a.id === id) ?? { id, title: "—" }),
         views: count,
       }));
