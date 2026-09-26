@@ -143,6 +143,20 @@ function DashboardSkeleton() {
   );
 }
 
+function ListRow({ rank, title, views }: { rank: number; title: string; views: number }) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-2.5 border-b border-border last:border-0">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <span className="text-xs font-semibold text-muted-foreground w-4 flex-none">{rank}</span>
+        <p className="text-sm text-foreground truncate" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
+          {title}
+        </p>
+      </div>
+      <span className="text-xs text-muted-foreground tabular-nums flex-none">{fmt(views)}</span>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const supabase = createClient();
 
@@ -289,13 +303,7 @@ export default function AdminDashboard() {
             {viewStats?.topArticles?.length > 0 ? (
               <div className="space-y-0">
                 {viewStats.topArticles.map((a: any, i: number) => (
-                  <div key={a.id} className="flex items-center gap-3 py-2.5 border-b border-border last:border-0">
-                    <span className="text-xs font-semibold text-muted-foreground w-5">{i + 1}</span>
-                    <p className="flex-1 text-sm text-foreground line-clamp-2 leading-snug" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
-                      {a.title}
-                    </p>
-                    <span className="text-xs text-muted-foreground tabular-nums flex-none">{fmt(a.views)}</span>
-                  </div>
+                  <ListRow key={a.id} rank={i + 1} title={a.title} views={a.views} />
                 ))}
               </div>
             ) : (
@@ -428,10 +436,10 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Content + Vaahaka metrics — merged into one row */}
+      {/* Content metrics */}
       <div className="space-y-2">
         <SectionLabel>ކޮންޓެންޓް</SectionLabel>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <MetricCard
             label="ލިޔުންތައް"
             value={counts.total}
@@ -452,33 +460,36 @@ export default function AdminDashboard() {
             subColor={counts.comments > 0 ? "#854F0B" : undefined}
           />
           <MetricCard label="ވީޑިއޯ" value={counts.videos} icon={Video} />
-          <MetricCard label="ވާހަކަ - ޖުމްލަ" value={fmt(viewStats?.vaahakaStats?.total ?? 0)} icon={BookOpen} />
-          <MetricCard label="ވާހަކަ - މިއަދު" value={fmt(viewStats?.vaahakaStats?.today ?? 0)} icon={BookOpen} />
-          <MetricCard label="ވާހަކަ - މިހަފްތާ" value={fmt(viewStats?.vaahakaStats?.week ?? 0)} icon={BookOpen} />
-          <MetricCard label="ވާހަކަ - މި މަހު" value={fmt(viewStats?.vaahakaStats?.month ?? 0)} icon={BookOpen} />
         </div>
       </div>
 
-      {/* Vaahaka top stories */}
+      {/* Vaahaka: metrics + top stories, combined and compact */}
       <div className="border border-border rounded-xl p-5 bg-background">
         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-4" style={{ fontFamily: "MVTypewriter, serif" }}>
-          އެންމެ ގިނައިން ބެލި ވާހަކަ
+          ވާހަކަ ކެޓަގަރީގެ ވިއު
         </p>
-        {viewStats?.vaahakaStats?.topArticles?.length > 0 ? (
-          <div className="space-y-0">
-            {viewStats.vaahakaStats.topArticles.map((a: any, i: number) => (
-              <div key={a.id} className="flex items-center gap-3 py-2.5 border-b border-border last:border-0">
-                <span className="text-xs font-semibold text-muted-foreground w-5">{i + 1}</span>
-                <p className="flex-1 text-sm text-foreground line-clamp-2 leading-snug" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
-                  {a.title}
-                </p>
-                <span className="text-xs text-muted-foreground tabular-nums flex-none">{fmt(a.views)}</span>
-              </div>
-            ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-2 gap-3">
+            <MetricCard label="ޖުމްލަ" value={fmt(viewStats?.vaahakaStats?.total ?? 0)} icon={BookOpen} />
+            <MetricCard label="މިއަދު" value={fmt(viewStats?.vaahakaStats?.today ?? 0)} icon={BookOpen} />
+            <MetricCard label="މިހަފްތާ" value={fmt(viewStats?.vaahakaStats?.week ?? 0)} icon={BookOpen} />
+            <MetricCard label="މި މަހު" value={fmt(viewStats?.vaahakaStats?.month ?? 0)} icon={BookOpen} />
           </div>
-        ) : (
-          <p className="text-sm text-muted-foreground" style={{ fontFamily: "MVTypewriter, serif" }}>ތަފްސީލެއް ނެތް</p>
-        )}
+          <div>
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3" style={{ fontFamily: "MVTypewriter, serif" }}>
+              އެންމެ ގިނައިން ބެލި ވާހަކަ
+            </p>
+            {viewStats?.vaahakaStats?.topArticles?.length > 0 ? (
+              <div className="space-y-0">
+                {viewStats.vaahakaStats.topArticles.map((a: any, i: number) => (
+                  <ListRow key={a.id} rank={i + 1} title={a.title} views={a.views} />
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground" style={{ fontFamily: "MVTypewriter, serif" }}>ތަފްސީލެއް ނެތް</p>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Recent articles */}
