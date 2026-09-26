@@ -4,7 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export async function POST(req: NextRequest) {
   try {
-    const { article_id, fbclid } = await req.json();
+    const { article_id, fbclid, referrer: clientReferrer } = await req.json();
     if (!article_id) return NextResponse.json({ error: "article_id required" }, { status: 400 });
 
     const supabase = await createServerSupabaseClient();
@@ -18,8 +18,10 @@ export async function POST(req: NextRequest) {
     if (/tablet|ipad/i.test(ua)) device_type = "tablet";
     else if (/mobile|android|iphone/i.test(ua)) device_type = "mobile";
 
-    // Referrer
-    const referrer = req.headers.get("referer") ?? null;
+    // Use the browser-reported previous page (document.referrer), not the HTTP
+    // Referer header — that header reflects this same-origin fetch's own page,
+    // not where the visitor actually came from.
+    const referrer = clientReferrer || null;
 
     await supabase.from("article_views").insert({
       article_id,
@@ -33,6 +35,15 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
+}
+
+function classifySource(referrer: string | null, fbclid: string | null): string {
+  const ref = (referrer ?? "").toLowerCase();
+  if (ref.includes("instagram.com")) return "instagram";
+  if (ref.includes("facebook.com") || ref.includes("fb.com")) return "facebook";
+  if (fbclid) return "facebook_instagram"; // meta traffic, app can't be told apart without referrer
+  if (!referrer) return "direct";
+  return "other";
 }
 
 // GET — stats for dashboard
