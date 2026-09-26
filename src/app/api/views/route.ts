@@ -44,8 +44,6 @@ export async function GET(req: NextRequest) {
     const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const prevWeekStart = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-    // "month" = trailing 30 days (not calendar month-to-date), so the
-    // trend comparison against the preceding 30-day window is fair
     const monthStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const prevMonthStart = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
 
@@ -62,6 +60,7 @@ export async function GET(req: NextRequest) {
       { data: sourceCountsRaw },
       { data: topArticlesRaw },
       { data: vaahakaStatsRaw },
+      { data: vaahakaTopArticlesRaw },
     ] = await Promise.all([
       supabase.from("article_views").select("*", { count: "exact", head: true }),
       supabase.from("article_views").select("*", { count: "exact", head: true }).gte("viewed_at", todayStart.toISOString()),
@@ -75,6 +74,7 @@ export async function GET(req: NextRequest) {
       supabase.rpc("get_source_counts"),
       supabase.rpc("get_top_articles", { limit_count: 5 }),
       supabase.rpc("get_category_view_stats", { category_slug_param: "vaahaka" }),
+      supabase.rpc("get_top_articles_by_category", { category_slug_param: "vaahaka", limit_count: 5 }),
     ]);
 
     const topCountries = (topCountriesRaw ?? []).map((r: any) => ({
@@ -105,12 +105,26 @@ export async function GET(req: NextRequest) {
       }));
     }
 
+    let vaahakaTopArticlesWithTitles: any[] = [];
+    const vaahakaTopIds = (vaahakaTopArticlesRaw ?? []).map((r: any) => ({ id: r.article_id, count: Number(r.views) }));
+    if (vaahakaTopIds.length > 0) {
+      const { data: vArticles } = await supabase
+        .from("articles")
+        .select("id, title")
+        .in("id", vaahakaTopIds.map((a: any) => a.id));
+      vaahakaTopArticlesWithTitles = vaahakaTopIds.map(({ id, count }: any) => ({
+        ...((vArticles ?? []).find((a: any) => a.id === id) ?? { id, title: "—" }),
+        views: count,
+      }));
+    }
+
     const vaahakaRow = vaahakaStatsRaw?.[0] ?? { total: 0, today: 0, week: 0, month: 0 };
     const vaahakaStats = {
       total: Number(vaahakaRow.total ?? 0),
       today: Number(vaahakaRow.today ?? 0),
       week: Number(vaahakaRow.week ?? 0),
       month: Number(vaahakaRow.month ?? 0),
+      topArticles: vaahakaTopArticlesWithTitles,
     };
 
     return NextResponse.json({
