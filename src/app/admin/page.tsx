@@ -277,7 +277,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Audience + Top articles — moved up */}
+      {/* Audience + Top articles */}
       <div className="space-y-2">
         <SectionLabel>އޯޑިއަންސް</SectionLabel>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -428,10 +428,10 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Content metrics */}
+      {/* Content + Vaahaka metrics — merged into one row */}
       <div className="space-y-2">
         <SectionLabel>ކޮންޓެންޓް</SectionLabel>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
           <MetricCard
             label="ލިޔުންތައް"
             value={counts.total}
@@ -452,22 +452,16 @@ export default function AdminDashboard() {
             subColor={counts.comments > 0 ? "#854F0B" : undefined}
           />
           <MetricCard label="ވީޑިއޯ" value={counts.videos} icon={Video} />
+          <MetricCard label="ވާހަކަ - ޖުމްލަ" value={fmt(viewStats?.vaahakaStats?.total ?? 0)} icon={BookOpen} />
+          <MetricCard label="ވާހަކަ - މިއަދު" value={fmt(viewStats?.vaahakaStats?.today ?? 0)} icon={BookOpen} />
+          <MetricCard label="ވާހަކަ - މިހަފްތާ" value={fmt(viewStats?.vaahakaStats?.week ?? 0)} icon={BookOpen} />
+          <MetricCard label="ވާހަކަ - މި މަހު" value={fmt(viewStats?.vaahakaStats?.month ?? 0)} icon={BookOpen} />
         </div>
       </div>
 
-      {/* Vaahaka category views + top stories */}
+      {/* Vaahaka top stories */}
       <div className="border border-border rounded-xl p-5 bg-background">
         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-4" style={{ fontFamily: "MVTypewriter, serif" }}>
-          ވާހަކަ ކެޓަގަރީގެ ވިއު
-        </p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-          <MetricCard label="ޖުމްލަ" value={fmt(viewStats?.vaahakaStats?.total ?? 0)} icon={BookOpen} />
-          <MetricCard label="މިއަދު" value={fmt(viewStats?.vaahakaStats?.today ?? 0)} icon={BookOpen} />
-          <MetricCard label="މިހަފްތާ" value={fmt(viewStats?.vaahakaStats?.week ?? 0)} icon={BookOpen} />
-          <MetricCard label="މި މަހު" value={fmt(viewStats?.vaahakaStats?.month ?? 0)} icon={BookOpen} />
-        </div>
-
-        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3 pt-4 border-t border-border" style={{ fontFamily: "MVTypewriter, serif" }}>
           އެންމެ ގިނައިން ބެލި ވާހަކަ
         </p>
         {viewStats?.vaahakaStats?.topArticles?.length > 0 ? (
