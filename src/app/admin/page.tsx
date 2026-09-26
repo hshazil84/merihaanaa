@@ -177,6 +177,19 @@ export default function AdminDashboard() {
         <MetricCard label="ވީޑިއޯ" value={counts.videos} />
       </div>
 
+      {/* Vaahaka category views */}
+      <div className="border border-border rounded-xl p-5 bg-background">
+        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-4" style={{ fontFamily: "MVTypewriter, serif" }}>
+          ވާހަކަ ކެޓަގަރީގެ ވިއު
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <MetricCard label="ޖުމްލަ" value={fmt(viewStats?.vaahakaStats?.total ?? 0)} />
+          <MetricCard label="މިއަދު" value={fmt(viewStats?.vaahakaStats?.today ?? 0)} />
+          <MetricCard label="މިހަފްތާ" value={fmt(viewStats?.vaahakaStats?.week ?? 0)} />
+          <MetricCard label="މި މަހު" value={fmt(viewStats?.vaahakaStats?.month ?? 0)} />
+        </div>
+      </div>
+
       {/* Country + Top articles */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Country breakdown */}
@@ -282,15 +295,19 @@ export default function AdminDashboard() {
             </div>
             <div className="flex-1 w-full space-y-2.5">
               {sourceData.map((s) => (
-                <div key={s.key} className="flex items-center gap-3">
-                  <span className="w-2.5 h-2.5 rounded-full flex-none" style={{ backgroundColor: SOURCE_COLORS[s.key] ?? "#D1D5DB" }} />
-                  <span className="text-xs text-foreground flex-1" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
-                    {s.name}
-                  </span>
-                  <span className="text-xs text-muted-foreground tabular-nums">
-                    {totalSourceViews > 0 ? Math.round((s.value / totalSourceViews) * 100) : 0}%
-                  </span>
-                  <span className="text-xs text-muted-foreground tabular-nums w-10 text-right">{fmt(s.value)}</span>
+                <div key={s.key} className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-2.5 h-2.5 rounded-full flex-none" style={{ backgroundColor: SOURCE_COLORS[s.key] ?? "#D1D5DB" }} />
+                    <span className="text-xs text-foreground truncate" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
+                      {s.name}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-none">
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {totalSourceViews > 0 ? Math.round((s.value / totalSourceViews) * 100) : 0}%
+                    </span>
+                    <span className="text-xs text-muted-foreground tabular-nums w-10 text-right">{fmt(s.value)}</span>
+                  </div>
                 </div>
               ))}
             </div>
