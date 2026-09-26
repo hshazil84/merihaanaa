@@ -9,10 +9,8 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createServerSupabaseClient();
 
-    // Country from Vercel headers
     const country_code = req.headers.get("x-vercel-ip-country") ?? null;
 
-    // Device type from user agent
     const ua = req.headers.get("user-agent") ?? "";
     let device_type = "desktop";
     if (/tablet|ipad/i.test(ua)) device_type = "tablet";
@@ -37,15 +35,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-function classifySource(referrer: string | null, fbclid: string | null): string {
-  const ref = (referrer ?? "").toLowerCase();
-  if (ref.includes("instagram.com")) return "instagram";
-  if (ref.includes("facebook.com") || ref.includes("fb.com")) return "facebook";
-  if (fbclid) return "facebook_instagram"; // meta traffic, app can't be told apart without referrer
-  if (!referrer) return "direct";
-  return "other";
-}
-
 // GET — stats for dashboard
 export async function GET(req: NextRequest) {
   try {
@@ -64,6 +53,7 @@ export async function GET(req: NextRequest) {
       { data: deviceCountsRaw },
       { data: sourceCountsRaw },
       { data: topArticlesRaw },
+      { data: vaahakaStatsRaw },
     ] = await Promise.all([
       supabase.from("article_views").select("*", { count: "exact", head: true }),
       supabase.from("article_views").select("*", { count: "exact", head: true }).gte("viewed_at", todayStart),
@@ -73,6 +63,7 @@ export async function GET(req: NextRequest) {
       supabase.rpc("get_device_counts"),
       supabase.rpc("get_source_counts"),
       supabase.rpc("get_top_articles", { limit_count: 5 }),
+      supabase.rpc("get_category_view_stats", { category_slug_param: "vaahaka" }),
     ]);
 
     const topCountries = (topCountriesRaw ?? []).map((r: any) => ({
@@ -90,7 +81,6 @@ export async function GET(req: NextRequest) {
       sourceCounts[r.source] = Number(r.count);
     });
 
-    // Fetch article titles for top articles
     let topArticlesWithTitles: any[] = [];
     const topArticleIds = (topArticlesRaw ?? []).map((r: any) => ({ id: r.article_id, count: Number(r.views) }));
     if (topArticleIds.length > 0) {
@@ -104,6 +94,14 @@ export async function GET(req: NextRequest) {
       }));
     }
 
+    const vaahakaRow = vaahakaStatsRaw?.[0] ?? { total: 0, today: 0, week: 0, month: 0 };
+    const vaahakaStats = {
+      total: Number(vaahakaRow.total ?? 0),
+      today: Number(vaahakaRow.today ?? 0),
+      week: Number(vaahakaRow.week ?? 0),
+      month: Number(vaahakaRow.month ?? 0),
+    };
+
     return NextResponse.json({
       total: total ?? 0,
       today: today ?? 0,
@@ -113,6 +111,7 @@ export async function GET(req: NextRequest) {
       deviceCounts,
       sourceCounts,
       topArticles: topArticlesWithTitles,
+      vaahakaStats,
     });
   } catch (err) {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
