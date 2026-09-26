@@ -7,10 +7,11 @@ import { useEffect } from "react";
 export default function ViewTracker({ articleId }: { articleId: string }) {
   useEffect(() => {
     if (!articleId) return;
+    const fbclid = new URLSearchParams(window.location.search).get("fbclid");
     fetch("/api/views", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ article_id: articleId }),
+      body: JSON.stringify({ article_id: articleId, fbclid }),
     }).catch(() => {});
   }, [articleId]);
 
