@@ -131,15 +131,14 @@ function DashboardSkeleton() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[0, 1, 2, 3].map((i) => <SkeletonBlock key={i} className="h-24" />)}
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[0, 1, 2, 3].map((i) => <SkeletonBlock key={i} className="h-24" />)}
-      </div>
-      <SkeletonBlock className="h-32" />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <SkeletonBlock className="h-64" />
         <SkeletonBlock className="h-64" />
       </div>
-      <SkeletonBlock className="h-40" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[0, 1, 2, 3].map((i) => <SkeletonBlock key={i} className="h-24" />)}
+      </div>
+      <SkeletonBlock className="h-64" />
     </div>
   );
 }
@@ -278,50 +277,32 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Content metrics */}
-      <div className="space-y-2">
-        <SectionLabel>ކޮންޓެންޓް</SectionLabel>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <MetricCard
-            label="ލިޔުންތައް"
-            value={counts.total}
-            icon={FileText}
-            sub={`${counts.drafts} ޑްރާފްޓް`}
-          />
-          <MetricCard
-            label="ސަބްސްކްރައިބަރ"
-            value={counts.subscribers}
-            icon={Mail}
-            trend={subscriberTrend}
-          />
-          <MetricCard
-            label="ކޮމެންޓް"
-            value={counts.comments}
-            icon={MessageSquare}
-            sub={counts.comments > 0 ? "ރިވިއު ކުރޭ" : undefined}
-            subColor={counts.comments > 0 ? "#854F0B" : undefined}
-          />
-          <MetricCard label="ވީޑިއޯ" value={counts.videos} icon={Video} />
-        </div>
-      </div>
-
-      {/* Vaahaka category views */}
-      <div className="border border-border rounded-xl p-5 bg-background">
-        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-4" style={{ fontFamily: "MVTypewriter, serif" }}>
-          ވާހަކަ ކެޓަގަރީގެ ވިއު
-        </p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <MetricCard label="ޖުމްލަ" value={fmt(viewStats?.vaahakaStats?.total ?? 0)} icon={BookOpen} />
-          <MetricCard label="މިއަދު" value={fmt(viewStats?.vaahakaStats?.today ?? 0)} icon={BookOpen} />
-          <MetricCard label="މިހަފްތާ" value={fmt(viewStats?.vaahakaStats?.week ?? 0)} icon={BookOpen} />
-          <MetricCard label="މި މަހު" value={fmt(viewStats?.vaahakaStats?.month ?? 0)} icon={BookOpen} />
-        </div>
-      </div>
-
-      {/* Audience + Top articles */}
+      {/* Audience + Top articles — moved up */}
       <div className="space-y-2">
         <SectionLabel>އޯޑިއަންސް</SectionLabel>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Top articles */}
+          <div className="border border-border rounded-xl p-5 bg-background">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-4" style={{ fontFamily: "MVTypewriter, serif" }}>
+              އެންމެ ގިނައިން ބެލި ލިޔުންތައް
+            </p>
+            {viewStats?.topArticles?.length > 0 ? (
+              <div className="space-y-0">
+                {viewStats.topArticles.map((a: any, i: number) => (
+                  <div key={a.id} className="flex items-center gap-3 py-2.5 border-b border-border last:border-0">
+                    <span className="text-xs font-semibold text-muted-foreground w-5">{i + 1}</span>
+                    <p className="flex-1 text-sm text-foreground line-clamp-2 leading-snug" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
+                      {a.title}
+                    </p>
+                    <span className="text-xs text-muted-foreground tabular-nums flex-none">{fmt(a.views)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground" style={{ fontFamily: "MVTypewriter, serif" }}>ތަފްސީލެއް ނެތް</p>
+            )}
+          </div>
+
           {/* Audience tabbed panel */}
           <div className="border border-border rounded-xl p-5 bg-background">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
@@ -444,29 +425,66 @@ export default function AdminDashboard() {
               )
             )}
           </div>
-
-          {/* Top articles */}
-          <div className="border border-border rounded-xl p-5 bg-background">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-4" style={{ fontFamily: "MVTypewriter, serif" }}>
-              އެންމެ ގިނައިން ބެލި ލިޔުންތައް
-            </p>
-            {viewStats?.topArticles?.length > 0 ? (
-              <div className="space-y-0">
-                {viewStats.topArticles.map((a: any, i: number) => (
-                  <div key={a.id} className="flex items-center gap-3 py-2.5 border-b border-border last:border-0">
-                    <span className="text-xs font-semibold text-muted-foreground w-5">{i + 1}</span>
-                    <p className="flex-1 text-sm text-foreground line-clamp-2 leading-snug" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
-                      {a.title}
-                    </p>
-                    <span className="text-xs text-muted-foreground tabular-nums flex-none">{fmt(a.views)}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground" style={{ fontFamily: "MVTypewriter, serif" }}>ތަފްސީލެއް ނެތް</p>
-            )}
-          </div>
         </div>
+      </div>
+
+      {/* Content metrics */}
+      <div className="space-y-2">
+        <SectionLabel>ކޮންޓެންޓް</SectionLabel>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <MetricCard
+            label="ލިޔުންތައް"
+            value={counts.total}
+            icon={FileText}
+            sub={`${counts.drafts} ޑްރާފްޓް`}
+          />
+          <MetricCard
+            label="ސަބްސްކްރައިބަރ"
+            value={counts.subscribers}
+            icon={Mail}
+            trend={subscriberTrend}
+          />
+          <MetricCard
+            label="ކޮމެންޓް"
+            value={counts.comments}
+            icon={MessageSquare}
+            sub={counts.comments > 0 ? "ރިވިއު ކުރޭ" : undefined}
+            subColor={counts.comments > 0 ? "#854F0B" : undefined}
+          />
+          <MetricCard label="ވީޑިއޯ" value={counts.videos} icon={Video} />
+        </div>
+      </div>
+
+      {/* Vaahaka category views + top stories */}
+      <div className="border border-border rounded-xl p-5 bg-background">
+        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-4" style={{ fontFamily: "MVTypewriter, serif" }}>
+          ވާހަކަ ކެޓަގަރީގެ ވިއު
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+          <MetricCard label="ޖުމްލަ" value={fmt(viewStats?.vaahakaStats?.total ?? 0)} icon={BookOpen} />
+          <MetricCard label="މިއަދު" value={fmt(viewStats?.vaahakaStats?.today ?? 0)} icon={BookOpen} />
+          <MetricCard label="މިހަފްތާ" value={fmt(viewStats?.vaahakaStats?.week ?? 0)} icon={BookOpen} />
+          <MetricCard label="މި މަހު" value={fmt(viewStats?.vaahakaStats?.month ?? 0)} icon={BookOpen} />
+        </div>
+
+        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3 pt-4 border-t border-border" style={{ fontFamily: "MVTypewriter, serif" }}>
+          އެންމެ ގިނައިން ބެލި ވާހަކަ
+        </p>
+        {viewStats?.vaahakaStats?.topArticles?.length > 0 ? (
+          <div className="space-y-0">
+            {viewStats.vaahakaStats.topArticles.map((a: any, i: number) => (
+              <div key={a.id} className="flex items-center gap-3 py-2.5 border-b border-border last:border-0">
+                <span className="text-xs font-semibold text-muted-foreground w-5">{i + 1}</span>
+                <p className="flex-1 text-sm text-foreground line-clamp-2 leading-snug" style={{ fontFamily: "MVTypewriter, serif", direction: "rtl" }}>
+                  {a.title}
+                </p>
+                <span className="text-xs text-muted-foreground tabular-nums flex-none">{fmt(a.views)}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground" style={{ fontFamily: "MVTypewriter, serif" }}>ތަފްސީލެއް ނެތް</p>
+        )}
       </div>
 
       {/* Recent articles */}
