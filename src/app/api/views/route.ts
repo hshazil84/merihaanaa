@@ -16,9 +16,6 @@ export async function POST(req: NextRequest) {
     if (/tablet|ipad/i.test(ua)) device_type = "tablet";
     else if (/mobile|android|iphone/i.test(ua)) device_type = "mobile";
 
-    // Use the browser-reported previous page (document.referrer), not the HTTP
-    // Referer header — that header reflects this same-origin fetch's own page,
-    // not where the visitor actually came from.
     const referrer = clientReferrer || null;
 
     await supabase.from("article_views").insert({
@@ -40,15 +37,26 @@ export async function GET(req: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-    const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterdayStart = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
+
+    const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const prevWeekStart = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+    // "month" = trailing 30 days (not calendar month-to-date), so the
+    // trend comparison against the preceding 30-day window is fair
+    const monthStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const prevMonthStart = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
 
     const [
       { count: total },
       { count: today },
+      { count: yesterday },
       { count: week },
+      { count: prevWeek },
       { count: month },
+      { count: prevMonth },
       { data: topCountriesRaw },
       { data: deviceCountsRaw },
       { data: sourceCountsRaw },
@@ -56,9 +64,12 @@ export async function GET(req: NextRequest) {
       { data: vaahakaStatsRaw },
     ] = await Promise.all([
       supabase.from("article_views").select("*", { count: "exact", head: true }),
-      supabase.from("article_views").select("*", { count: "exact", head: true }).gte("viewed_at", todayStart),
-      supabase.from("article_views").select("*", { count: "exact", head: true }).gte("viewed_at", weekStart),
-      supabase.from("article_views").select("*", { count: "exact", head: true }).gte("viewed_at", monthStart),
+      supabase.from("article_views").select("*", { count: "exact", head: true }).gte("viewed_at", todayStart.toISOString()),
+      supabase.from("article_views").select("*", { count: "exact", head: true }).gte("viewed_at", yesterdayStart.toISOString()).lt("viewed_at", todayStart.toISOString()),
+      supabase.from("article_views").select("*", { count: "exact", head: true }).gte("viewed_at", weekStart.toISOString()),
+      supabase.from("article_views").select("*", { count: "exact", head: true }).gte("viewed_at", prevWeekStart.toISOString()).lt("viewed_at", weekStart.toISOString()),
+      supabase.from("article_views").select("*", { count: "exact", head: true }).gte("viewed_at", monthStart.toISOString()),
+      supabase.from("article_views").select("*", { count: "exact", head: true }).gte("viewed_at", prevMonthStart.toISOString()).lt("viewed_at", monthStart.toISOString()),
       supabase.rpc("get_top_countries", { limit_count: 5 }),
       supabase.rpc("get_device_counts"),
       supabase.rpc("get_source_counts"),
@@ -105,8 +116,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       total: total ?? 0,
       today: today ?? 0,
+      yesterday: yesterday ?? 0,
       week: week ?? 0,
+      prevWeek: prevWeek ?? 0,
       month: month ?? 0,
+      prevMonth: prevMonth ?? 0,
       topCountries,
       deviceCounts,
       sourceCounts,
