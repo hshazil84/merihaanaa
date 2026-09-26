@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import "../styles/globals.css";
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://merihaanaa.com";
@@ -56,6 +57,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background text-foreground">
         {children}
+        <Analytics />
       </body>
     </html>
   );
