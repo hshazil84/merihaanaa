@@ -6,7 +6,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://merihaanaa.com";
 
 export const metadata: Metadata = {
   title: {
-    default: "މެރިހާނާ - ތިޔަ ހޯއްދަވާ ތަފާތު މެގަޒިން",
+    default: "Merihaanaa - Dhivehi lifestyle magazine",
     template: "%s — މެރިހާނާ",
   },
   description: "ދިވެހި ކަލްޗަރ، ފިލްމް، މިއުޒިކް، ލައިފްސްޓައިލް",
