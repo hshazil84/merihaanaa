@@ -20,6 +20,8 @@ type UserProfile = {
   avatar: string | null;
 };
 
+type Reaction = { comment_id: string; user_id: string; emoji: string };
+
 type Props = {
   articleId: string;
 };
@@ -27,6 +29,7 @@ type Props = {
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const MAX_LENGTH = 1000;
 const COOLDOWN_MS = 10000;
+const EMOJIS = ["👍", "👎", "❤️", "😂", "😮", "😢", "😡"];
 
 function getAvatarUrl(path: string | null): string | null {
   if (!path) return null;
@@ -58,14 +61,57 @@ function Avatar({ path, name, size = 32 }: { path: string | null; name: string; 
   );
 }
 
+function ReactionBar({
+  reactions,
+  userId,
+  onToggle,
+}: {
+  reactions: Reaction[];
+  userId: string | null;
+  onToggle: (emoji: string) => void;
+}) {
+  const mine = userId ? reactions.find((r) => r.user_id === userId)?.emoji : null;
+  return (
+    <div className="flex items-center gap-1 mt-2 flex-wrap" dir="ltr">
+      {EMOJIS.map((emoji) => {
+        const count = reactions.filter((r) => r.emoji === emoji).length;
+        const active = mine === emoji;
+        return (
+          <button
+            key={emoji}
+            type="button"
+            onClick={() => onToggle(emoji)}
+            aria-pressed={active}
+            className="flex items-center gap-1 rounded-full px-2 py-0.5 text-xs transition-colors"
+            style={{
+              border: active ? "1px solid rgb(26,26,26)" : "1px solid rgb(224,221,214)",
+              backgroundColor: active ? "rgb(240,239,233)" : "transparent",
+              opacity: count === 0 && !active ? 0.55 : 1,
+            }}
+          >
+            <span style={{ fontSize: "14px", lineHeight: 1.4 }}>{emoji}</span>
+            {count > 0 && <span style={{ color: "rgb(100,98,92)" }}>{count}</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function CommentItem({
   comment,
   canDelete,
   onDelete,
+  reactions,
+  userId,
+  onToggleReaction,
 }: {
   comment: Comment;
   canDelete: boolean;
   onDelete: (id: string) => void;
+  reactions: Reaction[];
+  userId: string | null;
+  onToggleReaction: (commentId: string, emoji: string) => void;
 }) {
   const profile = comment.user_profiles;
   const name = profile?.full_name ?? "ނަމެއް ނެތް";
@@ -75,7 +121,7 @@ function CommentItem({
         <Avatar path={profile?.avatar ?? null} name={name} />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5">
+        <div className="flex items-center gap-2 mb-1">
           <span className="text-sm font-medium text-gray-900 dark:text-white">{name}</span>
           <span className="text-xs text-gray-400">{timeAgo(comment.created_at)}</span>
           {canDelete && (
@@ -93,37 +139,12 @@ function CommentItem({
         >
           {comment.body}
         </p>
-      </div>
-    </div>
-  );
-}
-
-function CommentList({
-  comments,
-  userId,
-  onDelete,
-}: {
-  comments: Comment[];
-  userId: string | null;
-  onDelete: (id: string) => void;
-}) {
-  if (comments.length === 0) {
-    return (
-      <p className="text-sm text-gray-400 text-center py-2">
-        އަދި ކޮމެންޓެއް ނެތް. ފުރަތަމަ ކޮމެންޓް ކޮށްލާ!
-      </p>
-    );
-  }
-  return (
-    <div className="space-y-4">
-      {comments.map((c) => (
-        <CommentItem
-          key={c.id}
-          comment={c}
-          canDelete={!!userId && c.user_id === userId}
-          onDelete={onDelete}
+        <ReactionBar
+          reactions={reactions}
+          userId={userId}
+          onToggle={(emoji) => onToggleReaction(comment.id, emoji)}
         />
-      ))}
+      </div>
     </div>
   );
 }
@@ -131,6 +152,7 @@ function CommentList({
 export default function CommentSection({ articleId }: Props) {
   const supabase = createClient();
   const [comments, setComments] = useState<Comment[]>([]);
+  const [reactions, setReactions] = useState<Reaction[]>([]);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -151,6 +173,15 @@ export default function CommentSection({ articleId }: Props) {
 
       if (!cancelled && commentData) {
         setComments(commentData as unknown as Comment[]);
+
+        const ids = commentData.map((c: { id: string }) => c.id);
+        if (ids.length > 0) {
+          const { data: reactionData } = await supabase
+            .from("comment_reactions")
+            .select("comment_id, user_id, emoji")
+            .in("comment_id", ids);
+          if (!cancelled && reactionData) setReactions(reactionData as Reaction[]);
+        }
       }
 
       const { data: authData } = await supabase.auth.getUser();
@@ -215,6 +246,47 @@ export default function CommentSection({ articleId }: Props) {
     const { error: deleteError } = await supabase.from("comments").delete().eq("id", id);
     if (!deleteError) {
       setComments((prev) => prev.filter((c) => c.id !== id));
+      setReactions((prev) => prev.filter((r) => r.comment_id !== id));
+    }
+  }
+
+  async function handleToggleReaction(commentId: string, emoji: string) {
+    if (!user) {
+      window.location.href = "/login";
+      return;
+    }
+    const previous = reactions;
+    const existing = reactions.find((r) => r.comment_id === commentId && r.user_id === user.id);
+
+    if (existing && existing.emoji === emoji) {
+      // remove
+      setReactions((prev) => prev.filter((r) => !(r.comment_id === commentId && r.user_id === user.id)));
+      const { error: err } = await supabase
+        .from("comment_reactions")
+        .delete()
+        .eq("comment_id", commentId)
+        .eq("user_id", user.id);
+      if (err) setReactions(previous);
+    } else if (existing) {
+      // switch
+      setReactions((prev) =>
+        prev.map((r) =>
+          r.comment_id === commentId && r.user_id === user.id ? { ...r, emoji } : r
+        )
+      );
+      const { error: err } = await supabase
+        .from("comment_reactions")
+        .update({ emoji })
+        .eq("comment_id", commentId)
+        .eq("user_id", user.id);
+      if (err) setReactions(previous);
+    } else {
+      // add
+      setReactions((prev) => [...prev, { comment_id: commentId, user_id: user.id, emoji }]);
+      const { error: err } = await supabase
+        .from("comment_reactions")
+        .insert({ comment_id: commentId, user_id: user.id, emoji });
+      if (err) setReactions(previous);
     }
   }
 
@@ -223,20 +295,20 @@ export default function CommentSection({ articleId }: Props) {
   return (
     <section className="pt-2" dir="rtl" lang="dv">
       <h2
-        className="mb-3"
+        className="mb-4"
         style={{
           fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
           fontWeight: 400,
-          fontSize: "20px",
+          fontSize: "22px",
           color: "rgb(26,26,26)",
-          lineHeight: 1.8,
+          lineHeight: 2,
         }}
       >
         ކޮމެންޓް ({comments.length})
       </h2>
 
       {user ? (
-        <div className="mb-5">
+        <div className="mb-6">
           <div className="flex gap-3">
             <div className="flex-shrink-0">
               <Avatar path={user.avatar} name={user.full_name} />
@@ -250,20 +322,17 @@ export default function CommentSection({ articleId }: Props) {
                 dir="rtl"
                 lang="dv"
                 spellCheck={false}
-                autoCapitalize="off"
-                autoCorrect="off"
-                style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif' }}
-                className="w-full px-4 py-2.5 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+                className="w-full px-4 py-3 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
               />
-              {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
-              <div className="flex items-center justify-between mt-1.5">
+              {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+              <div className="flex items-center justify-between mt-2">
                 <span className="text-xs text-gray-400">
                   {body.length}/{MAX_LENGTH}
                 </span>
                 <button
                   onClick={handleSubmit}
                   disabled={submitting || !body.trim()}
-                  className="px-4 py-1.5 text-sm bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="px-4 py-2 text-sm bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {submitting ? "ފޮނުވަނީ..." : "ފޮނުވާ"}
                 </button>
@@ -272,7 +341,7 @@ export default function CommentSection({ articleId }: Props) {
           </div>
         </div>
       ) : (
-        <div className="mb-5 rounded-xl border border-gray-200 dark:border-gray-700 px-5 py-3 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50">
+        <div className="mb-6 rounded-xl border border-gray-200 dark:border-gray-700 px-5 py-4 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50">
           ކޮމެންޓް ކުރަން{" "}
           <a href="/login" className="text-gray-900 dark:text-white underline underline-offset-2">
             ލޮގިން ވޭ
@@ -280,7 +349,25 @@ export default function CommentSection({ articleId }: Props) {
         </div>
       )}
 
-      <CommentList comments={comments} userId={user?.id ?? null} onDelete={handleDelete} />
+      {comments.length === 0 ? (
+        <p className="text-sm text-gray-400 text-center py-6">
+          އަދި ކޮމެންޓެއް ނެތް. ފުރަތަމަ ކޮމެންޓް ކޮށްލާ!
+        </p>
+      ) : (
+        <div className="space-y-5">
+          {comments.map((c) => (
+            <CommentItem
+              key={c.id}
+              comment={c}
+              canDelete={!!user && c.user_id === user.id}
+              onDelete={handleDelete}
+              reactions={reactions.filter((r) => r.comment_id === c.id)}
+              userId={user?.id ?? null}
+              onToggleReaction={handleToggleReaction}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
