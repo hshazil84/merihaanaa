@@ -252,6 +252,7 @@ export default function CommentSection({ articleId }: Props) {
   const [lastPostAt, setLastPostAt] = useState(0);
   const [loading, setLoading] = useState(true);
   const [locked, setLocked] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // reply state: which comment's reply box is open
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -262,47 +263,59 @@ export default function CommentSection({ articleId }: Props) {
     let cancelled = false;
 
     async function init() {
-      // Fresh lock state (not cached with the page)
-      const { data: lockRow } = await supabase
-        .from("articles")
-        .select("comments_locked")
-        .eq("id", articleId)
-        .maybeSingle();
-      if (!cancelled) setLocked(!!lockRow?.comments_locked);
+      try {
+        // Fresh lock state (not cached with the page)
+        const { data: lockRow, error: lockErr } = await supabase
+          .from("articles")
+          .select("comments_locked")
+          .eq("id", articleId)
+          .maybeSingle();
+        if (lockErr) console.error("[comments] lock query failed:", lockErr.message);
+        if (!cancelled) setLocked(!!lockRow?.comments_locked);
 
-      const { data: commentData } = await supabase
-        .from("comments")
-        .select("id, body, created_at, user_id, parent_id, user_profiles(full_name, avatar)")
-        .eq("article_id", articleId)
-        .eq("is_approved", true)
-        .order("created_at", { ascending: false });
+        const { data: commentData, error: commentErr } = await supabase
+          .from("comments")
+          .select("id, body, created_at, user_id, parent_id, user_profiles(full_name, avatar)")
+          .eq("article_id", articleId)
+          .eq("is_approved", true)
+          .order("created_at", { ascending: false });
 
-      if (!cancelled && commentData) {
-        setComments(commentData as unknown as Comment[]);
-
-        const ids = commentData.map((c: { id: string }) => c.id);
-        if (ids.length > 0) {
-          const { data: reactionData } = await supabase
-            .from("comment_reactions")
-            .select("comment_id, user_id, emoji")
-            .in("comment_id", ids);
-          if (!cancelled && reactionData) setReactions(reactionData as Reaction[]);
+        if (commentErr) {
+          console.error("[comments] load failed:", commentErr.message, commentErr);
+          if (!cancelled) setLoadError(commentErr.message);
         }
-      }
 
-      const { data: authData } = await supabase.auth.getUser();
-      if (!cancelled && authData.user) {
-        const { data: profile } = await supabase
-          .from("user_profiles")
-          .select("full_name, avatar")
-          .eq("id", authData.user.id)
-          .single();
-        if (profile) {
-          setUser({ id: authData.user.id, full_name: profile.full_name, avatar: profile.avatar });
+        if (!cancelled && commentData) {
+          setComments(commentData as unknown as Comment[]);
+
+          const ids = commentData.map((c: { id: string }) => c.id);
+          if (ids.length > 0) {
+            const { data: reactionData, error: reactionErr } = await supabase
+              .from("comment_reactions")
+              .select("comment_id, user_id, emoji")
+              .in("comment_id", ids);
+            if (reactionErr) console.error("[comments] reactions failed:", reactionErr.message);
+            if (!cancelled && reactionData) setReactions(reactionData as Reaction[]);
+          }
         }
-      }
 
-      if (!cancelled) setLoading(false);
+        const { data: authData } = await supabase.auth.getUser();
+        if (!cancelled && authData.user) {
+          const { data: profile } = await supabase
+            .from("user_profiles")
+            .select("full_name, avatar")
+            .eq("id", authData.user.id)
+            .single();
+          if (profile) {
+            setUser({ id: authData.user.id, full_name: profile.full_name, avatar: profile.avatar });
+          }
+        }
+      } catch (e) {
+        console.error("[comments] init crashed:", e);
+        if (!cancelled) setLoadError(String(e));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
 
     init();
@@ -525,6 +538,12 @@ export default function CommentSection({ articleId }: Props) {
             ލޮގިން ވޭ
           </a>
         </div>
+      )}
+
+      {loadError && (
+        <p className="text-xs text-red-500 mb-4" dir="ltr">
+          Comments failed to load: {loadError}
+        </p>
       )}
 
       {topLevel.length === 0 ? (
