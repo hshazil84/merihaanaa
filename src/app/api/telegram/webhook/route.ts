@@ -82,7 +82,7 @@ export async function POST(req: Request) {
     return deny("Failed, try again");
   }
 
-  await tg("editMessageText", {
+  const edit = await tg("editMessageText", {
     chat_id: cb.message.chat.id,
     message_id: cb.message.message_id,
     text: buildMessage(ctx, state),
@@ -90,6 +90,20 @@ export async function POST(req: Request) {
     reply_markup: buildKeyboard(ctx, state),
     disable_web_page_preview: true,
   });
+
+  if (!edit?.ok) {
+    console.error("editMessageText failed:", JSON.stringify(edit));
+    // Fallback: at least swap the buttons
+    const fallback = await tg("editMessageReplyMarkup", {
+      chat_id: cb.message.chat.id,
+      message_id: cb.message.message_id,
+      reply_markup: buildKeyboard(ctx, state),
+    });
+    if (!fallback?.ok) {
+      console.error("editMessageReplyMarkup failed:", JSON.stringify(fallback));
+    }
+  }
+
   await tg("answerCallbackQuery", { callback_query_id: cb.id });
 
   return NextResponse.json({ ok: true });
