@@ -275,7 +275,7 @@ export default function CommentSection({ articleId }: Props) {
 
         const { data: commentData, error: commentErr } = await supabase
           .from("comments")
-          .select("id, body, created_at, user_id, parent_id, user_profiles(full_name, avatar)")
+          .select("id, body, created_at, user_id, parent_id")
           .eq("article_id", articleId)
           .eq("is_approved", true)
           .order("created_at", { ascending: false });
@@ -286,7 +286,27 @@ export default function CommentSection({ articleId }: Props) {
         }
 
         if (!cancelled && commentData) {
-          setComments(commentData as unknown as Comment[]);
+          // Author names/avatars come from a public view (readers can't read
+          // other users' profiles directly, and comments has no FK to user_profiles)
+          const userIds = Array.from(new Set(commentData.map((c: { user_id: string }) => c.user_id)));
+          const authors = new Map<string, { full_name: string; avatar: string | null }>();
+          if (userIds.length > 0) {
+            const { data: authorRows, error: authorErr } = await supabase
+              .from("comment_authors")
+              .select("id, full_name, avatar")
+              .in("id", userIds);
+            if (authorErr) console.error("[comments] authors failed:", authorErr.message);
+            (authorRows ?? []).forEach((a: { id: string; full_name: string; avatar: string | null }) =>
+              authors.set(a.id, { full_name: a.full_name, avatar: a.avatar })
+            );
+          }
+
+          setComments(
+            commentData.map((c: any) => ({
+              ...c,
+              user_profiles: authors.get(c.user_id) ?? null,
+            })) as Comment[]
+          );
 
           const ids = commentData.map((c: { id: string }) => c.id);
           if (ids.length > 0) {
