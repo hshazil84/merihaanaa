@@ -533,4 +533,158 @@ function SearchDropdown({
                 </>
               )}
               {!searchLoading && visibleResults.length === 0 && (
-                <p className="text-center py-6" style={{ fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif', fontSize: "13px",
+                <p className="text-center py-6" style={{ fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif', fontSize: "13px", color: "rgb(160,158,152)", lineHeight: 2 }}>ނަތީޖާ ނެތް</p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Mobile menu ───────────────────────────────────────────────────────────────
+function MobileMenu({ categories, open, onClose, topOffset, user, authReady, onSignOut }: {
+  categories: Category[];
+  open: boolean;
+  onClose: () => void;
+  topOffset: number;
+  user: AuthUser | null;
+  authReady: boolean;
+  onSignOut: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[55] transition-opacity duration-300"
+      style={{
+        backgroundColor: "rgb(249,248,245)",
+        top: topOffset + "px",
+        opacity: open ? 1 : 0,
+        pointerEvents: open ? "auto" : "none",
+      }}
+    >
+      <button type="button" aria-label="ބަންދުކުރޭ" onClick={onClose} className="absolute top-4 left-5 p-2 hover:bg-black/5 rounded-full text-[rgb(26,26,26)]">
+        <X className="w-5 h-5" />
+      </button>
+      <div className="h-full overflow-y-auto px-8 py-12 max-w-md mx-auto flex flex-col" dir="rtl">
+        <nav className="flex-1">
+          {categories.map((cat, i) => (
+            <div key={cat.id} style={{
+              opacity: open ? 1 : 0,
+              transform: open ? "translateX(0)" : "translateX(20px)",
+              transition: "opacity 0.3s ease " + (i * 0.04) + "s, transform 0.3s ease " + (i * 0.04) + "s",
+            }}>
+              <Link href={"/" + cat.slug}
+                onClick={cat.slug === "originals" ? undefined : onClose}
+                target={cat.slug === "originals" ? "_blank" : undefined}
+                rel={cat.slug === "originals" ? "noopener noreferrer" : undefined}
+                className="block py-3 border-b border-[#e0ddd6]/60 transition-colors text-[#999] hover:text-[#333]"
+                style={{ fontFamily: "'MVTypewriter','MV Boli',sans-serif", fontSize: "1.2rem" }}>
+                {cat.name}
+              </Link>
+            </div>
+          ))}
+        </nav>
+        <div className="pt-6 mt-6 border-t border-[#e0ddd6]/60" style={{
+          opacity: open ? 1 : 0,
+          transform: open ? "translateX(0)" : "translateX(20px)",
+          transition: "opacity 0.3s ease " + (categories.length * 0.04 + 0.1) + "s, transform 0.3s ease " + (categories.length * 0.04 + 0.1) + "s",
+        }}>
+          {!authReady ? (
+            <div className="py-3 h-[52px]" aria-hidden />
+          ) : user ? (
+            <div className="flex flex-col">
+              <div className="flex items-center gap-3 py-3" style={{ fontFamily: "'MVTypewriter','MV Boli',sans-serif", fontSize: "1rem", color: "rgb(26,26,26)" }}>
+                <AvatarCircle user={user} size={24} />
+                <span className="truncate">{user.name || "—"}</span>
+              </div>
+              <button type="button" onClick={onSignOut}
+                className="text-right py-3 transition-colors text-[#999] hover:text-[#333]"
+                style={{ fontFamily: "'MVTypewriter','MV Boli',sans-serif", fontSize: "1rem" }}>
+                ސައިން އައުޓް
+              </button>
+            </div>
+          ) : (
+            <Link href="/login" onClick={onClose}
+              className="flex items-center gap-3 py-3 transition-colors text-[#999] hover:text-[#333]"
+              style={{ fontFamily: "'MVTypewriter','MV Boli',sans-serif", fontSize: "1rem" }}>
+              <User className="w-4 h-4 flex-shrink-0" />
+              ސައިން އިން
+            </Link>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// ── Account (signed-in) ───────────────────────────────────────────────────────
+function AvatarCircle({ user, size = 28 }: { user: AuthUser; size?: number }) {
+  const url = avatarUrl(user.avatar);
+  const style = { width: size, height: size };
+  if (url) {
+    return <img src={url} alt={user.name} style={style} className="rounded-full object-cover flex-shrink-0" />;
+  }
+  return (
+    <span
+      style={{ ...style, backgroundColor: "rgb(226,223,216)", color: "rgb(70,68,64)", fontSize: Math.round(size * 0.45) + "px" }}
+      className="rounded-full flex items-center justify-center flex-shrink-0 font-medium"
+    >
+      {(user.name || "?").charAt(0).toUpperCase()}
+    </span>
+  );
+}
+
+function AccountButton({ user, onSignOut, light = false }: {
+  user: AuthUser;
+  onSignOut: () => void;
+  light?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <button
+        type="button"
+        aria-label={user.name || "ގިނަ"}
+        onClick={() => setOpen((v) => !v)}
+        className={"p-1.5 rounded-full transition-colors " + (light ? "hover:bg-white/10" : "hover:bg-black/5")}
+      >
+        <AvatarCircle user={user} size={26} />
+      </button>
+      {open && (
+        <div
+          className="absolute top-full mt-2 left-0 min-w-[160px] rounded-xl overflow-hidden z-[70]"
+          dir="rtl"
+          style={{ backgroundColor: "#F5F3EF", boxShadow: "0 12px 32px rgba(0,0,0,0.16), 0 2px 6px rgba(0,0,0,0.06)" }}
+        >
+          <p
+            className="px-4 py-3 truncate border-b"
+            style={{ fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif', fontSize: "13px", color: "rgb(26,26,26)", borderColor: "rgb(224,221,214)", lineHeight: 1.6 }}
+          >
+            {user.name || "—"}
+          </p>
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onSignOut(); }}
+            className="w-full text-right px-4 py-3 transition-colors hover:bg-black/5"
+            style={{ fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif', fontSize: "13px", color: "rgb(100,98,92)", lineHeight: 1.6 }}
+          >
+            ސައިން އައުޓް
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
