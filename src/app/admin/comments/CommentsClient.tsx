@@ -31,6 +31,58 @@ function articleHref(a: Article) {
   return a.category_slug ? `/${a.category_slug}/${a.slug}` : `/${a.slug}`;
 }
 
+const PAGE_SIZE = 20;
+const THREAD_PAGE_SIZE = 10;
+
+function Pager({ page, total, size, onChange }: { page: number; total: number; size: number; onChange: (p: number) => void }) {
+  const pages = Math.max(1, Math.ceil(total / size));
+  if (pages <= 1) return null;
+  const from = (page - 1) * size + 1;
+  const to = Math.min(page * size, total);
+
+  // compact page list: 1 … current-1 current current+1 … last
+  const nums: (number | "…")[] = [];
+  for (let i = 1; i <= pages; i++) {
+    if (i === 1 || i === pages || Math.abs(i - page) <= 1) nums.push(i);
+    else if (nums[nums.length - 1] !== "…") nums.push("…");
+  }
+
+  const btn = "h-8 min-w-8 px-2.5 rounded-lg font-body text-xs font-semibold transition-colors";
+  return (
+    <div className="flex items-center justify-between gap-3 mt-5 flex-wrap" dir="ltr">
+      <p className="font-body text-[11px] text-muted-foreground tabular-nums">
+        {from}–{to} of {total}
+      </p>
+      <div className="flex items-center gap-1">
+        <button type="button" disabled={page <= 1} onClick={() => onChange(page - 1)}
+          className={`${btn} bg-muted text-foreground hover:bg-muted/70 disabled:opacity-40 disabled:cursor-not-allowed`}>
+          Prev
+        </button>
+        {nums.map((n, i) =>
+          n === "…" ? (
+            <span key={`gap-${i}`} className="px-1 font-body text-xs text-muted-foreground">…</span>
+          ) : (
+            <button key={n} type="button" onClick={() => onChange(n)}
+              className={`${btn} tabular-nums ${n === page ? "bg-foreground text-background" : "bg-muted text-foreground hover:bg-muted/70"}`}>
+              {n}
+            </button>
+          )
+        )}
+        <button type="button" disabled={page >= pages} onClick={() => onChange(page + 1)}
+          className={`${btn} bg-muted text-foreground hover:bg-muted/70 disabled:opacity-40 disabled:cursor-not-allowed`}>
+          Next
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function slicePage<T>(list: T[], page: number, size: number): T[] {
+  const pages = Math.max(1, Math.ceil(list.length / size));
+  const p = Math.min(Math.max(page, 1), pages);
+  return list.slice((p - 1) * size, p * size);
+}
+
 export default function CommentsClient({
   comments: initialComments,
   articles: initialArticles,
@@ -46,6 +98,7 @@ export default function CommentsClient({
   const [articleId, setArticleId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   const articleById = useMemo(() => new Map(articles.map((a) => [a.id, a])), [articles]);
   const isVisible = (c: Comment) => c.is_approved === true;
@@ -153,7 +206,7 @@ export default function CommentsClient({
   const tabs = (
     <div className="flex gap-1 p-1 bg-muted/40 rounded-xl w-fit mb-6">
       {([["articles", "By article"], ["all", "All comments"]] as [View, string][]).map(([v, label]) => (
-        <button key={v} type="button" onClick={() => { setView(v); setArticleId(null); }}
+        <button key={v} type="button" onClick={() => { setView(v); setArticleId(null); setPage(1); }}
           className={`px-3 py-1.5 rounded-lg font-body text-xs font-semibold transition-all ${view === v ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
           {label}
         </button>
@@ -174,7 +227,7 @@ export default function CommentsClient({
       <div className="max-w-4xl mx-auto px-6 py-8" dir="rtl">
         {header}
         {tabs}
-        <button type="button" onClick={() => setArticleId(null)} className="flex items-center gap-1.5 mb-4 font-body text-xs text-muted-foreground hover:text-foreground transition-colors">
+        <button type="button" onClick={() => { setArticleId(null); setPage(1); }} className="flex items-center gap-1.5 mb-4 font-body text-xs text-muted-foreground hover:text-foreground transition-colors">
           <ArrowRight size={13} /> All articles
         </button>
         {a && (
@@ -198,7 +251,7 @@ export default function CommentsClient({
           </div>
         ) : (
           <div className="space-y-4">
-            {tops.map((c) => (
+            {slicePage(tops, page, THREAD_PAGE_SIZE).map((c) => (
               <div key={c.id}>
                 <CommentCard comment={c} />
                 {repliesOf(c.id).length > 0 && (
@@ -210,6 +263,7 @@ export default function CommentsClient({
                 )}
               </div>
             ))}
+            <Pager page={Math.min(page, Math.max(1, Math.ceil(tops.length / THREAD_PAGE_SIZE)))} total={tops.length} size={THREAD_PAGE_SIZE} onChange={setPage} />
           </div>
         )}
       </div>
@@ -231,7 +285,7 @@ export default function CommentsClient({
         {tabs}
         <input
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           placeholder="Search articles…"
           className="w-full h-9 px-3 mb-4 rounded-lg border border-border bg-background font-body text-sm focus:outline-none focus:ring-2 focus:ring-foreground/10"
         />
@@ -241,9 +295,9 @@ export default function CommentsClient({
           </div>
         ) : (
           <div className="space-y-2">
-            {rows.map((a) => (
+            {slicePage(rows, page, PAGE_SIZE).map((a) => (
               <div key={a.id} className="flex items-center gap-3 p-3 bg-background rounded-xl border border-border">
-                <button type="button" onClick={() => setArticleId(a.id)} className="flex-1 min-w-0 text-right">
+                <button type="button" onClick={() => { setArticleId(a.id); setPage(1); }} className="flex-1 min-w-0 text-right">
                   <p className="font-body text-sm font-semibold text-foreground truncate">{a.title}</p>
                   <p className="font-body text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
                     <MessageSquare size={10} /> {counts.get(a.id) ?? 0}
@@ -251,11 +305,12 @@ export default function CommentsClient({
                   </p>
                 </button>
                 <LockButton a={a} />
-                <button type="button" onClick={() => setArticleId(a.id)} className="h-7 px-3 rounded-lg bg-muted hover:bg-muted/70 font-body text-xs font-semibold text-foreground transition-colors">
+                <button type="button" onClick={() => { setArticleId(a.id); setPage(1); }} className="h-7 px-3 rounded-lg bg-muted hover:bg-muted/70 font-body text-xs font-semibold text-foreground transition-colors">
                   Manage
                 </button>
               </div>
             ))}
+            <Pager page={Math.min(page, Math.max(1, Math.ceil(rows.length / PAGE_SIZE)))} total={rows.length} size={PAGE_SIZE} onChange={setPage} />
           </div>
         )}
       </div>
@@ -281,7 +336,7 @@ export default function CommentsClient({
       {tabs}
       <div className="flex gap-1 p-1 bg-muted/40 rounded-xl w-fit mb-6">
         {FILTERS.map((f) => (
-          <button key={f.value} type="button" onClick={() => setFilter(f.value)}
+          <button key={f.value} type="button" onClick={() => { setFilter(f.value); setPage(1); }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-body text-xs font-semibold transition-all ${filter === f.value ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
             {f.label}
             <span className="tabular-nums text-[10px] text-muted-foreground/50">{counts[f.value]}</span>
@@ -294,9 +349,10 @@ export default function CommentsClient({
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map((c) => (
+          {slicePage(filtered, page, PAGE_SIZE).map((c) => (
             <CommentCard key={c.id} comment={c} showArticle />
           ))}
+          <Pager page={Math.min(page, Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)))} total={filtered.length} size={PAGE_SIZE} onChange={setPage} />
         </div>
       )}
     </div>
