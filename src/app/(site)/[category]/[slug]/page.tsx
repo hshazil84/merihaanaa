@@ -283,8 +283,8 @@ export default async function ArticlePage({ params }: PageProps) {
 
       {/* Tags */}
       {Array.isArray(article.tags) && article.tags.length > 0 && (
-        <div className="max-w-3xl mx-auto px-6 pb-10">
-          <div className="flex flex-wrap gap-2 pt-6 border-t border-black/10">
+        <div className="max-w-3xl mx-auto px-6 pb-6">
+          <div className="flex flex-wrap gap-2 pt-4 border-t border-black/10">
             {(article.tags as { name: string; slug: string }[]).map((tag) => (
               <Link key={tag.slug} href={"/tag/" + tag.slug}
                 className="inline-block text-[11px] px-3 py-1 rounded-full border transition-colors hover:border-black/30"
@@ -297,8 +297,8 @@ export default async function ArticlePage({ params }: PageProps) {
       )}
 
       {/* Share bottom */}
-      <div className="max-w-3xl mx-auto px-6 pb-10">
-        <div className="flex items-center justify-center gap-4 py-6 border-t border-b border-black/10">
+      <div className="max-w-3xl mx-auto px-6 pb-6">
+        <div className="flex items-center justify-center gap-4 py-4 border-t border-b border-black/10">
           <span style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontSize: "12px", color: "rgb(160,158,152)", lineHeight: 2 }}>
             ޝެއަރ ކުރޭ
           </span>
@@ -308,7 +308,7 @@ export default async function ArticlePage({ params }: PageProps) {
 
       {/* Comments */}
       {article.allow_comments && (
-        <div className="max-w-3xl mx-auto px-6 pb-10">
+        <div className="max-w-3xl mx-auto px-6 pb-8">
           <CommentSection articleId={article.id} />
         </div>
       )}
