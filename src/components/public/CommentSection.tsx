@@ -66,15 +66,18 @@ function ReactionBar({
   reactions,
   userId,
   onToggle,
+  readOnly,
 }: {
   reactions: Reaction[];
   userId: string | null;
   onToggle: (emoji: string) => void;
+  readOnly: boolean;
 }) {
   const mine = userId ? reactions.find((r) => r.user_id === userId)?.emoji : null;
+  const shown = readOnly ? EMOJIS.filter((e) => reactions.some((r) => r.emoji === e)) : EMOJIS;
   return (
     <div className="flex items-center flex-wrap" style={{ gap: 2 }}>
-      {EMOJIS.map((emoji) => {
+      {shown.map((emoji) => {
         const count = reactions.filter((r) => r.emoji === emoji).length;
         const active = mine === emoji;
         const used = count > 0;
@@ -83,8 +86,9 @@ function ReactionBar({
             key={emoji}
             type="button"
             onClick={() => onToggle(emoji)}
+            disabled={readOnly}
             aria-pressed={active}
-            className="inline-flex items-center rounded-full transition-colors hover:bg-black/5"
+            className={"inline-flex items-center rounded-full transition-colors " + (readOnly ? "cursor-default" : "hover:bg-black/5")}
             style={{
               gap: 3,
               height: 24,
@@ -173,6 +177,7 @@ function CommentItem({
   onReplyClick,
   replyOpen,
   replyBox,
+  locked,
 }: {
   comment: Comment;
   isReply: boolean;
@@ -184,6 +189,7 @@ function CommentItem({
   onReplyClick: () => void;
   replyOpen: boolean;
   replyBox: React.ReactNode;
+  locked: boolean;
 }) {
   const profile = comment.user_profiles;
   const name = profile?.full_name ?? "ނަމެއް ނެތް";
@@ -216,17 +222,20 @@ function CommentItem({
             reactions={reactions}
             userId={userId}
             onToggle={(emoji) => onToggleReaction(comment.id, emoji)}
+            readOnly={locked}
           />
-          <button
-            type="button"
-            onClick={onReplyClick}
-            className="text-xs text-gray-400 hover:text-gray-900 transition-colors px-1"
-            style={{ fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif' }}
-          >
-            {replyOpen ? "ބަންދުކުރޭ" : "ރިޕްލައި"}
-          </button>
+          {!locked && (
+            <button
+              type="button"
+              onClick={onReplyClick}
+              className="text-xs text-gray-400 hover:text-gray-900 transition-colors px-1"
+              style={{ fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif' }}
+            >
+              ރިޕްލައި
+            </button>
+          )}
         </div>
-        {replyOpen && replyBox}
+        {replyOpen && !locked && replyBox}
       </div>
     </div>
   );
@@ -242,6 +251,7 @@ export default function CommentSection({ articleId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [lastPostAt, setLastPostAt] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [locked, setLocked] = useState(false);
 
   // reply state: which comment's reply box is open
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -252,6 +262,14 @@ export default function CommentSection({ articleId }: Props) {
     let cancelled = false;
 
     async function init() {
+      // Fresh lock state (not cached with the page)
+      const { data: lockRow } = await supabase
+        .from("articles")
+        .select("comments_locked")
+        .eq("id", articleId)
+        .maybeSingle();
+      if (!cancelled) setLocked(!!lockRow?.comments_locked);
+
       const { data: commentData } = await supabase
         .from("comments")
         .select("id, body, created_at, user_id, parent_id, user_profiles(full_name, avatar)")
@@ -294,6 +312,7 @@ export default function CommentSection({ articleId }: Props) {
   // Returns an error message, or null on success
   async function postComment(text: string, parentId: string | null): Promise<string | null> {
     if (!user) return "ލޮގިން ވޭ";
+    if (locked) return "މި ލިޔުމުގެ ކޮމެންޓް ބަންދުކޮށްފައި";
 
     if (Date.now() - lastPostAt < COOLDOWN_MS) {
       return "ކޮމެންޓްތައް ފޮނުވަނީ ވަރަށް އަވަހަށް. ވަރަކަށް މަޑުކޮށްލާ.";
@@ -352,6 +371,7 @@ export default function CommentSection({ articleId }: Props) {
   }
 
   function openReply(commentId: string) {
+    if (locked) return;
     if (!user) {
       window.location.href = "/login";
       return;
@@ -370,6 +390,7 @@ export default function CommentSection({ articleId }: Props) {
   }
 
   async function handleToggleReaction(commentId: string, emoji: string) {
+    if (locked) return;
     if (!user) {
       window.location.href = "/login";
       return;
@@ -427,6 +448,7 @@ export default function CommentSection({ articleId }: Props) {
         userId={user?.id ?? null}
         onToggleReaction={handleToggleReaction}
         onReplyClick={() => openReply(c.id)}
+        locked={locked}
         replyOpen={replyingTo === c.id}
         replyBox={
           <ReplyBox
@@ -456,7 +478,14 @@ export default function CommentSection({ articleId }: Props) {
         ކޮމެންޓް ({comments.length})
       </h2>
 
-      {user ? (
+      {locked ? (
+        <div
+          className="mb-6 rounded-xl border border-gray-200 dark:border-gray-700 px-5 py-4 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50"
+          style={{ fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif' }}
+        >
+          🔒 މި ލިޔުމުގެ ކޮމެންޓް ބަންދުކޮށްފައި. އާ ކޮމެންޓް ނުކުރެވޭނެ.
+        </div>
+      ) : user ? (
         <div className="mb-6">
           <div className="flex gap-3">
             <div className="flex-shrink-0">
@@ -499,9 +528,11 @@ export default function CommentSection({ articleId }: Props) {
       )}
 
       {topLevel.length === 0 ? (
-        <p className="text-sm text-gray-400 text-center py-6">
-          އަދި ކޮމެންޓެއް ނެތް. ފުރަތަމަ ކޮމެންޓް ކޮށްލާ!
-        </p>
+        locked ? null : (
+          <p className="text-sm text-gray-400 text-center py-6">
+            އަދި ކޮމެންޓެއް ނެތް. ފުރަތަމަ ކޮމެންޓް ކޮށްލާ!
+          </p>
+        )
       ) : (
         <div className="space-y-6">
           {topLevel.map((c) => {
