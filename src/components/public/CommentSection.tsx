@@ -8,6 +8,7 @@ type Comment = {
   body: string;
   created_at: string;
   user_id: string;
+  parent_id: string | null;
   user_profiles: {
     full_name: string;
     avatar: string | null;
@@ -53,8 +54,8 @@ function Avatar({ path, name, size = 32 }: { path: string | null; name: string; 
   }
   return (
     <div
-      style={style}
-      className="rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-sm font-medium text-gray-500"
+      style={{ ...style, fontSize: Math.round(size * 0.4) }}
+      className="rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-medium text-gray-500"
     >
       {name.charAt(0).toUpperCase()}
     </div>
@@ -72,25 +73,31 @@ function ReactionBar({
 }) {
   const mine = userId ? reactions.find((r) => r.user_id === userId)?.emoji : null;
   return (
-    <div className="flex items-center gap-1 mt-2 flex-wrap" dir="ltr">
+    <div className="flex items-center flex-wrap" style={{ gap: 2 }}>
       {EMOJIS.map((emoji) => {
         const count = reactions.filter((r) => r.emoji === emoji).length;
         const active = mine === emoji;
+        const used = count > 0;
         return (
           <button
             key={emoji}
             type="button"
             onClick={() => onToggle(emoji)}
             aria-pressed={active}
-            className="flex items-center gap-1 rounded-full px-2 py-0.5 text-xs transition-colors"
+            className="inline-flex items-center rounded-full transition-colors hover:bg-black/5"
             style={{
-              border: active ? "1px solid rgb(26,26,26)" : "1px solid rgb(224,221,214)",
-              backgroundColor: active ? "rgb(240,239,233)" : "transparent",
-              opacity: count === 0 && !active ? 0.55 : 1,
+              gap: 3,
+              height: 24,
+              padding: used ? "0 7px" : "0 4px",
+              backgroundColor: active ? "rgb(232,230,223)" : "transparent",
+              boxShadow: active ? "inset 0 0 0 1px rgb(26,26,26)" : used ? "inset 0 0 0 1px rgb(224,221,214)" : "none",
+              opacity: used || active ? 1 : 0.5,
             }}
           >
-            <span style={{ fontSize: "14px", lineHeight: 1.4 }}>{emoji}</span>
-            {count > 0 && <span style={{ color: "rgb(100,98,92)" }}>{count}</span>}
+            <span style={{ fontSize: 13, lineHeight: 1 }}>{emoji}</span>
+            {used && (
+              <span style={{ fontSize: 11, lineHeight: 1, color: "rgb(100,98,92)" }}>{count}</span>
+            )}
           </button>
         );
       })}
@@ -98,27 +105,92 @@ function ReactionBar({
   );
 }
 
+function ReplyBox({
+  prefix,
+  submitting,
+  error,
+  onSubmit,
+  onCancel,
+}: {
+  prefix: string;
+  submitting: boolean;
+  error: string | null;
+  onSubmit: (text: string) => Promise<boolean>;
+  onCancel: () => void;
+}) {
+  const [text, setText] = useState("");
+
+  async function send() {
+    const t = text.trim();
+    if (!t || submitting) return;
+    const ok = await onSubmit(prefix + t);
+    if (ok) setText("");
+  }
+
+  return (
+    <div className="mt-3">
+      <textarea
+        autoFocus
+        value={text}
+        onChange={(e) => setText(e.target.value.slice(0, MAX_LENGTH))}
+        placeholder="ރިޕްލައި ލިޔޭ..."
+        rows={2}
+        dir="rtl"
+        lang="dv"
+        spellCheck={false}
+        className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+      />
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+      <div className="flex items-center gap-2 mt-2">
+        <button
+          type="button"
+          onClick={send}
+          disabled={submitting || !text.trim()}
+          className="px-3 py-1.5 text-xs bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {submitting ? "ފޮނުވަނީ..." : "ފޮނުވާ"}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-900 transition-colors"
+        >
+          ބަންދުކުރޭ
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function CommentItem({
   comment,
+  isReply,
   canDelete,
   onDelete,
   reactions,
   userId,
   onToggleReaction,
+  onReplyClick,
+  replyOpen,
+  replyBox,
 }: {
   comment: Comment;
+  isReply: boolean;
   canDelete: boolean;
   onDelete: (id: string) => void;
   reactions: Reaction[];
   userId: string | null;
   onToggleReaction: (commentId: string, emoji: string) => void;
+  onReplyClick: () => void;
+  replyOpen: boolean;
+  replyBox: React.ReactNode;
 }) {
   const profile = comment.user_profiles;
   const name = profile?.full_name ?? "ނަމެއް ނެތް";
   return (
     <div className="flex gap-3">
       <div className="flex-shrink-0">
-        <Avatar path={profile?.avatar ?? null} name={name} />
+        <Avatar path={profile?.avatar ?? null} name={name} size={isReply ? 26 : 32} />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
@@ -139,11 +211,22 @@ function CommentItem({
         >
           {comment.body}
         </p>
-        <ReactionBar
-          reactions={reactions}
-          userId={userId}
-          onToggle={(emoji) => onToggleReaction(comment.id, emoji)}
-        />
+        <div className="flex items-center flex-wrap mt-1.5" style={{ gap: 6 }}>
+          <ReactionBar
+            reactions={reactions}
+            userId={userId}
+            onToggle={(emoji) => onToggleReaction(comment.id, emoji)}
+          />
+          <button
+            type="button"
+            onClick={onReplyClick}
+            className="text-xs text-gray-400 hover:text-gray-900 transition-colors px-1"
+            style={{ fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif' }}
+          >
+            {replyOpen ? "ބަންދުކުރޭ" : "ރިޕްލައި"}
+          </button>
+        </div>
+        {replyOpen && replyBox}
       </div>
     </div>
   );
@@ -160,13 +243,18 @@ export default function CommentSection({ articleId }: Props) {
   const [lastPostAt, setLastPostAt] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  // reply state: which comment's reply box is open
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replySubmitting, setReplySubmitting] = useState(false);
+  const [replyError, setReplyError] = useState<string | null>(null);
+
   useEffect(() => {
     let cancelled = false;
 
     async function init() {
       const { data: commentData } = await supabase
         .from("comments")
-        .select("id, body, created_at, user_id, user_profiles(full_name, avatar)")
+        .select("id, body, created_at, user_id, parent_id, user_profiles(full_name, avatar)")
         .eq("article_id", articleId)
         .eq("is_approved", true)
         .order("created_at", { ascending: false });
@@ -203,17 +291,13 @@ export default function CommentSection({ articleId }: Props) {
     return () => { cancelled = true; };
   }, [articleId]);
 
-  async function handleSubmit() {
-    const text = body.trim();
-    if (!text || !user || submitting) return;
+  // Returns an error message, or null on success
+  async function postComment(text: string, parentId: string | null): Promise<string | null> {
+    if (!user) return "ލޮގިން ވޭ";
 
     if (Date.now() - lastPostAt < COOLDOWN_MS) {
-      setError("ކޮމެންޓްތައް ފޮނުވަނީ ވަރަށް އަވަހަށް. ވަރަކަށް މަޑުކޮށްލާ.");
-      return;
+      return "ކޮމެންޓްތައް ފޮނުވަނީ ވަރަށް އަވަހަށް. ވަރަކަށް މަޑުކޮށްލާ.";
     }
-
-    setSubmitting(true);
-    setError(null);
 
     const { data, error: insertError } = await supabase
       .from("comments")
@@ -221,31 +305,66 @@ export default function CommentSection({ articleId }: Props) {
         article_id: articleId,
         user_id: user.id,
         body: text,
+        parent_id: parentId,
         is_approved: true,
       })
-      .select("id, body, created_at, user_id")
+      .select("id, body, created_at, user_id, parent_id")
       .single();
 
     if (insertError || !data) {
-      setError("ކޮމެންޓް ފޮނުވޭކަށް ނުޖެހުނު. އަލުން މަސައްކަތް ކޮށްލާ.");
-    } else {
-      setComments((prev) => [
-        {
-          ...data,
-          user_profiles: { full_name: user.full_name, avatar: user.avatar },
-        },
-        ...prev,
-      ]);
-      setBody("");
-      setLastPostAt(Date.now());
+      return "ކޮމެންޓް ފޮނުވޭކަށް ނުޖެހުނު. އަލުން މަސައްކަތް ކޮށްލާ.";
     }
+
+    setComments((prev) => [
+      {
+        ...(data as Omit<Comment, "user_profiles">),
+        user_profiles: { full_name: user.full_name, avatar: user.avatar },
+      },
+      ...prev,
+    ]);
+    setLastPostAt(Date.now());
+    return null;
+  }
+
+  async function handleSubmit() {
+    const text = body.trim();
+    if (!text || !user || submitting) return;
+    setSubmitting(true);
+    setError(null);
+    const err = await postComment(text, null);
+    if (err) setError(err);
+    else setBody("");
     setSubmitting(false);
+  }
+
+  async function handleReplySubmit(topId: string, text: string): Promise<boolean> {
+    if (replySubmitting) return false;
+    setReplySubmitting(true);
+    setReplyError(null);
+    const err = await postComment(text, topId);
+    setReplySubmitting(false);
+    if (err) {
+      setReplyError(err);
+      return false;
+    }
+    setReplyingTo(null);
+    return true;
+  }
+
+  function openReply(commentId: string) {
+    if (!user) {
+      window.location.href = "/login";
+      return;
+    }
+    setReplyError(null);
+    setReplyingTo((cur) => (cur === commentId ? null : commentId));
   }
 
   async function handleDelete(id: string) {
     const { error: deleteError } = await supabase.from("comments").delete().eq("id", id);
     if (!deleteError) {
-      setComments((prev) => prev.filter((c) => c.id !== id));
+      // deleting a comment also deletes its replies (cascade)
+      setComments((prev) => prev.filter((c) => c.id !== id && c.parent_id !== id));
       setReactions((prev) => prev.filter((r) => r.comment_id !== id));
     }
   }
@@ -259,7 +378,6 @@ export default function CommentSection({ articleId }: Props) {
     const existing = reactions.find((r) => r.comment_id === commentId && r.user_id === user.id);
 
     if (existing && existing.emoji === emoji) {
-      // remove
       setReactions((prev) => prev.filter((r) => !(r.comment_id === commentId && r.user_id === user.id)));
       const { error: err } = await supabase
         .from("comment_reactions")
@@ -268,7 +386,6 @@ export default function CommentSection({ articleId }: Props) {
         .eq("user_id", user.id);
       if (err) setReactions(previous);
     } else if (existing) {
-      // switch
       setReactions((prev) =>
         prev.map((r) =>
           r.comment_id === commentId && r.user_id === user.id ? { ...r, emoji } : r
@@ -281,7 +398,6 @@ export default function CommentSection({ articleId }: Props) {
         .eq("user_id", user.id);
       if (err) setReactions(previous);
     } else {
-      // add
       setReactions((prev) => [...prev, { comment_id: commentId, user_id: user.id, emoji }]);
       const { error: err } = await supabase
         .from("comment_reactions")
@@ -291,6 +407,39 @@ export default function CommentSection({ articleId }: Props) {
   }
 
   if (loading) return null;
+
+  const topLevel = comments.filter((c) => !c.parent_id);
+  const repliesOf = (id: string) =>
+    comments
+      .filter((c) => c.parent_id === id)
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+  function renderItem(c: Comment, topId: string, isReply: boolean) {
+    const name = c.user_profiles?.full_name ?? "";
+    return (
+      <CommentItem
+        key={c.id}
+        comment={c}
+        isReply={isReply}
+        canDelete={!!user && c.user_id === user.id}
+        onDelete={handleDelete}
+        reactions={reactions.filter((r) => r.comment_id === c.id)}
+        userId={user?.id ?? null}
+        onToggleReaction={handleToggleReaction}
+        onReplyClick={() => openReply(c.id)}
+        replyOpen={replyingTo === c.id}
+        replyBox={
+          <ReplyBox
+            prefix={isReply && name ? `@${name} ` : ""}
+            submitting={replySubmitting}
+            error={replyError}
+            onSubmit={(text) => handleReplySubmit(topId, text)}
+            onCancel={() => setReplyingTo(null)}
+          />
+        }
+      />
+    );
+  }
 
   return (
     <section className="pt-2" dir="rtl" lang="dv">
@@ -349,23 +498,32 @@ export default function CommentSection({ articleId }: Props) {
         </div>
       )}
 
-      {comments.length === 0 ? (
+      {topLevel.length === 0 ? (
         <p className="text-sm text-gray-400 text-center py-6">
           އަދި ކޮމެންޓެއް ނެތް. ފުރަތަމަ ކޮމެންޓް ކޮށްލާ!
         </p>
       ) : (
-        <div className="space-y-5">
-          {comments.map((c) => (
-            <CommentItem
-              key={c.id}
-              comment={c}
-              canDelete={!!user && c.user_id === user.id}
-              onDelete={handleDelete}
-              reactions={reactions.filter((r) => r.comment_id === c.id)}
-              userId={user?.id ?? null}
-              onToggleReaction={handleToggleReaction}
-            />
-          ))}
+        <div className="space-y-6">
+          {topLevel.map((c) => {
+            const replies = repliesOf(c.id);
+            return (
+              <div key={c.id}>
+                {renderItem(c, c.id, false)}
+                {replies.length > 0 && (
+                  <div
+                    className="mt-4 space-y-4"
+                    style={{
+                      marginInlineStart: 16,
+                      paddingInlineStart: 12,
+                      borderInlineStart: "2px solid rgb(224,221,214)",
+                    }}
+                  >
+                    {replies.map((r) => renderItem(r, c.id, true))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </section>
