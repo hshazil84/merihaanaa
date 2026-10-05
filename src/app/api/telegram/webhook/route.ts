@@ -82,29 +82,48 @@ export async function POST(req: Request) {
     return deny("Failed, try again");
   }
 
-  const edit = await tg("editMessageText", {
-    chat_id: cb.message.chat.id,
-    message_id: cb.message.message_id,
+  const chat_id = cb.message.chat.id;
+  const message_id = cb.message.message_id;
+
+  // 1) Swap text + buttons
+  const edited = await tg("editMessageText", {
+    chat_id,
+    message_id,
     text: buildMessage(ctx, state),
     parse_mode: "HTML",
     reply_markup: buildKeyboard(ctx, state),
-    disable_web_page_preview: true,
+    link_preview_options: { is_disabled: true },
   });
 
-  if (!edit?.ok) {
-    console.error("editMessageText failed:", JSON.stringify(edit));
-    // Fallback: at least swap the buttons
-    const fallback = await tg("editMessageReplyMarkup", {
-      chat_id: cb.message.chat.id,
-      message_id: cb.message.message_id,
+  if (!edited?.ok) {
+    console.error("editMessageText failed:", JSON.stringify(edited));
+
+    // 2) Fallback: at least swap the buttons
+    const markup = await tg("editMessageReplyMarkup", {
+      chat_id,
+      message_id,
       reply_markup: buildKeyboard(ctx, state),
     });
-    if (!fallback?.ok) {
-      console.error("editMessageReplyMarkup failed:", JSON.stringify(fallback));
+
+    if (!markup?.ok) {
+      console.error("editMessageReplyMarkup failed:", JSON.stringify(markup));
+
+      // 3) Last resort: post a plain reply so the outcome is visible
+      await tg("sendMessage", {
+        chat_id,
+        reply_to_message_id: message_id,
+        text:
+          state === "deleted" ? "🗑 Deleted" :
+          state === "hidden" ? "🙈 Hidden (use the admin panel to restore)" :
+          "↩️ Restored",
+      });
     }
   }
 
-  await tg("answerCallbackQuery", { callback_query_id: cb.id });
+  await tg("answerCallbackQuery", {
+    callback_query_id: cb.id,
+    text: state === "deleted" ? "Deleted" : state === "hidden" ? "Hidden" : "Restored",
+  });
 
   return NextResponse.json({ ok: true });
 }
