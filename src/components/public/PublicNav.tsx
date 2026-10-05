@@ -9,6 +9,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Search, User, X, Menu } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { useAuthUser, type AuthUser } from "@/components/public/useAuthUser";
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+
+function avatarUrl(path: string | null): string | null {
+  if (!path) return null;
+  if (path.startsWith("http")) return path;
+  return SUPABASE_URL + "/storage/v1/object/public/avatars/" + path;
+}
 
 interface Category { id: string; name: string; slug: string; }
 interface Props {
@@ -28,6 +38,13 @@ const CAT_BAR_HEIGHT  = 56;
 
 export default function PublicNav({ categories, static: isStatic = false }: Props) {
   const router = useRouter();
+  const { user: authUser, ready: authReady } = useAuthUser();
+
+  const signOut = async () => {
+    await createClient().auth.signOut();
+    setMobileMenuOpen(false);
+    router.refresh();
+  };
 
   // Home: hero logo bar visible until the cat bar gets close to the top
   const [heroVisible, setHeroVisible] = useState(true);
@@ -224,9 +241,15 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
                 style={{ color: "rgb(26,26,26)" }}>
                 <Search className="w-[16px] h-[16px]" />
               </button>
-              <Link href="/login" aria-label="ސައިން އިން" className="p-2 rounded-full hover:bg-black/5 transition-colors" style={{ color: "rgb(26,26,26)" }}>
-                <User className="w-[16px] h-[16px]" />
-              </Link>
+              {!authReady ? (
+                <span className="w-8 h-8" aria-hidden />
+              ) : authUser ? (
+                <AccountButton user={authUser} onSignOut={signOut} />
+              ) : (
+                <Link href="/login" aria-label="ސައިން އިން" className="p-2 rounded-full hover:bg-black/5 transition-colors" style={{ color: "rgb(26,26,26)" }}>
+                  <User className="w-[16px] h-[16px]" />
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -286,6 +309,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
           categories={categories} open={mobileMenuOpen}
           onClose={() => setMobileMenuOpen(false)}
           topOffset={LOGO_BAR_HEIGHT}
+          user={authUser} authReady={authReady} onSignOut={signOut}
         />
       </>
     );
@@ -328,11 +352,17 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
               style={{ color: "rgb(255,255,255)" }}>
               <Search className="w-[18px] h-[18px]" />
             </button>
-            <Link href="/login" aria-label="ސައިން އިން"
-              className="p-2 rounded-full hover:bg-white/10 transition-colors"
-              style={{ color: "rgb(255,255,255)" }}>
-              <User className="w-[18px] h-[18px]" />
-            </Link>
+            {!authReady ? (
+              <span className="w-9 h-9" aria-hidden />
+            ) : authUser ? (
+              <AccountButton user={authUser} onSignOut={signOut} light />
+            ) : (
+              <Link href="/login" aria-label="ސައިން އިން"
+                className="p-2 rounded-full hover:bg-white/10 transition-colors"
+                style={{ color: "rgb(255,255,255)" }}>
+                <User className="w-[18px] h-[18px]" />
+              </Link>
+            )}
           </div>
         </div>
       </div>
@@ -392,6 +422,7 @@ export default function PublicNav({ categories, static: isStatic = false }: Prop
         categories={categories} open={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
         topOffset={heroVisible ? LOGO_BAR_HEIGHT : CAT_BAR_HEIGHT}
+        user={authUser} authReady={authReady} onSignOut={signOut}
       />
     </>
   );
@@ -502,68 +533,4 @@ function SearchDropdown({
                 </>
               )}
               {!searchLoading && visibleResults.length === 0 && (
-                <p className="text-center py-6" style={{ fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif', fontSize: "13px", color: "rgb(160,158,152)", lineHeight: 2 }}>ނަތީޖާ ނެތް</p>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Mobile menu ───────────────────────────────────────────────────────────────
-function MobileMenu({ categories, open, onClose, topOffset }: {
-  categories: Category[];
-  open: boolean;
-  onClose: () => void;
-  topOffset: number;
-}) {
-  return (
-    <div
-      className="fixed inset-0 z-[55] transition-opacity duration-300"
-      style={{
-        backgroundColor: "rgb(249,248,245)",
-        top: topOffset + "px",
-        opacity: open ? 1 : 0,
-        pointerEvents: open ? "auto" : "none",
-      }}
-    >
-      <button type="button" aria-label="ބަންދުކުރޭ" onClick={onClose} className="absolute top-4 left-5 p-2 hover:bg-black/5 rounded-full text-[rgb(26,26,26)]">
-        <X className="w-5 h-5" />
-      </button>
-      <div className="h-full overflow-y-auto px-8 py-12 max-w-md mx-auto flex flex-col" dir="rtl">
-        <nav className="flex-1">
-          {categories.map((cat, i) => (
-            <div key={cat.id} style={{
-              opacity: open ? 1 : 0,
-              transform: open ? "translateX(0)" : "translateX(20px)",
-              transition: "opacity 0.3s ease " + (i * 0.04) + "s, transform 0.3s ease " + (i * 0.04) + "s",
-            }}>
-              <Link href={"/" + cat.slug}
-                onClick={cat.slug === "originals" ? undefined : onClose}
-                target={cat.slug === "originals" ? "_blank" : undefined}
-                rel={cat.slug === "originals" ? "noopener noreferrer" : undefined}
-                className="block py-3 border-b border-[#e0ddd6]/60 transition-colors text-[#999] hover:text-[#333]"
-                style={{ fontFamily: "'MVTypewriter','MV Boli',sans-serif", fontSize: "1.2rem" }}>
-                {cat.name}
-              </Link>
-            </div>
-          ))}
-        </nav>
-        <div className="pt-6 mt-6 border-t border-[#e0ddd6]/60" style={{
-          opacity: open ? 1 : 0,
-          transform: open ? "translateX(0)" : "translateX(20px)",
-          transition: "opacity 0.3s ease " + (categories.length * 0.04 + 0.1) + "s, transform 0.3s ease " + (categories.length * 0.04 + 0.1) + "s",
-        }}>
-          <Link href="/login" onClick={onClose}
-            className="flex items-center gap-3 py-3 transition-colors text-[#999] hover:text-[#333]"
-            style={{ fontFamily: "'MVTypewriter','MV Boli',sans-serif", fontSize: "1rem" }}>
-            <User className="w-4 h-4 flex-shrink-0" />
-            ސައިން އިން
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
+                <p className="text-center py-6" style={{ fontFamily: '"MVTypewriter","Noto Sans Thaana",sans-serif', fontSize: "13px",
