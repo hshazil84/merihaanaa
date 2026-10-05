@@ -306,6 +306,13 @@ export default async function ArticlePage({ params }: PageProps) {
         </div>
       </div>
 
+      {/* Comments */}
+      {article.allow_comments && (
+        <div className="max-w-3xl mx-auto px-6 pb-10">
+          <CommentSection articleId={article.id} />
+        </div>
+      )}
+
       {/* Related */}
       {related.length > 0 && (
         <section className="max-w-6xl mx-auto px-6 py-12 border-t border-black/10">
@@ -344,13 +351,6 @@ export default async function ArticlePage({ params }: PageProps) {
             })}
           </div>
         </section>
-      )}
-
-      {/* Comments */}
-      {article.allow_comments && (
-        <div className="max-w-3xl mx-auto px-6 pb-16">
-          <CommentSection articleId={article.id} />
-        </div>
       )}
     </div>
   );
