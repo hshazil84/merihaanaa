@@ -25,6 +25,8 @@ type Props = {
 };
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const MAX_LENGTH = 1000;
+const COOLDOWN_MS = 10000;
 
 function getAvatarUrl(path: string | null): string | null {
   if (!path) return null;
@@ -35,25 +37,36 @@ function getAvatarUrl(path: string | null): string | null {
 function timeAgo(dateStr: string): string {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
   if (diff < 60) return "ދެންމެ";
-  if (diff < 3600) return `${Math.floor(diff / 60)} މިނިޓް`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} ގަޑި`;
-  return `${Math.floor(diff / 86400)} ދުވަސް`;
+  if (diff < 3600) return `${Math.floor(diff / 60)} މިނިޓް ކުރިން`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} ގަޑި ކުރިން`;
+  return `${Math.floor(diff / 86400)} ދުވަސް ކުރިން`;
 }
 
-function Avatar({ path, name, size = 9 }: { path: string | null; name: string; size?: number }) {
+function Avatar({ path, name, size = 36 }: { path: string | null; name: string; size?: number }) {
   const url = getAvatarUrl(path);
-  const cls = `w-${size} h-${size} rounded-full`;
+  const style = { width: size, height: size };
   if (url) {
-    return <img src={url} alt={name} className={`${cls} object-cover`} />;
+    return <img src={url} alt={name} style={style} className="rounded-full object-cover" />;
   }
   return (
-    <div className={`${cls} bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-sm font-medium text-gray-500`}>
+    <div
+      style={style}
+      className="rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-sm font-medium text-gray-500"
+    >
       {name.charAt(0).toUpperCase()}
     </div>
   );
 }
 
-function CommentItem({ comment }: { comment: Comment }) {
+function CommentItem({
+  comment,
+  canDelete,
+  onDelete,
+}: {
+  comment: Comment;
+  canDelete: boolean;
+  onDelete: (id: string) => void;
+}) {
   const profile = comment.user_profiles;
   const name = profile?.full_name ?? "ނަމެއް ނެތް";
   return (
@@ -61,18 +74,36 @@ function CommentItem({ comment }: { comment: Comment }) {
       <div className="flex-shrink-0">
         <Avatar path={profile?.avatar ?? null} name={name} />
       </div>
-      <div className="flex-1">
+      <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-sm font-medium text-gray-900 dark:text-white">{name}</span>
-          <span className="text-xs text-gray-400">{timeAgo(comment.created_at)} ކުރިން</span>
+          <span className="text-xs text-gray-400">{timeAgo(comment.created_at)}</span>
+          {canDelete && (
+            <button
+              onClick={() => onDelete(comment.id)}
+              className="text-xs text-gray-400 hover:text-red-500 transition-colors ms-auto"
+            >
+              ފޮހެލާ
+            </button>
+          )}
         </div>
-        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{comment.body}</p>
+        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap break-words">
+          {comment.body}
+        </p>
       </div>
     </div>
   );
 }
 
-function CommentList({ comments }: { comments: Comment[] }) {
+function CommentList({
+  comments,
+  userId,
+  onDelete,
+}: {
+  comments: Comment[];
+  userId: string | null;
+  onDelete: (id: string) => void;
+}) {
   if (comments.length === 0) {
     return (
       <p className="text-sm text-gray-400 text-center py-8">
@@ -80,11 +111,18 @@ function CommentList({ comments }: { comments: Comment[] }) {
       </p>
     );
   }
-  const items: React.ReactNode[] = [];
-  for (let i = 0; i < comments.length; i++) {
-    items.push(<CommentItem key={comments[i].id} comment={comments[i]} />);
-  }
-  return <div className="space-y-6">{items}</div>;
+  return (
+    <div className="space-y-6">
+      {comments.map((c) => (
+        <CommentItem
+          key={c.id}
+          comment={c}
+          canDelete={!!userId && c.user_id === userId}
+          onDelete={onDelete}
+        />
+      ))}
+    </div>
+  );
 }
 
 export default function CommentSection({ articleId }: Props) {
@@ -93,7 +131,8 @@ export default function CommentSection({ articleId }: Props) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [lastPostAt, setLastPostAt] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -131,60 +170,97 @@ export default function CommentSection({ articleId }: Props) {
   }, [articleId]);
 
   async function handleSubmit() {
-    if (!body.trim() || !user) return;
+    const text = body.trim();
+    if (!text || !user || submitting) return;
+
+    if (Date.now() - lastPostAt < COOLDOWN_MS) {
+      setError("ކޮމެންޓްތައް ފޮނުވަނީ ވަރަށް އަވަހަށް. ވަރަކަށް މަޑުކޮށްލާ.");
+      return;
+    }
+
     setSubmitting(true);
-    const { error } = await supabase.from("comments").insert({
-      article_id: articleId,
-      user_id: user.id,
-      body: body.trim(),
-      is_approved: false,
-    });
-    if (!error) {
+    setError(null);
+
+    const { data, error: insertError } = await supabase
+      .from("comments")
+      .insert({
+        article_id: articleId,
+        user_id: user.id,
+        body: text,
+        is_approved: true,
+      })
+      .select("id, body, created_at, user_id")
+      .single();
+
+    if (insertError || !data) {
+      setError("ކޮމެންޓް ފޮނުވޭކަށް ނުޖެހުނު. އަލުން މަސައްކަތް ކޮށްލާ.");
+    } else {
+      setComments((prev) => [
+        {
+          ...data,
+          user_profiles: { full_name: user.full_name, avatar: user.avatar },
+        },
+        ...prev,
+      ]);
       setBody("");
-      setSubmitted(true);
+      setLastPostAt(Date.now());
     }
     setSubmitting(false);
+  }
+
+  async function handleDelete(id: string) {
+    const { error: deleteError } = await supabase.from("comments").delete().eq("id", id);
+    if (!deleteError) {
+      setComments((prev) => prev.filter((c) => c.id !== id));
+    }
   }
 
   if (loading) return null;
 
   return (
     <section className="mt-12 border-t border-black/10 pt-10">
-      <h2 className="mb-6" style={{ fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif', fontWeight: 400, fontSize: "22px", color: "rgb(26,26,26)", lineHeight: 2 }}>
+      <h2
+        className="mb-6"
+        style={{
+          fontFamily: '"MVTypewriter", "Noto Sans Thaana", sans-serif',
+          fontWeight: 400,
+          fontSize: "22px",
+          color: "rgb(26,26,26)",
+          lineHeight: 2,
+        }}
+      >
         ކޮމެންޓް ({comments.length})
       </h2>
 
       {user ? (
         <div className="mb-8">
-          {submitted ? (
-            <div className="rounded-xl border border-gray-200 dark:border-gray-700 px-5 py-4 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50">
-              ތިބާގެ ކޮމެންޓް ލިބިއްޖެ. ރިވިއު ކުރުމަށްފަހު ޝާއިއުކުރެވޭނެ.
+          <div className="flex gap-3">
+            <div className="flex-shrink-0">
+              <Avatar path={user.avatar} name={user.full_name} />
             </div>
-          ) : (
-            <div className="flex gap-3">
-              <div className="flex-shrink-0">
-                <Avatar path={user.avatar} name={user.full_name} />
-              </div>
-              <div className="flex-1">
-                <textarea
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  placeholder="ކޮމެންޓެއް ލިޔޭ..."
-                  rows={3}
-                  className="w-full px-4 py-3 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
-                />
-                <div className="flex justify-end mt-2">
-                  <button
-                    onClick={handleSubmit}
-                    disabled={submitting || !body.trim()}
-                    className="px-4 py-2 text-sm bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {submitting ? "ފޮނުވަނީ..." : "ފޮނުވާ"}
-                  </button>
-                </div>
+            <div className="flex-1">
+              <textarea
+                value={body}
+                onChange={(e) => setBody(e.target.value.slice(0, MAX_LENGTH))}
+                placeholder="ކޮމެންޓެއް ލިޔޭ..."
+                rows={3}
+                className="w-full px-4 py-3 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+              />
+              {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-xs text-gray-400">
+                  {body.length}/{MAX_LENGTH}
+                </span>
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting || !body.trim()}
+                  className="px-4 py-2 text-sm bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {submitting ? "ފޮނުވަނީ..." : "ފޮނުވާ"}
+                </button>
               </div>
             </div>
-          )}
+          </div>
         </div>
       ) : (
         <div className="mb-8 rounded-xl border border-gray-200 dark:border-gray-700 px-5 py-4 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50">
@@ -195,7 +271,7 @@ export default function CommentSection({ articleId }: Props) {
         </div>
       )}
 
-      <CommentList comments={comments} />
+      <CommentList comments={comments} userId={user?.id ?? null} onDelete={handleDelete} />
     </section>
   );
 }
