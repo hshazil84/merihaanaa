@@ -36,7 +36,7 @@ export async function loadCommentContext(
 ): Promise<CommentContext | null> {
   const { data: c } = await supabase
     .from("comments")
-    .select("id, body, is_approved, user_id, article_id")
+    .select("id, body, is_approved, user_id, article_id, author_name")
     .eq("id", id)
     .maybeSingle();
   if (!c) return null;
@@ -48,7 +48,7 @@ export async function loadCommentContext(
     c.article_id
       ? supabase
           .from("articles")
-          .select("title, slug, categories(slug)")
+          .select("title, slug, categories!category_id(slug)")
           .eq("id", c.article_id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
@@ -60,7 +60,7 @@ export async function loadCommentContext(
   return {
     id: c.id,
     body: c.body,
-    authorName: profile?.full_name || "Unknown",
+    authorName: c.author_name ? `${c.author_name} (guest)` : profile?.full_name || "Unknown",
     articleTitle: article?.title || "Unknown article",
     articleUrl: article?.slug && cat?.slug ? `${site}/${cat.slug}/${article.slug}` : null,
     state: c.is_approved === true ? "visible" : "hidden",
