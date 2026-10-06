@@ -10,7 +10,7 @@ export default async function CommentsPage() {
   // 1) Comments (plain query: no embeds, so nothing relationship-related can break it)
   const { data: commentRows, error: commentErr } = await supabase
     .from("comments")
-    .select("id, body, is_approved, created_at, article_id, user_id, parent_id")
+    .select("id, body, is_approved, created_at, article_id, user_id, parent_id, author_name")
     .order("created_at", { ascending: false })
     .limit(1000);
   if (commentErr) {
@@ -89,7 +89,7 @@ export default async function CommentsPage() {
     created_at: c.created_at,
     article_id: c.article_id,
     parent_id: c.parent_id ?? null,
-    author_name: names.get(c.user_id) || null,
+    author_name: c.author_name ? `${c.author_name} (guest)` : names.get(c.user_id) || null,
   }));
 
   return (
