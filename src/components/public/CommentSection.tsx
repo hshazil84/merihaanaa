@@ -9,6 +9,7 @@ type Comment = {
   created_at: string;
   user_id: string;
   parent_id: string | null;
+  author_name: string | null; // set for guest comments
   user_profiles: {
     full_name: string;
     avatar: string | null;
@@ -19,6 +20,7 @@ type UserProfile = {
   id: string;
   full_name: string;
   avatar: string | null;
+  guest: boolean; // anonymous session (no account)
 };
 
 type Reaction = { comment_id: string; user_id: string; emoji: string };
@@ -30,7 +32,57 @@ type Props = {
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const MAX_LENGTH = 1000;
 const COOLDOWN_MS = 10000;
+const MAX_NAME = 40;
 const EMOJIS = ["👍", "👎", "❤️", "😂", "😮", "😢", "😡"];
+const NAME_KEY = "mh_guest_name";
+const TURNSTILE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+
+declare global {
+  interface Window {
+    turnstile?: any;
+  }
+}
+
+function loadTurnstile(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (window.turnstile) return resolve();
+    const existing = document.getElementById("cf-turnstile-script");
+    if (existing) {
+      existing.addEventListener("load", () => resolve());
+      return;
+    }
+    const sc = document.createElement("script");
+    sc.id = "cf-turnstile-script";
+    sc.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+    sc.async = true;
+    sc.onload = () => resolve();
+    sc.onerror = () => reject(new Error("turnstile failed to load"));
+    document.head.appendChild(sc);
+  });
+}
+
+// Returns a one-time human-check token, or undefined when Turnstile isn't configured.
+async function getCaptchaToken(): Promise<string | undefined> {
+  if (!TURNSTILE_KEY) return undefined;
+  await loadTurnstile();
+  return new Promise((resolve, reject) => {
+    const host = document.createElement("div");
+    host.style.cssText = "position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:9999";
+    document.body.appendChild(host);
+    let widgetId: string | undefined;
+    const cleanup = () => {
+      try { if (widgetId) window.turnstile.remove(widgetId); } catch {}
+      host.remove();
+    };
+    widgetId = window.turnstile.render(host, {
+      sitekey: TURNSTILE_KEY,
+      appearance: "interaction-only", // invisible unless a challenge is needed
+      callback: (token: string) => { cleanup(); resolve(token); },
+      "error-callback": () => { cleanup(); reject(new Error("captcha error")); },
+      "timeout-callback": () => { cleanup(); reject(new Error("captcha timeout")); },
+    });
+  });
+}
 
 function getAvatarUrl(path: string | null): string | null {
   if (!path) return null;
@@ -113,12 +165,18 @@ function ReplyBox({
   prefix,
   submitting,
   error,
+  needName,
+  guestName,
+  onGuestName,
   onSubmit,
   onCancel,
 }: {
   prefix: string;
   submitting: boolean;
   error: string | null;
+  needName: boolean;
+  guestName: string;
+  onGuestName: (v: string) => void;
   onSubmit: (text: string) => Promise<boolean>;
   onCancel: () => void;
 }) {
@@ -133,8 +191,19 @@ function ReplyBox({
 
   return (
     <div className="mt-3">
+      {needName && (
+        <input
+          value={guestName}
+          onChange={(e) => onGuestName(e.target.value.slice(0, MAX_NAME))}
+          placeholder="ނަން"
+          dir="rtl"
+          lang="dv"
+          spellCheck={false}
+          className="w-full mb-2 px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+        />
+      )}
       <textarea
-        autoFocus
+        autoFocus={!needName || !!guestName}
         value={text}
         onChange={(e) => setText(e.target.value.slice(0, MAX_LENGTH))}
         placeholder="ރިޕްލައި ލިޔޭ..."
@@ -149,7 +218,7 @@ function ReplyBox({
         <button
           type="button"
           onClick={send}
-          disabled={submitting || !text.trim()}
+          disabled={submitting || !text.trim() || (needName && !guestName.trim())}
           className="px-3 py-1.5 text-xs bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {submitting ? "ފޮނުވަނީ..." : "ފޮނުވާ"}
@@ -192,15 +261,21 @@ function CommentItem({
   locked: boolean;
 }) {
   const profile = comment.user_profiles;
-  const name = profile?.full_name ?? "ނަމެއް ނެތް";
+  const isGuest = !!comment.author_name;
+  const name = comment.author_name || profile?.full_name || "ނަމެއް ނެތް";
   return (
     <div className="flex gap-3">
       <div className="flex-shrink-0">
-        <Avatar path={profile?.avatar ?? null} name={name} size={isReply ? 26 : 32} />
+        <Avatar path={isGuest ? null : profile?.avatar ?? null} name={name} size={isReply ? 26 : 32} />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-sm font-medium text-gray-900 dark:text-white">{name}</span>
+          {isGuest && (
+            <span className="text-[10px] text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full px-1.5 leading-4">
+              ގެސްޓް
+            </span>
+          )}
           <span className="text-xs text-gray-400">{timeAgo(comment.created_at)}</span>
           {canDelete && (
             <button
@@ -253,11 +328,19 @@ export default function CommentSection({ articleId }: Props) {
   const [loading, setLoading] = useState(true);
   const [locked, setLocked] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [guestName, setGuestName] = useState("");
 
   // reply state: which comment's reply box is open
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replySubmitting, setReplySubmitting] = useState(false);
   const [replyError, setReplyError] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(NAME_KEY);
+      if (saved) setGuestName(saved.slice(0, MAX_NAME));
+    } catch {}
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -275,7 +358,7 @@ export default function CommentSection({ articleId }: Props) {
 
         const { data: commentData, error: commentErr } = await supabase
           .from("comments")
-          .select("id, body, created_at, user_id, parent_id")
+          .select("id, body, created_at, user_id, parent_id, author_name")
           .eq("article_id", articleId)
           .eq("is_approved", true)
           .order("created_at", { ascending: false });
@@ -326,9 +409,13 @@ export default function CommentSection({ articleId }: Props) {
             .select("full_name, avatar")
             .eq("id", authData.user.id)
             .single();
-          if (profile) {
-            setUser({ id: authData.user.id, full_name: profile.full_name, avatar: profile.avatar });
-          }
+          const guest = !!authData.user.is_anonymous;
+          setUser({
+            id: authData.user.id,
+            full_name: profile?.full_name || "",
+            avatar: profile?.avatar ?? null,
+            guest,
+          });
         }
       } catch (e) {
         console.error("[comments] init crashed:", e);
@@ -342,35 +429,69 @@ export default function CommentSection({ articleId }: Props) {
     return () => { cancelled = true; };
   }, [articleId]);
 
+  // Creates a hidden anonymous session for first-time guests
+  async function ensureSession(): Promise<UserProfile | null> {
+    if (user) return user;
+    let token: string | undefined;
+    try {
+      token = await getCaptchaToken();
+    } catch (e) {
+      console.error("[comments] human check failed:", e);
+      return null;
+    }
+    const { data, error: signErr } = await supabase.auth.signInAnonymously(
+      token ? { options: { captchaToken: token } } : undefined
+    );
+    if (signErr || !data.user) {
+      console.error("[comments] guest sign-in failed:", signErr?.message);
+      return null;
+    }
+    const u: UserProfile = { id: data.user.id, full_name: "", avatar: null, guest: true };
+    setUser(u);
+    return u;
+  }
+
   // Returns an error message, or null on success
   async function postComment(text: string, parentId: string | null): Promise<string | null> {
-    if (!user) return "ލޮގިން ވޭ";
     if (locked) return "މި ލިޔުމުގެ ކޮމެންޓް ބަންދުކޮށްފައި";
+
+    const name = guestName.trim();
+    const guestNow = !user || user.guest;
+    if (guestNow && !name) return "ނަން ލިޔޭ";
 
     if (Date.now() - lastPostAt < COOLDOWN_MS) {
       return "ކޮމެންޓްތައް ފޮނުވަނީ ވަރަށް އަވަހަށް. ވަރަކަށް މަޑުކޮށްލާ.";
     }
 
+    const u = await ensureSession();
+    if (!u) return "ކޮމެންޓް ފޮނުވޭކަށް ނުޖެހުނު. އަލުން މަސައްކަތް ކޮށްލާ.";
+
     const { data, error: insertError } = await supabase
       .from("comments")
       .insert({
         article_id: articleId,
-        user_id: user.id,
+        user_id: u.id,
         body: text,
         parent_id: parentId,
+        author_name: u.guest ? name : null,
         is_approved: true,
       })
-      .select("id, body, created_at, user_id, parent_id")
+      .select("id, body, created_at, user_id, parent_id, author_name")
       .single();
 
     if (insertError || !data) {
+      console.error("[comments] insert failed:", insertError?.message);
       return "ކޮމެންޓް ފޮނުވޭކަށް ނުޖެހުނު. އަލުން މަސައްކަތް ކޮށްލާ.";
+    }
+
+    if (u.guest) {
+      try { localStorage.setItem(NAME_KEY, name); } catch {}
     }
 
     setComments((prev) => [
       {
         ...(data as Omit<Comment, "user_profiles">),
-        user_profiles: { full_name: user.full_name, avatar: user.avatar },
+        user_profiles: u.guest ? null : { full_name: u.full_name, avatar: u.avatar },
       },
       ...prev,
     ]);
@@ -380,7 +501,7 @@ export default function CommentSection({ articleId }: Props) {
 
   async function handleSubmit() {
     const text = body.trim();
-    if (!text || !user || submitting) return;
+    if (!text || submitting) return;
     setSubmitting(true);
     setError(null);
     const err = await postComment(text, null);
@@ -405,10 +526,6 @@ export default function CommentSection({ articleId }: Props) {
 
   function openReply(commentId: string) {
     if (locked) return;
-    if (!user) {
-      window.location.href = "/login";
-      return;
-    }
     setReplyError(null);
     setReplyingTo((cur) => (cur === commentId ? null : commentId));
   }
@@ -424,38 +541,36 @@ export default function CommentSection({ articleId }: Props) {
 
   async function handleToggleReaction(commentId: string, emoji: string) {
     if (locked) return;
-    if (!user) {
-      window.location.href = "/login";
-      return;
-    }
+    const u = await ensureSession();
+    if (!u) return;
     const previous = reactions;
-    const existing = reactions.find((r) => r.comment_id === commentId && r.user_id === user.id);
+    const existing = reactions.find((r) => r.comment_id === commentId && r.user_id === u.id);
 
     if (existing && existing.emoji === emoji) {
-      setReactions((prev) => prev.filter((r) => !(r.comment_id === commentId && r.user_id === user.id)));
+      setReactions((prev) => prev.filter((r) => !(r.comment_id === commentId && r.user_id === u.id)));
       const { error: err } = await supabase
         .from("comment_reactions")
         .delete()
         .eq("comment_id", commentId)
-        .eq("user_id", user.id);
+        .eq("user_id", u.id);
       if (err) setReactions(previous);
     } else if (existing) {
       setReactions((prev) =>
         prev.map((r) =>
-          r.comment_id === commentId && r.user_id === user.id ? { ...r, emoji } : r
+          r.comment_id === commentId && r.user_id === u.id ? { ...r, emoji } : r
         )
       );
       const { error: err } = await supabase
         .from("comment_reactions")
         .update({ emoji })
         .eq("comment_id", commentId)
-        .eq("user_id", user.id);
+        .eq("user_id", u.id);
       if (err) setReactions(previous);
     } else {
-      setReactions((prev) => [...prev, { comment_id: commentId, user_id: user.id, emoji }]);
+      setReactions((prev) => [...prev, { comment_id: commentId, user_id: u.id, emoji }]);
       const { error: err } = await supabase
         .from("comment_reactions")
-        .insert({ comment_id: commentId, user_id: user.id, emoji });
+        .insert({ comment_id: commentId, user_id: u.id, emoji });
       if (err) setReactions(previous);
     }
   }
@@ -469,7 +584,7 @@ export default function CommentSection({ articleId }: Props) {
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
   function renderItem(c: Comment, topId: string, isReply: boolean) {
-    const name = c.user_profiles?.full_name ?? "";
+    const name = c.author_name || c.user_profiles?.full_name || "";
     return (
       <CommentItem
         key={c.id}
@@ -488,6 +603,9 @@ export default function CommentSection({ articleId }: Props) {
             prefix={isReply && name ? `@${name} ` : ""}
             submitting={replySubmitting}
             error={replyError}
+            needName={!user || user.guest}
+            guestName={guestName}
+            onGuestName={setGuestName}
             onSubmit={(text) => handleReplySubmit(topId, text)}
             onCancel={() => setReplyingTo(null)}
           />
@@ -518,13 +636,27 @@ export default function CommentSection({ articleId }: Props) {
         >
           🔒 މި ލިޔުމުގެ ކޮމެންޓް ބަންދުކޮށްފައި. އާ ކޮމެންޓް ނުކުރެވޭނެ.
         </div>
-      ) : user ? (
+      ) : (
         <div className="mb-6">
           <div className="flex gap-3">
             <div className="flex-shrink-0">
-              <Avatar path={user.avatar} name={user.full_name} />
+              <Avatar
+                path={user && !user.guest ? user.avatar : null}
+                name={user && !user.guest ? user.full_name || "?" : guestName || "?"}
+              />
             </div>
             <div className="flex-1">
+              {(!user || user.guest) && (
+                <input
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value.slice(0, MAX_NAME))}
+                  placeholder="ނަން"
+                  dir="rtl"
+                  lang="dv"
+                  spellCheck={false}
+                  className="w-full mb-2 px-4 py-2.5 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+                />
+              )}
               <textarea
                 value={body}
                 onChange={(e) => setBody(e.target.value.slice(0, MAX_LENGTH))}
@@ -542,21 +674,22 @@ export default function CommentSection({ articleId }: Props) {
                 </span>
                 <button
                   onClick={handleSubmit}
-                  disabled={submitting || !body.trim()}
+                  disabled={submitting || !body.trim() || ((!user || user.guest) && !guestName.trim())}
                   className="px-4 py-2 text-sm bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {submitting ? "ފޮނުވަނީ..." : "ފޮނުވާ"}
                 </button>
               </div>
+              {(!user || user.guest) && (
+                <p className="text-xs text-gray-400 mt-3">
+                  އެކައުންޓެއް ހުރިނަމަ{" "}
+                  <a href="/login" className="text-gray-700 dark:text-gray-300 underline underline-offset-2">
+                    ލޮގިން ވޭ
+                  </a>
+                </p>
+              )}
             </div>
           </div>
-        </div>
-      ) : (
-        <div className="mb-6 rounded-xl border border-gray-200 dark:border-gray-700 px-5 py-4 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50">
-          ކޮމެންޓް ކުރަން{" "}
-          <a href="/login" className="text-gray-900 dark:text-white underline underline-offset-2">
-            ލޮގިން ވޭ
-          </a>
         </div>
       )}
 
